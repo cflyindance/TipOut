@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小费分配规则 - TipOut</title>
+  <link rel="stylesheet" href="common.css">
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">M</div>
+        <span class="logo-text">MenuSifu</span>
+      </div>
+      <nav class="sidebar-menu">
+        <div class="sidebar-submenu-title open" onclick="this.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.classList.contains('open')?'200px':'0'">
+          <span>Tip Out</span>
+          <svg class="arrow" width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+        </div>
+        <div class="sidebar-submenu-items" style="max-height:200px">
+          <a href="index.html" class="sidebar-menu-item active">小费分配</a>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="mobile-overlay"></div>
+
+    <div class="main-content">
+      <header class="header">
+        <div class="header-left">
+          <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+        </div>
+        <div class="header-right">
+          <div class="header-user">
+            <div class="avatar">R</div>
+            <span>Robert_W</span>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-tabs">
+        <a href="index.html" class="page-tab">小费分配</a>
+        <a href="detail.html" class="page-tab">小费分配明细</a>
+        <a href="rules.html" class="page-tab active">小费分配规则</a>
+      </div>
+
+      <div class="content-area">
+        <!-- Filter + Add -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+          <div class="filter-bar">
+            <select class="form-control form-control-lg" id="storeFilter" style="width:460px" onchange="renderRulesTable()">
+              <option value="">全部门店</option>
+              <option value="Golden Dragon Chinese Kitchen - Dallas, TX 75231">Golden Dragon Chinese Kitchen - Dallas, TX 75231</option>
+              <option value="Sakura Sushi & Ramen House - Dallas, TX 75247">Sakura Sushi & Ramen House - Dallas, TX 75247</option>
+              <option value="El Fuego Tex-Mex Grill - Plano, TX 75074">El Fuego Tex-Mex Grill - Plano, TX 75074</option>
+            </select>
+          </div>
+          <a href="rule-add.html" class="btn btn-primary" style="height:32px">新增规则</a>
+        </div>
+
+        <!-- Rules Table -->
+        <div class="card">
+          <div class="card-body" style="padding:0">
+            <table class="data-table" id="rulesTable">
+              <thead>
+                <tr>
+                  <th style="width:25%">门店</th>
+                  <th style="width:25%">规则名称</th>
+                  <th style="width:30%">规则</th>
+                  <th style="width:20%">操作</th>
+                </tr>
+              </thead>
+              <tbody id="rulesTableBody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script src="ruleData.js"></script>
+  <script>
+    function renderRulesTable() {
+      var rules = ruleData.getRules();
+      var storeFilter = document.getElementById('storeFilter');
+      var filterStore = storeFilter ? storeFilter.value : '';
+      if (filterStore) {
+        rules = rules.filter(function(r) { return r.store === filterStore; });
+      }
+      var tbody = document.getElementById('rulesTableBody');
+      tbody.innerHTML = '';
+      rules.forEach(function(rule) {
+        var desc = ruleData.buildRuleDescription(rule);
+        var tr = document.createElement('tr');
+        tr.setAttribute('data-rule-id', rule.id);
+        tr.innerHTML =
+          '<td>' + (rule.store || '') + '</td>' +
+          '<td>' + (rule.ruleName || '') + '</td>' +
+          '<td>' + desc + '</td>' +
+          '<td class="action-links">' +
+            '<a href="rule-add.html?mode=edit&id=' + rule.id + '">编辑</a>' +
+            '<a href="javascript:void(0)" onclick="deleteRule(this)">删除</a>' +
+            '<a href="javascript:void(0)" onclick="copyRule(this)">复制</a>' +
+          '</td>';
+        tbody.appendChild(tr);
+      });
+    }
+
+    function deleteRule(el) {
+      confirmAction('确定要删除该规则吗？此操作不可恢复。', function() {
+        var row = el.closest('tr');
+        var id = row.getAttribute('data-rule-id');
+        ruleData.deleteRuleById(id);
+        row.style.opacity = '0';
+        row.style.transition = 'opacity 0.3s';
+        setTimeout(function() { renderRulesTable(); }, 300);
+        showNotification('规则已删除');
+      });
+    }
+
+    function copyRule(el) {
+      var row = el.closest('tr');
+      var id = row.getAttribute('data-rule-id');
+      var rule = ruleData.getRuleById(id);
+      if (!rule) return;
+      var rules = ruleData.getRules();
+      var newRule = JSON.parse(JSON.stringify(rule));
+      newRule.id = ruleData.getNextRuleId();
+      newRule.ruleName = (rule.ruleName || '') + ' (副本)';
+      rules.push(newRule);
+      ruleData.saveRules(rules);
+      renderRulesTable();
+      showNotification('规则复制成功');
+    }
+
+    renderRulesTable();
+  </script>
+</body>
+</html>

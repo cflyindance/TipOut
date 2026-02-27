@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>新增小费分配规则 - TipOut</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    .page-card {
+      background: #fff; border-radius: 12px; padding: 24px;
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+    .page-title { font-size: 16px; font-weight: 600; margin-bottom: 24px; }
+    .form-section { margin-bottom: 24px; }
+    .form-section-title {
+      font-size: 14px; font-weight: 600; margin-bottom: 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* Tip Pool Rule Card */
+    .pool-rule-card {
+      border: 1px solid rgba(0,0,0,0.06); border-radius: 10px;
+      overflow: hidden; margin-bottom: 16px;
+    }
+    .pool-rule-header {
+      padding: 16px 24px; background: rgba(0,0,0,0.02);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .pool-rule-header .pool-rule-label { font-weight: 500; font-size: 14px; display: flex; align-items: center; gap: 4px; }
+    .pool-rule-header .pool-rule-label .num { color: var(--primary); font-weight: 600; margin-right: 4px; }
+    .pool-rule-body {
+      padding: 16px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    .pool-rule-body .field-group {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .pool-rule-body .field-label { font-size: 13px; color: var(--text-secondary); white-space: nowrap; }
+    .pool-rule-body input[type="number"] {
+      width: 80px; height: 32px; padding: 4px 8px; border: 1px solid var(--border-color);
+      border-radius: var(--radius-md); font-size: 14px; text-align: center;
+    }
+    .pool-rule-body input[type="number"]:focus {
+      border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(22,119,255,0.1);
+    }
+
+    /* Receiver Rule Table */
+    .receiver-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    .receiver-table th {
+      text-align: left; padding: 8px 12px; font-size: 13px; font-weight: 500;
+      border-bottom: 1px solid var(--border-light); background: rgba(0,0,0,0.02);
+    }
+    .receiver-table td {
+      padding: 8px 12px; border-bottom: 1px solid var(--border-light); font-size: 13px;
+    }
+    .receiver-table input[type="number"] {
+      width: 60px; height: 28px; padding: 2px 8px; border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm); font-size: 13px; text-align: center;
+    }
+    .receiver-table input[type="number"]:focus {
+      border-color: var(--primary); outline: none;
+    }
+
+    .radio-group { display: flex; flex-direction: column; gap: 8px; }
+    .radio-item {
+      display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer;
+    }
+    .radio-item input[type="radio"] {
+      width: 16px; height: 16px; accent-color: var(--primary);
+    }
+
+    .add-option-dropdown {
+      position: relative; display: inline-block;
+    }
+    .add-option-menu {
+      position: absolute; top: 100%; left: 0; margin-top: 4px;
+      background: #fff; border-radius: var(--radius-lg); padding: 4px;
+      box-shadow: var(--shadow-md); min-width: 160px; z-index: 10;
+      display: none;
+    }
+    .add-option-menu.show { display: block; }
+    .add-option-menu-item {
+      padding: 8px 12px; cursor: pointer; border-radius: var(--radius-sm);
+      font-size: 13px; transition: background 0.2s;
+    }
+    .add-option-menu-item:hover { background: rgba(0,0,0,0.04); }
+    .add-option-menu-item.disabled {
+      color: var(--text-tertiary); pointer-events: none; opacity: 0.5;
+    }
+
+    .condition-card {
+      border: 1px solid rgba(0,0,0,0.06); border-radius: 10px;
+      margin-bottom: 16px; overflow: hidden;
+    }
+    .condition-card-header {
+      padding: 12px 16px; background: rgba(0,0,0,0.02);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .condition-card-header .label { font-weight: 500; font-size: 14px; }
+    .condition-card-body { padding: 16px; }
+
+    #salesDrawer .drawer-body,
+    #tipsDrawer .drawer-body { overflow: visible; }
+    #salesDrawer .condition-card,
+    #tipsDrawer .condition-card { overflow: visible; }
+    #salesDrawer .multi-select-dropdown,
+    #tipsDrawer .multi-select-dropdown { z-index: 1100; }
+
+    .page-actions {
+      position: fixed; bottom: 0; right: 0; left: 264px; z-index: 40;
+      display: flex; justify-content: flex-end; gap: 12px; padding: 12px 24px;
+      background: #fff; border-top: 1px solid var(--border-light);
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+    }
+    .content-area { padding-bottom: 72px; }
+    @media (max-width: 768px) { .page-actions { left: 0; } }
+
+    /* Multi-Select Dropdown */
+    .multi-select { position: relative; }
+    .multi-select-input {
+      display: flex; align-items: center; min-height: 32px;
+      padding: 2px 32px 2px 4px; border: 1px solid var(--border-color);
+      border-radius: var(--radius-md); background: #fff; cursor: pointer;
+      transition: border-color 0.2s; position: relative;
+    }
+    .multi-select-input:hover { border-color: var(--primary); }
+    .multi-select.open .multi-select-input {
+      border-color: var(--primary); box-shadow: 0 0 0 2px rgba(22,119,255,0.1);
+    }
+    .multi-select-arrow {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      transition: transform 0.2s; pointer-events: none; flex-shrink: 0;
+    }
+    .multi-select.open .multi-select-arrow { transform: translateY(-50%) rotate(180deg); }
+    .multi-select-tags {
+      display: flex; flex-wrap: wrap; gap: 4px; flex: 1; min-height: 24px;
+      align-items: center;
+    }
+    .multi-select-tag {
+      display: inline-flex; align-items: center; gap: 2px;
+      padding: 1px 8px; background: #f5f5f5; border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm); font-size: 12px; line-height: 20px;
+      white-space: nowrap; max-width: 140px; overflow: hidden; text-overflow: ellipsis;
+    }
+    .multi-select-tag i {
+      font-style: normal; cursor: pointer; color: var(--text-tertiary);
+      margin-left: 2px; font-size: 13px; line-height: 1;
+    }
+    .multi-select-tag i:hover { color: var(--text-primary); }
+    .multi-select-dropdown {
+      display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: #fff; border-radius: var(--radius-lg); padding: 4px;
+      box-shadow: var(--shadow-md); z-index: 20; max-height: 240px; overflow-y: auto;
+    }
+    .multi-select.open .multi-select-dropdown { display: block; }
+    .multi-select-option {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer;
+      font-size: 13px; transition: background 0.15s;
+    }
+    .multi-select-option:hover { background: rgba(0,0,0,0.04); }
+    .multi-select-option input[type="checkbox"] {
+      width: 14px; height: 14px; accent-color: var(--primary); cursor: pointer;
+    }
+    .multi-select-placeholder {
+      color: var(--text-tertiary); font-size: 13px; padding: 0 4px;
+    }
+
+    /* Weight Modal Table */
+    .weight-table { width: 100%; border-collapse: collapse; }
+    .weight-table th {
+      text-align: left; padding: 10px 12px; font-size: 13px; font-weight: 500;
+      border-bottom: 1px solid var(--border-light);
+    }
+    .weight-table td {
+      padding: 10px 12px; border-bottom: 1px solid var(--border-light); font-size: 13px;
+    }
+    .weight-table input[type="number"] {
+      width: 80px; height: 28px; padding: 2px 8px; border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm); font-size: 13px;
+    }
+
+    /* Drawer Form */
+    .drawer-form-group { margin-bottom: 16px; }
+    .drawer-form-label {
+      font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: block;
+      white-space: nowrap;
+    }
+    .drawer-form-row {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .drawer-form-row label { font-size: 13px; color: var(--text-secondary); white-space: nowrap; min-width: 80px; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">M</div>
+        <span class="logo-text">MenuSifu</span>
+      </div>
+      <nav class="sidebar-menu">
+        <div class="sidebar-submenu-title open" onclick="this.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.classList.contains('open')?'200px':'0'">
+          <span>Tip Out</span>
+          <svg class="arrow" width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+        </div>
+        <div class="sidebar-submenu-items" style="max-height:200px">
+          <a href="index.html" class="sidebar-menu-item active">小费分配</a>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="mobile-overlay"></div>
+
+    <div class="main-content">
+      <header class="header">
+        <div class="header-left">
+          <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+        </div>
+        <div class="header-right">
+          <div class="header-user">
+            <div class="avatar">R</div>
+            <span>Robert_W</span>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-tabs">
+        <a href="rules.html" class="page-tab" style="color:var(--text-secondary)">← 返回规则列表</a>
+      </div>
+
+      <div class="content-area">
+        <div class="page-card">
+          <div class="page-title" id="pageTitle">小费分配规则</div>
+
+          <!-- Rule Name -->
+          <div class="form-section">
+            <div class="form-group">
+              <label class="form-label"><span class="required">*</span>规则名称</label>
+              <input type="text" id="ruleName" class="form-control" placeholder="请输入规则名称" style="max-width:460px">
+            </div>
+            <div class="form-group">
+              <label class="form-label"><span class="required">*</span>门店</label>
+              <select id="storeSelect" class="form-control" style="max-width:460px">
+                <option value="">请选择门店</option>
+                <option value="Golden Dragon Chinese Kitchen - Dallas, TX 75231">Golden Dragon Chinese Kitchen - Dallas, TX 75231</option>
+                <option value="Sakura Sushi & Ramen House - Dallas, TX 75247">Sakura Sushi & Ramen House - Dallas, TX 75247</option>
+                <option value="El Fuego Tex-Mex Grill - Plano, TX 75074">El Fuego Tex-Mex Grill - Plano, TX 75074</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Tip Pool Calculation Rules -->
+          <div class="form-section">
+            <div class="form-section-title">
+              <span>小费池计算规则</span>
+            </div>
+
+            <div id="poolRulesContainer"></div>
+
+            <!-- Add Option -->
+            <div class="add-option-dropdown">
+              <button class="btn" onclick="toggleAddMenu()" id="addMenuBtn">
+                <span style="font-size:16px">+</span> 新增选项
+              </button>
+              <div class="add-option-menu" id="addOptionMenu">
+                <div class="add-option-menu-item" data-type="sales" onclick="addPoolRule('sales')">销售额</div>
+                <div class="add-option-menu-item" data-type="tips" onclick="addPoolRule('tips')">小费</div>
+                <div class="add-option-menu-item" data-type="manual" onclick="addPoolRule('manual')">手动上报小费</div>
+                <div class="add-option-menu-item" data-type="custom" onclick="addPoolRule('custom')">自定义小费</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Deduction Rules -->
+          <div class="form-section">
+            <div class="form-section-title">扣除方规则</div>
+            <div class="form-group">
+              <label class="form-label">按照角色选择（多选）</label>
+              <div class="multi-select" id="deductRoleSelect" style="max-width:460px">
+                <div class="multi-select-input" onclick="toggleMultiSelect('deductRoleSelect')">
+                  <div class="multi-select-tags">
+                    <span class="multi-select-placeholder">请选择角色</span>
+                  </div>
+                  <svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+                </div>
+                <div class="multi-select-dropdown">
+                  <label class="multi-select-option"><input type="checkbox" value="Assistant Manager"> Assistant Manager</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Bartender"> Bartender</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Busser"> Busser</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Cashier"> Cashier</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Driver"> Driver</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Host"> Host</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Manager"> Manager</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Runner"> Runner</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Server"> Server</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Shift Lead"> Shift Lead</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Trainee"> Trainee</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Waiter"> Waiter</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Receiver Rules -->
+          <div class="form-section">
+            <div class="form-section-title">
+              <span>接收方规则</span>
+              <span style="font-size:12px;color:var(--text-tertiary);font-weight:400;margin-left:auto">合计: <span id="totalPercent">0</span>%</span>
+            </div>
+            <table class="receiver-table" id="receiverTable">
+              <thead>
+                <tr>
+                  <th>角色</th>
+                  <th>百分比</th>
+                  <th>占比百分比</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="receiverTableBody">
+              </tbody>
+            </table>
+            <button class="btn btn-sm" onclick="addReceiverRow()">
+              <span style="font-size:14px">+</span> 新增角色
+            </button>
+          </div>
+
+          <!-- Distribution Method -->
+          <div class="form-section">
+            <div class="form-section-title">分配方式（单选）</div>
+            <div class="radio-group">
+              <label class="radio-item">
+                <input type="radio" name="distribution" value="average" checked> 按员工数量平均分配
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="distribution" value="hours"> 按工作时长占比分配
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="distribution" value="orders"> 按订单占比分配
+              </label>
+            </div>
+          </div>
+
+          <!-- Clock-in Method -->
+          <div class="form-section">
+            <div class="form-section-title">员工打卡方式（单选）</div>
+            <div class="radio-group">
+              <label class="radio-item">
+                <input type="radio" name="clockin" value="clock" checked> 打卡上班
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="clockin" value="noclock"> 不打卡
+              </label>
+            </div>
+          </div>
+
+          <!-- Employee Weight -->
+          <div class="form-section">
+            <div class="form-section-title">员工权重</div>
+            <div class="radio-group">
+              <label class="radio-item">
+                <input type="radio" name="weight" value="set" onchange="toggleWeightBtn(true)"> 设置
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="weight" value="unset" checked onchange="toggleWeightBtn(false)"> 不设置
+              </label>
+            </div>
+            <div id="weightBtnArea" style="margin-top:8px;display:none">
+              <button class="btn" onclick="openModal('weightModal')">设置员工权重</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="page-actions">
+        <button class="btn btn-lg" onclick="cancelRule()">取消</button>
+        <button class="btn btn-primary btn-lg" onclick="submitRule()">提交</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Employee Weight Modal -->
+  <div class="modal-overlay" id="weightModal">
+    <div class="modal" style="width:520px">
+      <div class="modal-header">
+        <h3>员工权重</h3>
+        <button class="modal-close" onclick="closeModal('weightModal')">×</button>
+      </div>
+      <div class="modal-body">
+        <table class="weight-table">
+          <thead>
+            <tr>
+              <th style="width:30%">角色</th>
+              <th style="width:35%">员工姓名</th>
+              <th style="width:35%">员工权重</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td rowspan="4">Server</td>
+              <td>Maria Garcia</td>
+              <td><input type="number" value="1.2" step="0.1" min="0"></td>
+            </tr>
+            <tr>
+              <td>Jason Chen</td>
+              <td><input type="number" value="1.0" step="0.1" min="0"></td>
+            </tr>
+            <tr>
+              <td>Emily Watson</td>
+              <td><input type="number" value="1.0" step="0.1" min="0"></td>
+            </tr>
+            <tr>
+              <td>Diego Ramirez</td>
+              <td><input type="number" value="0.8" step="0.1" min="0"></td>
+            </tr>
+            <tr>
+              <td rowspan="2">Busser</td>
+              <td>Carlos Lopez</td>
+              <td><input type="number" value="1.0" step="0.1" min="0"></td>
+            </tr>
+            <tr>
+              <td>Tyler Brown</td>
+              <td><input type="number" value="1.0" step="0.1" min="0"></td>
+            </tr>
+            <tr>
+              <td rowspan="2">Bartender</td>
+              <td>Mike Johnson</td>
+              <td><input type="number" value="1.1" step="0.1" min="0"></td>
+            </tr>
+            <tr>
+              <td>Sarah Kim</td>
+              <td><input type="number" value="1.0" step="0.1" min="0"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('weightModal')">取消</button>
+        <button class="btn btn-primary" onclick="saveWeight()">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sales Value Conditions Drawer -->
+  <div class="drawer-overlay" id="salesDrawer-overlay"></div>
+  <div class="drawer" id="salesDrawer">
+    <div class="drawer-header">
+      <h3>设置取值条件</h3>
+      <button class="modal-close" onclick="closeDrawer('salesDrawer')">×</button>
+    </div>
+    <div class="drawer-body">
+      <div id="salesConditionsContainer"></div>
+      <div class="add-option-dropdown">
+        <button class="btn" type="button" onclick="toggleAddConditionMenu('salesDrawer')">
+          <span style="font-size:16px">+</span> 新增条件
+        </button>
+        <div class="add-option-menu" id="salesConditionMenu">
+          <div class="add-option-menu-item" data-type="role" onclick="addSalesCondition('role')">角色</div>
+          <div class="add-option-menu-item" data-type="area" onclick="addSalesCondition('area')">订单区域</div>
+          <div class="add-option-menu-item" data-type="orderType" onclick="addSalesCondition('orderType')">订单类型</div>
+          <div class="add-option-menu-item" data-type="menu" onclick="addSalesCondition('menu')">菜单</div>
+          <div class="add-option-menu-item" data-type="revenueType" onclick="addSalesCondition('revenueType')">营业额类型</div>
+          <div class="add-option-menu-item" data-type="hours" onclick="addSalesCondition('hours')">营业时间</div>
+        </div>
+      </div>
+    </div>
+    <div class="drawer-footer">
+      <button class="btn" onclick="closeDrawer('salesDrawer')">取消</button>
+      <button class="btn btn-primary" onclick="saveSalesCondition()">提交</button>
+    </div>
+  </div>
+
+  <!-- Tips Value Conditions Drawer -->
+  <div class="drawer-overlay" id="tipsDrawer-overlay"></div>
+  <div class="drawer" id="tipsDrawer">
+    <div class="drawer-header">
+      <h3>设置取值条件</h3>
+      <button class="modal-close" onclick="closeDrawer('tipsDrawer')">×</button>
+    </div>
+    <div class="drawer-body">
+      <div id="tipsConditionsContainer"></div>
+      <div class="add-option-dropdown">
+        <button class="btn" type="button" onclick="toggleAddConditionMenu('tipsDrawer')">
+          <span style="font-size:16px">+</span> 新增条件
+        </button>
+        <div class="add-option-menu" id="tipsConditionMenu">
+          <div class="add-option-menu-item" data-type="area" onclick="addTipsCondition('area')">订单区域</div>
+          <div class="add-option-menu-item" data-type="orderType" onclick="addTipsCondition('orderType')">订单类型</div>
+          <div class="add-option-menu-item" data-type="hours" onclick="addTipsCondition('hours')">营业时间段</div>
+          <div class="add-option-menu-item" data-type="tipType" onclick="addTipsCondition('tipType')">小费类型</div>
+        </div>
+      </div>
+    </div>
+    <div class="drawer-footer">
+      <button class="btn" onclick="closeDrawer('tipsDrawer')">取消</button>
+      <button class="btn btn-primary" onclick="saveTipsCondition()">提交</button>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script src="ruleData.js"></script>
+  <script>
+    // Track which pool rules exist (all false = empty by default)
+    const existingRules = { sales: false, tips: false, manual: false, custom: false };
+
+    // Parse URL for edit mode
+    function getEditParams() {
+      var params = {};
+      var s = (location.search || '').slice(1);
+      s.split('&').forEach(function(p) {
+        var kv = p.split('=');
+        if (kv[0] && kv[1]) params[kv[0]] = decodeURIComponent(kv[1]);
+      });
+      return params;
+    }
+
+    // Load rule into form (edit mode)
+    function loadRuleForEdit(rule) {
+      document.getElementById('ruleName').value = rule.ruleName || '';
+      var storeSel = document.getElementById('storeSelect');
+      storeSel.value = rule.store || '';
+      (rule.poolRules || []).forEach(function(pr) {
+        addPoolRule(pr.type);
+      });
+      (rule.poolRules || []).forEach(function(pr) {
+        var card = document.getElementById('rule-' + pr.type);
+        if (card) {
+          if (pr.type === 'custom') {
+            var amtInp = card.querySelector('input.pool-custom-amount');
+            var pctInp = card.querySelector('input.pool-custom-pct');
+            if (amtInp) amtInp.value = pr.amount != null ? pr.amount : 0;
+            if (pctInp) pctInp.value = pr.pct != null ? pr.pct : 100;
+          } else {
+            var inp = card.querySelector('input[type="number"]');
+            if (inp) inp.value = pr.pct;
+          }
+        }
+      });
+      var hasSales = (rule.poolRules || []).some(function(p) { return p.type === 'sales'; });
+      var hasTips = (rule.poolRules || []).some(function(p) { return p.type === 'tips'; });
+      if (hasSales && rule.salesConditions && Object.keys(rule.salesConditions).length > 0) {
+        Object.keys(rule.salesConditions).forEach(function(type) {
+          addSalesCondition(type, true);
+          setSalesConditionValue(type, rule.salesConditions[type]);
+        });
+      }
+      if (hasTips && rule.tipsConditions && Object.keys(rule.tipsConditions).length > 0) {
+        Object.keys(rule.tipsConditions).forEach(function(type) {
+          addTipsCondition(type, true);
+          setTipsConditionValue(type, rule.tipsConditions[type]);
+        });
+      }
+      var dist = document.querySelector('input[name="distribution"][value="' + (rule.distribution || 'average') + '"]');
+      if (dist) dist.checked = true;
+      var clock = document.querySelector('input[name="clockin"][value="' + (rule.clockin || 'clock') + '"]');
+      if (clock) clock.checked = true;
+      // Deduct roles
+      var deductContainer = document.getElementById('deductRoleSelect');
+      deductContainer.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+        cb.checked = (rule.deductRoles || []).indexOf(cb.value) !== -1;
+      });
+      refreshMultiTags('deductRoleSelect');
+      // Receivers - add rows then populate
+      var receivers = rule.receivers || [];
+      receivers.forEach(function() { addReceiverRow(); });
+      var rows = document.querySelectorAll('#receiverTableBody tr');
+      receivers.forEach(function(rec, idx) {
+        if (idx < rows.length) {
+          var roles = rec.roles || [];
+          var msId = rows[idx].querySelector('.multi-select');
+          if (msId) {
+            msId = msId.id;
+            var container = document.getElementById(msId);
+            if (container) {
+              container.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+                cb.checked = roles.indexOf(cb.value) !== -1;
+              });
+              refreshMultiTags(msId);
+            }
+          }
+          var pctInput = rows[idx].querySelector('input[type="number"]');
+          if (pctInput) pctInput.value = rec.pct || 0;
+        }
+      });
+      calcTotal();
+    }
+
+    function updateAddMenu() {
+      document.querySelectorAll('.add-option-menu-item').forEach(item => {
+        const type = item.dataset.type;
+        if (existingRules[type]) {
+          item.classList.add('disabled');
+        } else {
+          item.classList.remove('disabled');
+        }
+      });
+    }
+
+    function toggleAddMenu() {
+      const menu = document.getElementById('addOptionMenu');
+      menu.classList.toggle('show');
+      updateAddMenu();
+    }
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.add-option-dropdown')) {
+        var am = document.getElementById('addOptionMenu');
+        if (am) am.classList.remove('show');
+        var sm = document.getElementById('salesConditionMenu');
+        if (sm) sm.classList.remove('show');
+        var tm = document.getElementById('tipsConditionMenu');
+        if (tm) tm.classList.remove('show');
+      }
+    });
+
+    var existingSalesConditions = {};
+    var existingTipsConditions = {};
+    var roleOptionsHtml = '<label class="multi-select-option"><input type="checkbox" value="Assistant Manager"> Assistant Manager</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Bartender"> Bartender</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Busser"> Busser</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Cashier"> Cashier</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Driver"> Driver</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Host"> Host</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Manager"> Manager</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Runner"> Runner</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Server"> Server</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Shift Lead"> Shift Lead</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Trainee"> Trainee</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Waiter"> Waiter</label>';
+    var areaSelectHtml = '<option value="">请选择</option><option>全部</option><option>Main Dining</option><option>Bar Area</option><option>Patio</option><option>Private Room</option><option>Counter / To Go</option>';
+    var orderTypeSelectHtml = '<option value="">请选择</option><option>全部</option><option>Dine In</option><option>Delivery</option><option>Pick Up</option><option>To Go</option><option>Online Order</option><option>Catering</option>';
+    var menuProductLines = ['POS', 'eMenu', 'Kiosklite', 'OO', 'SDI', 'POSGo'];
+    var menuCategoriesByProductLine = {
+      'POS': ['全部', 'Lunch Special', 'Dinner Menu', 'Happy Hour', 'Weekend Brunch', 'Kids Menu', 'Dessert Menu', 'Beverage / Cocktails'],
+      'eMenu': ['全部', 'Lunch Special', 'Dinner Menu', 'Happy Hour', 'Weekend Brunch', 'Kids Menu', 'Dessert Menu', 'Beverage / Cocktails'],
+      'Kiosklite': ['全部', 'Lunch Special', 'Dinner Menu', 'Happy Hour', 'Weekend Brunch', 'Kids Menu', 'Dessert Menu', 'Beverage / Cocktails'],
+      'OO': ['全部', 'Lunch Special', 'Dinner Menu', 'Happy Hour', 'Weekend Brunch', 'Kids Menu', 'Dessert Menu', 'Beverage / Cocktails'],
+      'SDI': ['全部', 'Lunch Special', 'Dinner Menu', 'Happy Hour', 'Weekend Brunch', 'Kids Menu', 'Dessert Menu', 'Beverage / Cocktails'],
+      'POSGo': ['全部', 'Lunch Special', 'Dinner Menu', 'Happy Hour', 'Weekend Brunch', 'Kids Menu', 'Dessert Menu', 'Beverage / Cocktails']
+    };
+    var menuProductLineOptionsHtml = menuProductLines.map(function(pl) {
+      return '<label class="multi-select-option"><input type="checkbox" value="' + pl + '"> ' + pl + '</label>';
+    }).join('');
+    function getMenuCategoryMultiSelectOptionsHtml(selectedProductLines) {
+      var cats = [];
+      var seen = {};
+      (selectedProductLines || []).forEach(function(pl) {
+        var list = menuCategoriesByProductLine[pl];
+        if (list) list.forEach(function(c) { if (!seen[c]) { seen[c] = 1; cats.push(c); } });
+      });
+      return cats.map(function(c) {
+        return '<label class="multi-select-option"><input type="checkbox" value="' + c + '"> ' + c + '</label>';
+      }).join('');
+    }
+    function onMenuProductLineChange(card) {
+      var plMs = card.querySelector('.menu-product-line-select');
+      var catMs = card.querySelector('.menu-category-select');
+      if (!plMs || !catMs) return;
+      var checked = plMs.querySelectorAll('input[type="checkbox"]:checked');
+      var selected = Array.from(checked).map(function(cb) { return cb.value; });
+      var catDropdown = catMs.querySelector('.multi-select-dropdown');
+      if (catDropdown) {
+        catDropdown.innerHTML = selected.length ? getMenuCategoryMultiSelectOptionsHtml(selected) : '<div class="multi-select-placeholder" style="padding:8px 12px">请先选择产品线</div>';
+        catMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = false; });
+        refreshMultiTags(catMs.id);
+      }
+    }
+    var tipTypeSelectHtml = '<option value="">请选择</option><option>全部</option><option>Credit Card Tips (信用卡小费)</option><option>Cash Tips (现金小费)</option><option>Auto Gratuity (自动服务费)</option><option>Gift Card Tips</option>';
+
+    function toggleAddConditionMenu(drawerId) {
+      var menuId = drawerId === 'salesDrawer' ? 'salesConditionMenu' : 'tipsConditionMenu';
+      var menu = document.getElementById(menuId);
+      if (menu) {
+        menu.classList.toggle('show');
+        if (drawerId === 'salesDrawer') updateSalesConditionMenu(); else updateTipsConditionMenu();
+      }
+    }
+    function updateSalesConditionMenu() {
+      document.querySelectorAll('#salesConditionMenu .add-option-menu-item').forEach(function(item) {
+        var t = item.dataset.type;
+        item.classList.toggle('disabled', !!existingSalesConditions[t]);
+      });
+    }
+    function updateTipsConditionMenu() {
+      document.querySelectorAll('#tipsConditionMenu .add-option-menu-item').forEach(function(item) {
+        var t = item.dataset.type;
+        item.classList.toggle('disabled', !!existingTipsConditions[t]);
+      });
+    }
+
+    function addSalesCondition(type, silent) {
+      if (existingSalesConditions[type]) return;
+      var names = { role: '角色', area: '订单区域', orderType: '订单类型', menu: '菜单', revenueType: '营业额类型', hours: '营业时间' };
+      var cardId = 'sales-cond-' + type;
+      var body = '';
+      if (type === 'role') {
+        body = '<div class="drawer-form-row"><label>角色：</label><div class="multi-select" id="salesRoleSelect" style="flex:1">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'salesRoleSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择角色</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown">' + roleOptionsHtml + '</div></div></div>';
+      } else if (type === 'area') {
+        body = '<div class="drawer-form-row"><label>订单区域：</label><select class="form-control" style="flex:1">' + areaSelectHtml + '</select></div>';
+      } else if (type === 'orderType') {
+        body = '<div class="drawer-form-row"><label>订单类型：</label><select class="form-control" style="flex:1">' + orderTypeSelectHtml + '</select></div>';
+      } else if (type === 'menu') {
+        body = '<div class="drawer-form-row"><label>产品线：</label><div class="multi-select menu-product-line-select" id="salesMenuProductLineSelect" style="flex:1" data-placeholder="请选择产品线">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'salesMenuProductLineSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择产品线</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown">' + menuProductLineOptionsHtml + '</div></div></div>' +
+          '<div class="drawer-form-row"><label>类名：</label><div class="multi-select menu-category-select" id="salesMenuCategorySelect" style="flex:1" data-placeholder="请选择类名">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'salesMenuCategorySelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请先选择产品线</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown"><div class="multi-select-placeholder" style="padding:8px 12px">请先选择产品线</div></div></div></div>';
+      } else if (type === 'revenueType') {
+        body = '<div class="drawer-form-row"><label>营业额类型：</label><select class="form-control" style="flex:1"><option value="">请选择</option><option>Net Sales (税前营业额)</option><option>Gross Sales (总销售额)</option></select></div>';
+      } else if (type === 'hours') {
+        body = '<div class="drawer-form-row"><label>营业时间：</label><input type="time" class="form-control" style="width:120px"><span style="color:var(--text-tertiary)">~</span><input type="time" class="form-control" style="width:120px"></div>';
+      }
+      var card = document.createElement('div');
+      card.className = 'condition-card';
+      card.id = cardId;
+      card.innerHTML = '<div class="condition-card-header"><span class="label">' + names[type] + '</span><button class="btn btn-sm btn-text-danger" onclick="removeSalesCondition(\'' + type + '\')" style="font-size:18px;padding:0 4px">×</button></div><div class="condition-card-body">' + body + '</div>';
+      document.getElementById('salesConditionsContainer').appendChild(card);
+      existingSalesConditions[type] = true;
+      document.getElementById('salesConditionMenu').classList.remove('show');
+      updateSalesConditionMenu();
+      if (!silent) showNotification('已添加 ' + names[type]);
+    }
+    function removeSalesCondition(type) {
+      var card = document.getElementById('sales-cond-' + type);
+      if (card) { card.remove(); existingSalesConditions[type] = false; updateSalesConditionMenu(); showNotification('已删除'); }
+    }
+
+    function addTipsCondition(type, silent) {
+      if (existingTipsConditions[type]) return;
+      var names = { area: '订单区域', orderType: '订单类型', hours: '营业时间段', tipType: '小费类型' };
+      var cardId = 'tips-cond-' + type;
+      var body = '';
+      if (type === 'area') {
+        body = '<div class="drawer-form-row"><label>订单区域：</label><select class="form-control" style="flex:1">' + areaSelectHtml + '</select></div>';
+      } else if (type === 'orderType') {
+        body = '<div class="drawer-form-row"><label>订单类型：</label><select class="form-control" style="flex:1">' + orderTypeSelectHtml + '</select></div>';
+      } else if (type === 'hours') {
+        body = '<div class="drawer-form-row"><label>营业时间段：</label><input type="time" class="form-control" style="width:120px"><span style="color:var(--text-tertiary)">~</span><input type="time" class="form-control" style="width:120px"></div>';
+      } else if (type === 'tipType') {
+        body = '<div class="drawer-form-row"><label>小费类型：</label><select class="form-control" style="flex:1">' + tipTypeSelectHtml + '</select></div>';
+      }
+      var card = document.createElement('div');
+      card.className = 'condition-card';
+      card.id = cardId;
+      card.innerHTML = '<div class="condition-card-header"><span class="label">' + names[type] + '</span><button class="btn btn-sm btn-text-danger" onclick="removeTipsCondition(\'' + type + '\')" style="font-size:18px;padding:0 4px">×</button></div><div class="condition-card-body">' + body + '</div>';
+      document.getElementById('tipsConditionsContainer').appendChild(card);
+      existingTipsConditions[type] = true;
+      document.getElementById('tipsConditionMenu').classList.remove('show');
+      updateTipsConditionMenu();
+      if (!silent) showNotification('已添加 ' + names[type]);
+    }
+    function removeTipsCondition(type) {
+      var card = document.getElementById('tips-cond-' + type);
+      if (card) { card.remove(); existingTipsConditions[type] = false; updateTipsConditionMenu(); showNotification('已删除'); }
+    }
+
+    function setSalesConditionValue(type, value) {
+      var card = document.getElementById('sales-cond-' + type);
+      if (!card) return;
+      if (type === 'role' && Array.isArray(value)) {
+        var ms = card.querySelector('#salesRoleSelect');
+        if (ms) {
+          ms.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+            cb.checked = value.indexOf(cb.value) >= 0;
+          });
+          refreshMultiTags('salesRoleSelect');
+        }
+      } else if (type === 'area' || type === 'orderType' || type === 'revenueType') {
+        var sel = card.querySelector('select');
+        if (sel && value) sel.value = value;
+      } else if (type === 'menu' && value) {
+        var plMs = card.querySelector('.menu-product-line-select');
+        var catMs = card.querySelector('.menu-category-select');
+        if (!plMs || !catMs) return;
+        var plArr = Array.isArray(value.productLine) ? value.productLine : (value.productLine ? [value.productLine] : []);
+        var catArr = Array.isArray(value.category) ? value.category : (value.category ? [value.category] : []);
+        if (plArr.length === 0 && catArr.length > 0) {
+          for (var k in menuCategoriesByProductLine) { if (menuCategoriesByProductLine[k].some(function(c) { return catArr.indexOf(c) >= 0; })) { plArr = [k]; break; } }
+        }
+        plMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = plArr.indexOf(cb.value) >= 0; });
+        refreshMultiTags(plMs.id);
+        onMenuProductLineChange(card);
+        catMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = catArr.indexOf(cb.value) >= 0; });
+        refreshMultiTags(catMs.id);
+      } else if (type === 'hours' && value && (value.start || value.end)) {
+        var inputs = card.querySelectorAll('input[type="time"]');
+        if (inputs[0] && value.start) inputs[0].value = value.start;
+        if (inputs[1] && value.end) inputs[1].value = value.end;
+      }
+    }
+    function setTipsConditionValue(type, value) {
+      var card = document.getElementById('tips-cond-' + type);
+      if (!card) return;
+      if (type === 'area' || type === 'orderType' || type === 'tipType') {
+        var sel = card.querySelector('select');
+        if (sel && value) sel.value = value;
+      } else if (type === 'hours' && value && (value.start || value.end)) {
+        var inputs = card.querySelectorAll('input[type="time"]');
+        if (inputs[0] && value.start) inputs[0].value = value.start;
+        if (inputs[1] && value.end) inputs[1].value = value.end;
+      }
+    }
+
+    function removePoolRule(id) {
+      confirmAction('确定要删除该规则项吗？', () => {
+        const el = document.getElementById(id);
+        const type = id.replace('rule-', '');
+        el.style.opacity = '0';
+        el.style.transition = 'opacity 0.3s';
+        setTimeout(() => { el.remove(); existingRules[type] = false; }, 300);
+        showNotification('已删除');
+      });
+    }
+
+    var poolNumChars = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨'];
+    function addPoolRule(type) {
+      if (existingRules[type]) return;
+      var names = { sales: '销售额', tips: '小费', manual: '手动上报小费', custom: '自定义小费' };
+      var hasCondition = type === 'sales' || type === 'tips';
+      var drawerName = type === 'sales' ? 'salesDrawer' : 'tipsDrawer';
+      var count = document.querySelectorAll('.pool-rule-card').length;
+      var numChar = poolNumChars[count] || (count + 1);
+
+      var card = document.createElement('div');
+      card.className = 'pool-rule-card';
+      card.id = 'rule-' + type;
+      card.innerHTML = '<div class="pool-rule-header">' +
+        '<div class="pool-rule-label"><span class="num">' + numChar + '</span> ' + names[type] + '</div>' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+        (type === 'custom' ? '<span style="font-size:13px;color:var(--text-secondary)">金额</span><input type="number" value="0" class="pool-custom-amount" placeholder="0" style="width:80px;height:28px;padding:2px 8px;border:1px solid var(--border-color);border-radius:4px;font-size:13px;text-align:center"><span style="font-size:13px;color:var(--text-secondary)">$</span><span style="font-size:13px;color:var(--text-secondary);margin-left:8px">占比</span><input type="number" value="100" class="pool-custom-pct" placeholder="100" style="width:80px;height:28px;padding:2px 8px;border:1px solid var(--border-color);border-radius:4px;font-size:13px;text-align:center"><span style="font-size:13px;color:var(--text-secondary)">%</span>' : '<span style="font-size:13px;color:var(--text-secondary)">占比</span><input type="number" value="0" style="width:80px;height:28px;padding:2px 8px;border:1px solid var(--border-color);border-radius:4px;font-size:13px;text-align:center"><span style="font-size:13px;color:var(--text-secondary)">%</span>') +
+        (hasCondition ? '<button class="btn btn-sm" onclick="openDrawer(\'' + drawerName + '\')">设置取值条件</button>' : '') +
+        '<button class="btn btn-sm btn-text-danger" onclick="removePoolRule(\'rule-' + type + '\')" style="font-size:18px;padding:0 4px">×</button>' +
+        '</div></div>';
+
+      document.getElementById('poolRulesContainer').appendChild(card);
+      existingRules[type] = true;
+      document.getElementById('addOptionMenu').classList.remove('show');
+      updateAddMenu();
+      showNotification('已添加 ' + names[type]);
+    }
+
+    var receiverRoleCounter = 0;
+    function addReceiverRow() {
+      receiverRoleCounter++;
+      var msId = 'receiverRole' + receiverRoleCounter;
+      var tbody = document.getElementById('receiverTableBody');
+      const row = document.createElement('tr');
+      row.innerHTML =
+        '<td>' +
+          '<div class="multi-select" id="' + msId + '" style="width:220px">' +
+            '<div class="multi-select-input" onclick="toggleMultiSelect(\'' + msId + '\')">' +
+              '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择角色</span></div>' +
+              '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>' +
+            '</div>' +
+            '<div class="multi-select-dropdown">' +
+              '<label class="multi-select-option"><input type="checkbox" value="Assistant Manager"> Assistant Manager</label>' +
+              '<label class="multi-select-option"><input type="checkbox" value="Bartender"> Bartender</label>' +
+              '<label class="multi-select-option"><input type="checkbox" value="Busser"> Busser</label>' +
+              '<label class="multi-select-option"><input type="checkbox" value="Cashier"> Cashier</label>' +
+              '<label class="multi-select-option"><input type="checkbox" value="Host"> Host</label>' +
+              '<label class="multi-select-option"><input type="checkbox" value="Runner"> Runner</label>' +
+              '<label class="multi-select-option"><input type="checkbox" value="Server"> Server</label>' +
+              '<label class="multi-select-option"><input type="checkbox" value="Shift Lead"> Shift Lead</label>' +
+            '</div>' +
+          '</div>' +
+        '</td>' +
+        '<td>百分比</td>' +
+        '<td><input type="number" value="0" oninput="calcTotal()"> %</td>' +
+        '<td>' +
+          '<a href="javascript:void(0)" class="btn-link" onclick="openModal(\'weightModal\')" style="font-size:13px">设置员工小费权重</a>' +
+          '<a href="javascript:void(0)" class="btn-link" style="color:var(--danger);font-size:13px;margin-left:8px" onclick="this.closest(\'tr\').remove();calcTotal()">删除</a>' +
+        '</td>';
+      tbody.appendChild(row);
+    }
+
+    function calcTotal() {
+      let total = 0;
+      document.querySelectorAll('#receiverTable tbody input[type="number"]').forEach(input => {
+        total += parseFloat(input.value) || 0;
+      });
+      document.getElementById('totalPercent').textContent = total;
+      document.getElementById('totalPercent').style.color = total === 100 ? 'var(--success)' : 'var(--danger)';
+    }
+
+    function toggleWeightBtn(show) {
+      document.getElementById('weightBtnArea').style.display = show ? 'block' : 'none';
+    }
+
+    function saveWeight() {
+      closeModal('weightModal');
+      showNotification('员工权重保存成功');
+    }
+
+    function saveSalesCondition() {
+      closeDrawer('salesDrawer');
+      showNotification('销售额取值条件保存成功');
+    }
+
+    function saveTipsCondition() {
+      closeDrawer('tipsDrawer');
+      showNotification('小费取值条件保存成功');
+    }
+
+    function cancelRule() {
+      confirmAction('确定要取消吗？未保存的更改将丢失。', () => {
+        window.location.href = 'rules.html';
+      });
+    }
+
+    function collectSalesConditions() {
+      var cond = {};
+      var container = document.getElementById('salesConditionsContainer');
+      if (!container) return cond;
+      container.querySelectorAll('.condition-card').forEach(function(card) {
+        var id = card.id || '';
+        var type = id.replace('sales-cond-', '');
+        if (!type) return;
+        if (type === 'role') {
+          var ms = card.querySelector('#salesRoleSelect');
+          if (ms) {
+            var checked = ms.querySelectorAll('input[type="checkbox"]:checked');
+            cond.role = Array.from(checked).map(function(c) { return c.value; });
+          }
+        } else if (type === 'area' || type === 'orderType' || type === 'revenueType') {
+          var sel = card.querySelector('select');
+          if (sel) cond[type] = sel.value || '';
+        } else if (type === 'menu') {
+          var plMs = card.querySelector('.menu-product-line-select');
+          var catMs = card.querySelector('.menu-category-select');
+          if (plMs && catMs) {
+            var plArr = Array.from(plMs.querySelectorAll('input[type="checkbox"]:checked')).map(function(cb) { return cb.value; });
+            var catArr = Array.from(catMs.querySelectorAll('input[type="checkbox"]:checked')).map(function(cb) { return cb.value; });
+            cond.menu = { productLine: plArr, category: catArr };
+          }
+        } else if (type === 'hours') {
+          var inputs = card.querySelectorAll('input[type="time"]');
+          cond.hours = { start: inputs[0] ? inputs[0].value : '', end: inputs[1] ? inputs[1].value : '' };
+        }
+      });
+      return cond;
+    }
+    function collectTipsConditions() {
+      var cond = {};
+      var container = document.getElementById('tipsConditionsContainer');
+      if (!container) return cond;
+      container.querySelectorAll('.condition-card').forEach(function(card) {
+        var id = card.id || '';
+        var type = id.replace('tips-cond-', '');
+        if (!type) return;
+        if (type === 'area' || type === 'orderType' || type === 'tipType') {
+          var sel = card.querySelector('select');
+          if (sel) cond[type] = sel.value || '';
+        } else if (type === 'hours') {
+          var inputs = card.querySelectorAll('input[type="time"]');
+          cond.hours = { start: inputs[0] ? inputs[0].value : '', end: inputs[1] ? inputs[1].value : '' };
+        }
+      });
+      return cond;
+    }
+
+    function collectFormData() {
+      var ruleName = document.getElementById('ruleName').value.trim();
+      var storeSel = document.getElementById('storeSelect');
+      var store = storeSel.value || '';
+      var poolRules = [];
+      document.querySelectorAll('.pool-rule-card').forEach(function(card) {
+        var id = card.id || '';
+        var type = id.replace('rule-', '');
+        if (!type) return;
+        if (type === 'custom') {
+          var amtInp = card.querySelector('input.pool-custom-amount');
+          var pctInp = card.querySelector('input.pool-custom-pct');
+          var amount = amtInp ? (parseFloat(amtInp.value) || 0) : 0;
+          var pct = pctInp ? (parseFloat(pctInp.value) || 100) : 100;
+          poolRules.push({ type: type, amount: amount, pct: pct });
+        } else {
+          var inp = card.querySelector('input[type="number"]');
+          var pct = inp ? (parseFloat(inp.value) || 0) : 0;
+          poolRules.push({ type: type, pct: pct });
+        }
+      });
+      var deductRoles = [];
+      document.querySelectorAll('#deductRoleSelect input[type="checkbox"]:checked').forEach(function(cb) {
+        deductRoles.push(cb.value);
+      });
+      var receivers = [];
+      document.querySelectorAll('#receiverTable tbody tr').forEach(function(tr) {
+        var ms = tr.querySelector('.multi-select');
+        if (!ms) return;
+        var roles = [];
+        ms.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) { roles.push(cb.value); });
+        var pctInp = tr.querySelector('input[type="number"]');
+        var pct = pctInp ? (parseFloat(pctInp.value) || 0) : 0;
+        if (roles.length > 0 || pct > 0) receivers.push({ roles: roles, pct: pct });
+      });
+      var distRadio = document.querySelector('input[name="distribution"]:checked');
+      var clockRadio = document.querySelector('input[name="clockin"]:checked');
+      var salesConditions = collectSalesConditions();
+      var tipsConditions = collectTipsConditions();
+      return {
+        ruleName: ruleName,
+        store: store,
+        poolRules: poolRules,
+        deductRoles: deductRoles,
+        receivers: receivers,
+        distribution: distRadio ? distRadio.value : 'average',
+        clockin: clockRadio ? clockRadio.value : 'clock',
+        salesConditions: salesConditions,
+        tipsConditions: tipsConditions
+      };
+    }
+
+    function submitRule() {
+      var ruleName = document.getElementById('ruleName').value.trim();
+      if (!ruleName) {
+        showNotification('请输入规则名称', 'error');
+        return;
+      }
+      var storeSel = document.getElementById('storeSelect');
+      var store = storeSel.value || '';
+      if (!store) {
+        showNotification('请选择门店', 'error');
+        return;
+      }
+      if (document.querySelectorAll('.pool-rule-card').length === 0) {
+        showNotification('请至少添加一项小费池计算规则', 'error');
+        return;
+      }
+      var deductRoles = [];
+      document.querySelectorAll('#deductRoleSelect input[type="checkbox"]:checked').forEach(function(cb) {
+        deductRoles.push(cb.value);
+      });
+      var receivers = document.querySelectorAll('#receiverTable tbody tr');
+      var hasReceiver = false;
+      receivers.forEach(function(tr) {
+        var ms = tr.querySelector('.multi-select');
+        if (ms && ms.querySelectorAll('input[type="checkbox"]:checked').length > 0) hasReceiver = true;
+      });
+      if (!hasReceiver) {
+        showNotification('请至少选择一名接收方角色', 'error');
+        return;
+      }
+      var total = 0;
+      document.querySelectorAll('#receiverTable tbody input[type="number"]').forEach(function(inp) {
+        total += parseFloat(inp.value) || 0;
+      });
+      if (Math.abs(total - 100) > 0.01) {
+        showNotification('接收方占比合计需为 100%', 'error');
+        return;
+      }
+      var data = collectFormData();
+      var params = getEditParams();
+      var rules = ruleData.getRules();
+      var rule;
+      if (params.mode === 'edit' && params.id) {
+        rule = rules.filter(function(r) { return r.id === parseInt(params.id, 10); })[0];
+        if (rule) {
+          rule.ruleName = data.ruleName;
+          rule.store = data.store;
+          rule.poolRules = data.poolRules;
+          rule.deductRoles = data.deductRoles;
+          rule.receivers = data.receivers;
+          rule.distribution = data.distribution;
+          rule.clockin = data.clockin;
+          rule.salesConditions = data.salesConditions || {};
+          rule.tipsConditions = data.tipsConditions || {};
+          ruleData.saveRules(rules);
+        }
+      } else {
+        rule = {
+          id: ruleData.getNextRuleId(),
+          ruleName: data.ruleName,
+          store: data.store,
+          poolRules: data.poolRules,
+          deductRoles: data.deductRoles,
+          receivers: data.receivers,
+          distribution: data.distribution,
+          clockin: data.clockin,
+          salesConditions: data.salesConditions || {},
+          tipsConditions: data.tipsConditions || {}
+        };
+        rules.push(rule);
+        ruleData.saveRules(rules);
+      }
+      showNotification('规则保存成功', 'success');
+      setTimeout(function() { window.location.href = 'rules.html'; }, 1500);
+    }
+
+    (function init() {
+      var params = getEditParams();
+      if (params.mode === 'edit' && params.id) {
+        var rule = ruleData.getRuleById(params.id);
+        if (rule) {
+          loadRuleForEdit(rule);
+          var pt = document.getElementById('pageTitle');
+          if (pt) pt.textContent = '编辑小费分配规则';
+        }
+      }
+    })();
+
+    // Multi-Select Dropdown
+    function toggleMultiSelect(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      document.querySelectorAll('.multi-select.open').forEach(ms => {
+        if (ms.id !== id) ms.classList.remove('open');
+      });
+      el.classList.toggle('open');
+    }
+
+    function removeMultiTag(e, selectId, value) {
+      e.stopPropagation();
+      const container = document.getElementById(selectId);
+      const checkbox = container.querySelector(`input[value="${value}"]`);
+      if (checkbox) checkbox.checked = false;
+      refreshMultiTags(selectId);
+    }
+
+    function refreshMultiTags(selectId) {
+      const container = document.getElementById(selectId);
+      if (!container) return;
+      const tagsEl = container.querySelector('.multi-select-tags');
+      if (!tagsEl) return;
+      const checked = container.querySelectorAll('input[type="checkbox"]:checked');
+      const placeholder = (container.dataset && container.dataset.placeholder) || '请选择角色';
+      tagsEl.innerHTML = '';
+      if (checked.length === 0) {
+        tagsEl.innerHTML = '<span class="multi-select-placeholder">' + placeholder + '</span>';
+        return;
+      }
+      checked.forEach(cb => {
+        const tag = document.createElement('span');
+        tag.className = 'multi-select-tag';
+        tag.innerHTML = `${cb.value} <i onclick="removeMultiTag(event,'${selectId}','${cb.value}')">×</i>`;
+        tagsEl.appendChild(tag);
+      });
+    }
+
+    document.addEventListener('change', function(e) {
+      if (e.target.closest('.multi-select-option')) {
+        const ms = e.target.closest('.multi-select');
+        const selectId = ms ? ms.id : null;
+        if (selectId) refreshMultiTags(selectId);
+        if (ms && ms.classList.contains('menu-product-line-select')) {
+          var card = ms.closest('.condition-card');
+          if (card) onMenuProductLineChange(card);
+        }
+      }
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.multi-select')) {
+        document.querySelectorAll('.multi-select.open').forEach(ms => ms.classList.remove('open'));
+      }
+    });
+  </script>
+</body>
+</html>

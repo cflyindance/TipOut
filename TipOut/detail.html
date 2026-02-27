@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小费分配明细 - TipOut</title>
+  <link rel="stylesheet" href="common.css">
+  <style>
+    .formula-section { margin-bottom: 24px; }
+    .formula-display {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 16px 0; font-size: 14px;
+    }
+    .formula-block {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      min-width: 60px;
+    }
+    .formula-block .val { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+    .formula-block .lbl { font-size: 12px; color: var(--text-tertiary); white-space: nowrap; }
+    .formula-block input.formula-input {
+      width: 90px; height: 32px; padding: 4px 8px; border: 1px solid var(--border-color);
+      border-radius: var(--radius-md); font-size: 14px; text-align: center; font-weight: 600;
+    }
+    .formula-block input.formula-input:focus {
+      border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(22,119,255,0.1);
+    }
+    .formula-block input.formula-pct { width: 56px; }
+    .formula-operator { font-size: 18px; font-weight: 500; color: var(--text-secondary); padding: 0 4px; }
+    .formula-link { text-align: right; margin-top: 8px; }
+    .detail-card { margin-bottom: 16px; }
+    .detail-table { width: 100%; border-collapse: collapse; }
+    .detail-table th {
+      background: rgba(0,0,0,0.02); padding: 10px 12px; text-align: left;
+      border-bottom: 1px solid var(--border-light); font-weight: 500; font-size: 13px;
+      white-space: nowrap;
+    }
+    .detail-table td {
+      padding: 10px 12px; border-bottom: 1px solid var(--border-light); font-size: 13px;
+      vertical-align: middle;
+    }
+    .detail-table .input-cell input {
+      width: 60px; height: 28px; padding: 2px 8px; border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm); font-size: 13px; text-align: center;
+    }
+    .detail-table .input-cell input:focus {
+      border-color: var(--primary); outline: none; box-shadow: 0 0 0 2px rgba(22,119,255,0.1);
+    }
+    .detail-table .action-cell { white-space: nowrap; }
+    .detail-table .action-cell a {
+      color: var(--primary); cursor: pointer; text-decoration: none; margin-right: 8px; font-size: 13px;
+    }
+    .detail-table .action-cell a.danger { color: var(--danger); }
+    .bottom-actions {
+      position: fixed; bottom: 0; right: 0; left: 264px; z-index: 40;
+      display: flex; justify-content: flex-end; gap: 12px; padding: 12px 24px;
+      background: #fff; border-top: 1px solid var(--border-light);
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+    }
+    .content-area { padding-bottom: 72px; }
+    @media (max-width: 768px) { .bottom-actions { left: 0; } }
+    .role-label { display: inline-block; padding: 2px 8px; background: #f5f5f5; border-radius: 4px; font-size: 12px; }
+
+    /* Formula detail modal */
+    .rule-detail-item { margin-bottom: 12px; }
+    .rule-detail-item .label { font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
+    .rule-detail-item .value { font-size: 14px; color: var(--text-primary); }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">M</div>
+        <span class="logo-text">MenuSifu</span>
+      </div>
+      <nav class="sidebar-menu">
+        <div class="sidebar-submenu-title open" onclick="this.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.classList.contains('open')?'200px':'0'">
+          <span>Tip Out</span>
+          <svg class="arrow" width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+        </div>
+        <div class="sidebar-submenu-items" style="max-height:200px">
+          <a href="index.html" class="sidebar-menu-item active">小费分配</a>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="mobile-overlay"></div>
+
+    <div class="main-content">
+      <header class="header">
+        <div class="header-left">
+          <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+        </div>
+        <div class="header-right">
+          <div class="header-user">
+            <div class="avatar">R</div>
+            <span>Robert_W</span>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-tabs">
+        <a href="index.html" class="page-tab">小费分配</a>
+        <a href="detail.html" class="page-tab active">小费分配明细</a>
+        <a href="rules.html" class="page-tab">小费分配规则</a>
+      </div>
+
+      <div class="content-area">
+        <!-- Filters -->
+        <div class="filter-bar" style="margin-bottom:24px">
+          <input type="date" id="detailDate" class="form-control form-control-lg" value="2026-01-03" style="width:180px" onchange="renderDetailPage()">
+          <select id="storeSelect" class="form-control form-control-lg" style="width:460px" onchange="renderDetailPage()">
+            <option value="">请选择门店</option>
+          </select>
+        </div>
+
+        <!-- Formula — 动态生成 -->
+        <div class="formula-section" id="formulaSection"></div>
+
+        <!-- Tip Pool — 动态生成 -->
+        <div id="detailCardArea"></div>
+
+      </div>
+
+      <div class="bottom-actions">
+        <button class="btn btn-lg" onclick="window.history.back()">取消</button>
+        <button class="btn btn-primary btn-lg" onclick="saveDetail()">保存</button>
+        <button class="btn btn-primary btn-lg" onclick="saveAndNext()">保存并跳转到下一天</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formula Detail Modal -->
+  <div class="modal-overlay" id="formulaModal">
+    <div class="modal" style="width:600px">
+      <div class="modal-header">
+        <h3>公式详情 — 小费分配规则</h3>
+        <button class="modal-close" onclick="closeModal('formulaModal')">×</button>
+      </div>
+      <div class="modal-body" id="formulaModalBody">
+        <div style="padding:24px;color:var(--text-secondary);text-align:center">加载中…</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('formulaModal')">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script src="ruleData.js"></script>
+  <script>
+    var ALLOC_KEY = 'tipout_allocated';
+    function getAllocatedDatesForStore(store) {
+      try {
+        var raw = localStorage.getItem(ALLOC_KEY);
+        var obj = raw ? JSON.parse(raw) : {};
+        var arr = obj[store];
+        if (!arr && store) {
+          var namePart = (store.split('-')[0] || '').trim();
+          if (namePart) {
+            for (var k in obj) {
+              if (k.indexOf(namePart) === 0 || namePart.indexOf(k.split('-')[0].trim()) === 0) {
+                arr = obj[k]; break;
+              }
+            }
+          }
+        }
+        return new Set(arr || []);
+      } catch (e) { return new Set(); }
+    }
+
+    const roleEmployees = {
+      'Server':    ['Maria Garcia', 'Jason Chen', 'Emily Watson', 'Diego Ramirez'],
+      'Bartender': ['Mike Johnson', 'Sarah Kim'],
+      'Busser':    ['Carlos Lopez', 'Tyler Brown'],
+      'Cashier':   ['Linda Nguyen', 'Amy Zhang'],
+      'Host':      ['Rachel Scott', 'Kevin Park'],
+      'Runner':    ['Daniel Ortiz', 'Chris Lee'],
+      'Shift Lead':['Jessica Martinez']
+    };
+
+    var currentRule = null;
+
+    function seedRandom(seed) {
+      var s = seed;
+      return function() { s = (s * 16807 + 0) % 2147483647; return (s - 1) / 2147483646; };
+    }
+
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+    function money(v) { return '$' + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+    function genDayData(dateKey, poolRules) {
+      var parts = dateKey.split('-');
+      var seed = parts.reduce(function(a, b) { return a * 31 + parseInt(b); }, 0);
+      var rng = seedRandom(seed);
+      var dow = new Date(dateKey + 'T00:00:00').getDay();
+      var wb = (dow === 5 || dow === 6) ? 1.4 : 1.0;
+      var sales = +((3800 + rng() * 4400) * wb).toFixed(2);
+      var tips = +((650 + rng() * 700) * wb).toFixed(2);
+      var manual = +((80 + rng() * 170) * wb).toFixed(2);
+      var custom = 0;
+      var pool = 0;
+      (poolRules || []).forEach(function(pr) {
+        var base = 0;
+        if (pr.type === 'sales') base = sales;
+        else if (pr.type === 'tips') base = tips;
+        else if (pr.type === 'manual') base = manual;
+        else if (pr.type === 'custom') base = pr.amount != null ? pr.amount : custom;
+        pool += (base * (pr.pct != null ? pr.pct : 0) / 100);
+      });
+      pool = +pool.toFixed(2);
+      return { sales: sales, tips: tips, manual: manual, custom: custom, pool: pool, poolRules: poolRules };
+    }
+
+    function renderDetailPage() {
+      var dateKey = document.getElementById('detailDate').value;
+      var storeSel = document.getElementById('storeSelect');
+      var store = storeSel ? storeSel.value || '' : '';
+      if (!dateKey) return;
+
+      var rules = window.ruleData && ruleData.getRulesForStore ? ruleData.getRulesForStore(store) : [];
+      if (rules.length === 0) {
+        document.getElementById('formulaSection').innerHTML = '';
+        document.getElementById('detailCardArea').innerHTML =
+          '<div style="padding:48px;text-align:center;color:var(--text-secondary);font-size:14px">' +
+          '<p style="margin-bottom:16px">请先创建小费分配规则</p>' +
+          '<a href="rules.html" class="btn btn-primary">去创建规则</a></div>';
+        currentRule = null;
+        return;
+      }
+
+      var allocatedDates = getAllocatedDatesForStore(store);
+      if (!allocatedDates.has(dateKey)) {
+        document.getElementById('formulaSection').innerHTML = '';
+        document.getElementById('detailCardArea').innerHTML =
+          '<div style="padding:48px;text-align:center;color:var(--text-secondary);font-size:14px">' +
+          '<p style="margin-bottom:16px">该日期尚未完成小费分配，请先在小费分配页面完成分配</p>' +
+          '<a href="index.html" class="btn btn-primary">去分配小费</a></div>';
+        currentRule = null;
+        return;
+      }
+
+      currentRule = rules[0];
+      var poolRules = currentRule.poolRules || [];
+      var data = genDayData(dateKey, poolRules);
+      renderFormula(data, currentRule);
+      renderDetailTable(data, dateKey, currentRule);
+      populateFormulaModal(currentRule);
+    }
+
+    function formatConditions(cond) {
+      if (!cond || typeof cond !== 'object') return '';
+      var parts = [];
+      if (Array.isArray(cond.role) && cond.role.length) parts.push('角色: ' + cond.role.join(', '));
+      else if (cond.role) parts.push('角色: ' + cond.role);
+      if (cond.area) parts.push('订单区域: ' + (Array.isArray(cond.area) ? cond.area.join(', ') : cond.area));
+      if (cond.orderType) parts.push('订单类型: ' + (Array.isArray(cond.orderType) ? cond.orderType.join(', ') : cond.orderType));
+      if (cond.menu) {
+        var m = cond.menu;
+        if (typeof m === 'object' && (m.productLine || m.category)) {
+          var pl = Array.isArray(m.productLine) ? m.productLine.join(', ') : (m.productLine || '');
+          var cat = Array.isArray(m.category) ? m.category.join(', ') : (m.category || '');
+          if (pl || cat) parts.push('菜单: ' + (pl ? pl + ' / ' : '') + (cat || ''));
+        } else {
+          parts.push('菜单: ' + m);
+        }
+      }
+      if (cond.revenueType) parts.push('营业额类型: ' + cond.revenueType);
+      if (cond.hours && (cond.hours.start || cond.hours.end)) parts.push('营业时间: ' + (cond.hours.start || '') + '-' + (cond.hours.end || ''));
+      return parts.join(' | ');
+    }
+
+    function populateFormulaModal(rule) {
+      var body = document.getElementById('formulaModalBody');
+      if (!body) return;
+      if (!rule) {
+        body.innerHTML = '<div style="padding:24px;color:var(--text-secondary);text-align:center">暂无规则数据</div>';
+        return;
+      }
+      var poolTypeNames = (window.ruleData && ruleData.poolTypeNames) || { sales: '销售额', tips: '小费', manual: '手动上报小费', custom: '自定义小费' };
+      var distNames = (window.ruleData && ruleData.distNames) || { average: '按员工数量平均分配', hours: '按工作时长占比分配', orders: '按订单占比分配' };
+      var store = document.getElementById('storeSelect');
+      var storeVal = store ? store.value : rule.store || '';
+      var html = '<div class="rule-detail-item"><div class="label">规则名称</div><div class="value">' + (rule.ruleName || '') + '</div></div>' +
+        '<div class="rule-detail-item"><div class="label">门店</div><div class="value">' + (storeVal || rule.store || '') + '</div></div>' +
+        '<div class="divider"></div><h4 style="margin-bottom:12px;font-size:14px">小费池计算规则</h4>';
+      (rule.poolRules || []).forEach(function(pr) {
+        var name = poolTypeNames[pr.type] || pr.type;
+        var valStr = '';
+        if (pr.type === 'custom') {
+          valStr = '金额 $' + (pr.amount != null ? pr.amount : 0) + ' | 占比 ' + (pr.pct != null ? pr.pct : 100) + '%';
+        } else {
+          valStr = '占比 ' + (pr.pct || 0) + '%';
+          var condStr = '';
+          if (pr.type === 'sales' && rule.salesConditions && Object.keys(rule.salesConditions).length) condStr = ' | ' + formatConditions(rule.salesConditions);
+          if (pr.type === 'tips' && rule.tipsConditions && Object.keys(rule.tipsConditions).length) condStr = ' | ' + formatConditions(rule.tipsConditions);
+          valStr += condStr;
+        }
+        html += '<div class="rule-detail-item"><div class="label">' + name + '</div><div class="value">' + valStr + '</div></div>';
+      });
+      html += '<div class="divider"></div><h4 style="margin-bottom:12px;font-size:14px">扣除方规则</h4>' +
+        '<div class="rule-detail-item"><div class="value">' + ((rule.deductRoles || []).join(', ') || '—') + '</div></div>' +
+        '<div class="divider"></div><h4 style="margin-bottom:12px;font-size:14px">接收方规则</h4>';
+      (rule.receivers || []).forEach(function(r) {
+        html += '<div class="rule-detail-item"><div class="value">' + ((r.roles || []).join(' / ') || '') + ' ' + (r.pct || 0) + '%</div></div>';
+      });
+      html += '<div class="rule-detail-item"><div class="label">分配方式</div><div class="value">' + (distNames[rule.distribution] || rule.distribution || '—') + '</div></div>';
+      body.innerHTML = html;
+    }
+
+    var poolTypeNames = { sales: '销售额', tips: '小费', manual: '手动上报小费', custom: '自定义小费' };
+    function recalcFormulaPool() {
+      var section = document.getElementById('formulaSection');
+      if (!section) return 0;
+      var inputs = section.querySelectorAll('input.formula-input[data-type="amount"]');
+      var pool = 0;
+      inputs.forEach(function(inp) {
+        var pctInp = section.querySelector('input.formula-input[data-type="pct"][data-idx="' + inp.getAttribute('data-idx') + '"]');
+        var amt = parseFloat(String(inp.value).replace(/[^0-9.-]/g, '')) || 0;
+        var pct = parseFloat(String(pctInp ? pctInp.value : 0).replace(/[^0-9.-]/g, '')) || 0;
+        pool += amt * pct / 100;
+      });
+      pool = +pool.toFixed(2);
+      var poolEl = section.querySelector('.formula-pool-val');
+      if (poolEl) poolEl.textContent = money(pool);
+      var card = document.querySelector('#detailCardArea .detail-card');
+      if (card) {
+        card.setAttribute('data-pool', pool);
+        var tableId = card.querySelector('table');
+        if (tableId && tableId.id) recalcRoleAmount(tableId.id);
+      }
+      return pool;
+    }
+
+    function renderFormula(data, rule) {
+      var poolRules = (rule && rule.poolRules) || (data && data.poolRules) || [];
+      var blocks = [];
+      poolRules.forEach(function(pr, i) {
+        var base = 0, lbl = (ruleData && ruleData.poolTypeNames && ruleData.poolTypeNames[pr.type]) || poolTypeNames[pr.type] || pr.type;
+        if (pr.type === 'sales') base = data.sales || 0;
+        else if (pr.type === 'tips') base = data.tips || 0;
+        else if (pr.type === 'manual') base = data.manual || 0;
+        else if (pr.type === 'custom') base = pr.amount != null ? pr.amount : (data.custom || 0);
+        var baseStr = typeof base === 'number' ? base.toFixed(2) : String(base || '0');
+        var pctVal = pr.pct != null ? pr.pct : 0;
+        if (i > 0) blocks.push('<span class="formula-operator">+</span>');
+        blocks.push(
+          '<div class="formula-block">' +
+            '<span class="lbl">' + lbl + '</span>' +
+            '<input type="text" class="formula-input" data-type="amount" data-idx="' + i + '" value="' + baseStr + '" placeholder="0" onchange="recalcFormulaPool()" oninput="recalcFormulaPool()">' +
+          '</div>' +
+          '<span class="formula-operator">×</span>' +
+          '<div class="formula-block">' +
+            '<span class="lbl">占比</span>' +
+            '<input type="number" class="formula-input formula-pct" data-type="pct" data-idx="' + i + '" value="' + pctVal + '" placeholder="0" min="0" max="100" step="0.1" onchange="recalcFormulaPool()" oninput="recalcFormulaPool()">' +
+          '</div>'
+        );
+      });
+      var formulaHtml = blocks.length ? blocks.join('') : '<div class="formula-block"><span class="val">$0.00</span><span class="lbl">暂无池规则</span></div>';
+      document.getElementById('formulaSection').innerHTML =
+        '<div class="formula-display">' +
+          '<div class="formula-block"><span class="lbl">小费池总金额</span><span class="val formula-pool-val">' + money(data.pool || 0) + '</span></div>' +
+          '<span class="formula-operator">=</span>' + formulaHtml +
+        '</div>' +
+        '<div class="formula-link"><a href="javascript:void(0)" class="btn-link" onclick="openModal(\'formulaModal\')" style="font-size:14px">公式详情</a></div>';
+    }
+
+    function buildRoleConfigFromRule(rule) {
+      var config = [];
+      (rule.receivers || []).forEach(function(r) {
+        var roles = r.roles || [];
+        var roleLabel = roles.join(' / ');
+        var employees = [];
+        roles.forEach(function(role) {
+          (roleEmployees[role] || []).forEach(function(emp) {
+            if (employees.indexOf(emp) === -1) employees.push(emp);
+          });
+        });
+        if (roleLabel) config.push({ role: roleLabel, roles: roles, pct: r.pct || 0, employees: employees });
+      });
+      return config;
+    }
+
+    function renderDetailTable(data, dateKey, rule) {
+      var roleConfig = buildRoleConfigFromRule(rule || currentRule);
+      if (roleConfig.length === 0) {
+        document.getElementById('detailCardArea').innerHTML =
+          '<div class="card detail-card"><div class="card-body" style="padding:24px;color:var(--text-secondary)">该规则暂无接收方配置</div></div>';
+        return;
+      }
+      var seed = dateKey.split('-').reduce(function(a, b) { return a * 31 + parseInt(b); }, 7);
+      var rng = seedRandom(seed);
+      var html = '<div class="card detail-card"><div class="card-header"><span>小费池分配明细</span></div>' +
+        '<div class="card-body" style="padding:0"><table class="detail-table" id="detailTable1"><thead><tr>' +
+        '<th>角色</th><th>角色分配比例</th><th>角色分配金额</th><th>分配员工</th><th>员工分配比例</th><th>员工分配金额</th><th>操作</th>' +
+        '</tr></thead><tbody>';
+
+      roleConfig.forEach(function(rc) {
+        var roleAmount = +(data.pool * rc.pct / 100).toFixed(2);
+        var empCount = rc.employees.length;
+        var empPcts = [];
+        var remaining = 100;
+        for (var i = 0; i < empCount; i++) {
+          if (i < empCount - 1) {
+            var p = Math.round((100 / empCount) + (rng() - 0.5) * 10);
+            p = Math.max(5, Math.min(remaining - (empCount - i - 1) * 5, p));
+            empPcts.push(p);
+            remaining -= p;
+          } else {
+            empPcts.push(remaining);
+          }
+        }
+
+        rc.employees.forEach(function(emp, ei) {
+          var isHead = ei === 0;
+          var empAmount = +(roleAmount * empPcts[ei] / 100).toFixed(2);
+          var opts = rc.employees.map(function(e) {
+            return '<option' + (e === emp ? ' selected' : '') + '>' + e + '</option>';
+          }).join('');
+
+          html += '<tr data-role="' + rc.role + '"' + (isHead ? ' data-role-head="true"' : '') + '>';
+          html += '<td>' + (isHead ? '<span class="role-label">' + rc.role + '</span>' : '') + '</td>';
+          html += '<td>' + (isHead ? '<span class="input-cell"><input type="number" value="' + rc.pct + '" onchange="recalcRoleAmount(\'detailTable1\')"> %</span>' : '') + '</td>';
+          html += '<td' + (isHead ? ' class="role-amount"' : '') + '>' + (isHead ? money(roleAmount) : '') + '</td>';
+          html += '<td><select class="form-control" style="width:140px;height:28px;font-size:13px">' + opts + '</select></td>';
+          html += '<td class="input-cell"><input type="number" value="' + empPcts[ei] + '"> %</td>';
+          html += '<td>' + money(empAmount) + '</td>';
+          html += '<td class="action-cell">' +
+            '<a href="javascript:void(0)" onclick="addDetailRow(\'detailTable1\',this)">新增行</a>' +
+            '<a href="javascript:void(0)" class="danger" onclick="removeDetailRow(\'detailTable1\',this)">删除行</a></td>';
+          html += '</tr>';
+        });
+      });
+
+      html += '</tbody></table></div></div>';
+      document.getElementById('detailCardArea').innerHTML = html;
+      var card = document.querySelector('#detailCardArea .detail-card');
+      if (card) card.setAttribute('data-pool', data.pool);
+    }
+
+    function getRoleFromRow(row) { return row.getAttribute('data-role'); }
+
+    function getLastRowOfRole(tableId, role) {
+      var rows = document.querySelectorAll('#' + tableId + ' tbody tr[data-role="' + role + '"]');
+      return rows.length ? rows[rows.length - 1] : null;
+    }
+
+    function getSelectedEmployeesInRole(tableId, role) {
+      var rows = document.querySelectorAll('#' + tableId + ' tbody tr[data-role="' + role + '"]');
+      var selected = [];
+      rows.forEach(function(r) {
+        var sel = r.querySelector('td select');
+        if (sel && sel.value) selected.push(sel.value);
+      });
+      return selected;
+    }
+
+    function getEmployeesForRoleGroup(roleLabel) {
+      var roles = (roleLabel || '').split(/\s*\/\s*/).map(function(s) { return s.trim(); }).filter(Boolean);
+      var employees = [];
+      roles.forEach(function(r) {
+        (roleEmployees[r] || []).forEach(function(emp) {
+          if (employees.indexOf(emp) === -1) employees.push(emp);
+        });
+      });
+      return employees;
+    }
+
+    function addDetailRow(tableId, triggerEl) {
+      var currentRow = triggerEl.closest('tr');
+      var role = getRoleFromRow(currentRow);
+      if (!role) return;
+      var allEmployees = getEmployeesForRoleGroup(role);
+      var selectedEmployees = getSelectedEmployeesInRole(tableId, role);
+      var available = allEmployees.filter(function(e) { return selectedEmployees.indexOf(e) === -1; });
+      if (available.length === 0) { showNotification('该角色下所有员工已被分配，无可选员工', 'warning'); return; }
+      var options = available.map(function(e) { return '<option>' + e + '</option>'; }).join('');
+      var lastRow = getLastRowOfRole(tableId, role);
+      var newRow = document.createElement('tr');
+      newRow.setAttribute('data-role', role);
+      newRow.innerHTML = '<td></td><td></td><td></td>' +
+        '<td><select class="form-control" style="width:140px;height:28px;font-size:13px">' + options + '</select></td>' +
+        '<td class="input-cell"><input type="number" value="0"> %</td><td>$0.00</td>' +
+        '<td class="action-cell"><a href="javascript:void(0)" onclick="addDetailRow(\'' + tableId + '\',this)">新增行</a>' +
+        '<a href="javascript:void(0)" class="danger" onclick="removeDetailRow(\'' + tableId + '\',this)">删除行</a></td>';
+      lastRow.after(newRow);
+      showNotification('已在 ' + role + ' 角色组新增员工行');
+    }
+
+    function removeDetailRow(tableId, triggerEl) {
+      var row = triggerEl.closest('tr');
+      var role = getRoleFromRow(row);
+      var isHead = row.getAttribute('data-role-head') === 'true';
+      var roleRows = document.querySelectorAll('#' + tableId + ' tbody tr[data-role="' + role + '"]');
+      if (roleRows.length <= 1) { showNotification('每个角色至少需要保留一名员工', 'warning'); return; }
+      if (isHead) {
+        var nextRow = roleRows[1];
+        nextRow.setAttribute('data-role-head', 'true');
+        var cells = nextRow.querySelectorAll('td');
+        cells[0].innerHTML = '<span class="role-label">' + role + '</span>';
+        var headCells = row.querySelectorAll('td');
+        var ratioInput = headCells[1].querySelector('input');
+        var amountText = headCells[2].textContent;
+        cells[1].className = 'input-cell';
+        cells[1].innerHTML = '<input type="number" value="' + (ratioInput ? ratioInput.value : '') + '" onchange="recalcRoleAmount(\'' + tableId + '\')"> %';
+        cells[2].className = 'role-amount';
+        cells[2].textContent = amountText;
+      }
+      row.style.opacity = '0';
+      row.style.transition = 'opacity 0.2s';
+      setTimeout(function() { row.remove(); }, 200);
+      showNotification('已删除员工行');
+    }
+
+    function recalcRoleAmount(tableId) {
+      var card = document.querySelector('#' + tableId + ', .detail-card');
+      if (!card) card = document.querySelector('.detail-card');
+      if (!card) return;
+      var pool = parseFloat(card.getAttribute('data-pool')) || 0;
+      var roleGroups = {};
+      document.querySelectorAll('#' + tableId + ' tbody tr[data-role]').forEach(function(tr) {
+        var role = tr.getAttribute('data-role');
+        if (!roleGroups[role]) roleGroups[role] = { pctInput: null, amountCell: null, empRows: [] };
+        var isHead = tr.getAttribute('data-role-head') === 'true';
+        if (isHead) {
+          roleGroups[role].pctInput = tr.querySelector('td:nth-child(2) input');
+          roleGroups[role].amountCell = tr.querySelector('td.role-amount');
+        }
+        roleGroups[role].empRows.push(tr);
+      });
+      var totalPct = 0;
+      Object.keys(roleGroups).forEach(function(r) {
+        var inp = roleGroups[r].pctInput;
+        totalPct += inp ? (parseFloat(inp.value) || 0) : 0;
+      });
+      Object.keys(roleGroups).forEach(function(role) {
+        var g = roleGroups[role];
+        var pct = g.pctInput ? (parseFloat(g.pctInput.value) || 0) : 0;
+        var roleAmt = totalPct > 0 ? +(pool * pct / totalPct).toFixed(2) : 0;
+        if (g.amountCell) g.amountCell.textContent = money(roleAmt);
+        var empPctSum = 0;
+        g.empRows.forEach(function(tr, i) {
+          var empInp = tr.querySelector('td:nth-child(5) input');
+          if (empInp) empPctSum += parseFloat(empInp.value) || 0;
+        });
+        g.empRows.forEach(function(tr) {
+          var empInp = tr.querySelector('td:nth-child(5) input');
+          var amtCell = tr.querySelector('td:nth-child(6)');
+          var empPct = empInp ? (parseFloat(empInp.value) || 0) : 0;
+          var empAmt = empPctSum > 0 ? +(roleAmt * empPct / empPctSum).toFixed(2) : 0;
+          if (amtCell) amtCell.textContent = money(empAmt);
+        });
+      });
+    }
+
+    function saveDetail() {
+      showNotification('保存成功', 'success');
+    }
+
+    function saveAndNext() {
+      var dateInput = document.getElementById('detailDate');
+      var cur = new Date(dateInput.value + 'T00:00:00');
+      cur.setDate(cur.getDate() + 1);
+      var nextKey = cur.getFullYear() + '-' + pad(cur.getMonth() + 1) + '-' + pad(cur.getDate());
+      dateInput.value = nextKey;
+      renderDetailPage();
+      showNotification('已保存，已跳转到 ' + nextKey, 'success');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function initStoreSelect() {
+      var sel = document.getElementById('storeSelect');
+      if (!sel) return;
+      var rules = window.ruleData && ruleData.getRules ? ruleData.getRules() : [];
+      var seen = {};
+      var stores = [];
+      rules.forEach(function(r) {
+        var s = (r.store || '').trim();
+        if (s && !seen[s]) { seen[s] = 1; stores.push(s); }
+      });
+      sel.innerHTML = '<option value="">请选择门店</option>' + stores.map(function(s) {
+        return '<option value="' + s + '">' + s + '</option>';
+      }).join('');
+      if (stores.length > 0 && !sel.value) sel.value = stores[0];
+    }
+
+    initStoreSelect();
+    renderDetailPage();
+  </script>
+</body>
+</html>
