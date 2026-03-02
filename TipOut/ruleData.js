@@ -67,6 +67,7 @@
   var poolTypeNames = {
     sales: '销售额',
     tips: '小费',
+    surcharge: '加收服务费',
     manual: '手动上报小费',
     custom: '自定义小费'
   };
@@ -82,10 +83,10 @@
       var raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         var list = JSON.parse(raw);
-        return Array.isArray(list) ? list : defaultRules.slice();
+        return Array.isArray(list) ? list : [];
       }
     } catch (e) {}
-    return defaultRules.slice();
+    return [];
   }
 
   function saveRules(rules) {

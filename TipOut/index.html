@@ -64,6 +64,57 @@
       font-size: 14px; transition: background 0.2s; white-space: nowrap;
     }
     .export-menu-item:hover { background: rgba(0,0,0,0.04); }
+
+    /* Multi-Select (index filter bar) */
+    .filter-bar .multi-select { position: relative; min-width: 150px; }
+    .filter-bar .multi-select-input {
+      display: flex; align-items: center; min-height: 40px;
+      padding: 4px 32px 4px 12px; border: 1px solid var(--border-color);
+      border-radius: var(--radius-md); background: #fff; cursor: pointer;
+      transition: border-color 0.2s; font-size: 14px;
+    }
+    .filter-bar .multi-select-input:hover { border-color: var(--primary); }
+    .filter-bar .multi-select.open .multi-select-input {
+      border-color: var(--primary); box-shadow: 0 0 0 2px rgba(22,119,255,0.1);
+    }
+    .filter-bar .multi-select-arrow {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      transition: transform 0.2s; pointer-events: none; flex-shrink: 0;
+    }
+    .filter-bar .multi-select.open .multi-select-arrow { transform: translateY(-50%) rotate(180deg); }
+    .filter-bar .multi-select-tags {
+      display: flex; flex-wrap: wrap; gap: 4px; flex: 1; min-height: 24px;
+      align-items: center;
+    }
+    .filter-bar .multi-select-tag {
+      display: inline-flex; align-items: center; gap: 2px;
+      padding: 1px 6px; background: #f5f5f5; border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm); font-size: 12px; line-height: 20px;
+      white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis;
+    }
+    .filter-bar .multi-select-tag i {
+      font-style: normal; cursor: pointer; color: var(--text-tertiary);
+      margin-left: 2px; font-size: 13px; line-height: 1;
+    }
+    .filter-bar .multi-select-tag i:hover { color: var(--text-primary); }
+    .filter-bar .multi-select-dropdown {
+      display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: #fff; border-radius: var(--radius-lg); padding: 4px;
+      box-shadow: var(--shadow-md); z-index: 100; max-height: 220px; overflow-y: auto;
+    }
+    .filter-bar .multi-select.open .multi-select-dropdown { display: block; }
+    .filter-bar .multi-select-option {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer;
+      font-size: 13px; transition: background 0.15s;
+    }
+    .filter-bar .multi-select-option:hover { background: rgba(0,0,0,0.04); }
+    .filter-bar .multi-select-option input[type="checkbox"] {
+      width: 14px; height: 14px; accent-color: var(--primary); cursor: pointer;
+    }
+    .filter-bar .multi-select-placeholder {
+      color: var(--text-tertiary); font-size: 13px; padding: 0 4px;
+    }
   </style>
 </head>
 <body>
@@ -115,35 +166,36 @@
           <select id="storeSelect" class="form-control form-control-lg" style="width:460px" onchange="renderDayTabs()">
             <option value="">请选择门店</option>
           </select>
-          <select class="form-control form-control-lg" style="width:150px">
-            <option value="">All Role</option>
-            <option>Assistant Manager</option>
-            <option>Bartender</option>
-            <option>Busser</option>
-            <option>Cashier</option>
-            <option>Driver</option>
-            <option>Host</option>
-            <option>Manager</option>
-            <option>Runner</option>
-            <option>Server</option>
-            <option>Shift Lead</option>
-          </select>
-          <select class="form-control form-control-lg" style="width:150px">
-            <option value="">All Staff</option>
-            <option>Maria Garcia</option>
-            <option>Jason Chen</option>
-            <option>Emily Watson</option>
-            <option>Diego Ramirez</option>
-            <option>Mike Johnson</option>
-            <option>Sarah Kim</option>
-            <option>Carlos Lopez</option>
-            <option>Tyler Brown</option>
-            <option>Linda Nguyen</option>
-            <option>Rachel Scott</option>
-            <option>Daniel Ortiz</option>
-            <option>Jessica Martinez</option>
-            <option>Robert Williams</option>
-          </select>
+          <div class="multi-select" id="roleFilter" data-placeholder="All Role" style="min-width:150px">
+            <div class="multi-select-input" onclick="toggleIndexMultiSelect('roleFilter')">
+              <div class="multi-select-tags">
+                <span class="multi-select-placeholder">All Role</span>
+              </div>
+              <svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+            </div>
+            <div class="multi-select-dropdown">
+              <label class="multi-select-option multi-select-all" style="border-bottom:1px solid var(--border-light);margin-bottom:4px;padding-bottom:6px"><input type="checkbox" value="__all__" data-select-all> 全选</label>
+              <label class="multi-select-option"><input type="checkbox" value="Assistant Manager"> Assistant Manager</label>
+              <label class="multi-select-option"><input type="checkbox" value="Bartender"> Bartender</label>
+              <label class="multi-select-option"><input type="checkbox" value="Busser"> Busser</label>
+              <label class="multi-select-option"><input type="checkbox" value="Cashier"> Cashier</label>
+              <label class="multi-select-option"><input type="checkbox" value="Driver"> Driver</label>
+              <label class="multi-select-option"><input type="checkbox" value="Host"> Host</label>
+              <label class="multi-select-option"><input type="checkbox" value="Manager"> Manager</label>
+              <label class="multi-select-option"><input type="checkbox" value="Runner"> Runner</label>
+              <label class="multi-select-option"><input type="checkbox" value="Server"> Server</label>
+              <label class="multi-select-option"><input type="checkbox" value="Shift Lead"> Shift Lead</label>
+            </div>
+          </div>
+          <div class="multi-select" id="employeeFilter" data-placeholder="All Staff" style="min-width:150px">
+            <div class="multi-select-input" onclick="toggleIndexMultiSelect('employeeFilter')">
+              <div class="multi-select-tags">
+                <span class="multi-select-placeholder">All Staff</span>
+              </div>
+              <svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+            </div>
+            <div class="multi-select-dropdown" id="employeeFilterDropdown"></div>
+          </div>
           <button id="allocateBtn" class="btn btn-primary btn-lg" onclick="doAllocateTips()">分配小费</button>
           <button class="btn btn-lg" onclick="doCancelAllocate()" style="color:var(--text-tertiary);font-size:13px" title="用于测试">取消分配</button>
         </div>
@@ -247,6 +299,104 @@
       { name: 'Rachel Scott',  role: 'Host',      tagClass: 'tag-green', tipType: 'receive', baseTip: 0, tipRate: 0 }
     ];
 
+    function getSelectedRoles() {
+      var el = document.getElementById('roleFilter');
+      if (!el) return [];
+      var cbs = el.querySelectorAll('input[type="checkbox"]:checked');
+      return Array.prototype.map.call(cbs, function(c) { return c.value; }).filter(function(v) { return v !== '__all__'; });
+    }
+
+    function getSelectedEmployees() {
+      var el = document.getElementById('employeeFilter');
+      if (!el) return [];
+      var cbs = el.querySelectorAll('input[type="checkbox"]:checked');
+      return Array.prototype.map.call(cbs, function(c) { return c.value; }).filter(function(v) { return v !== '__all__'; });
+    }
+
+    function toggleSelectAll(selectId, checked) {
+      var container = document.getElementById(selectId);
+      if (!container) return;
+      var allCbs = container.querySelectorAll('input[type="checkbox"]:not([data-select-all])');
+      allCbs.forEach(function(cb) { cb.checked = !!checked; });
+      refreshIndexMultiTags(selectId);
+      syncSelectAllState(selectId);
+      if (selectId === 'roleFilter') updateEmployeeFilter();
+      else renderEmployeeResults();
+    }
+
+    function syncSelectAllState(selectId) {
+      var container = document.getElementById(selectId);
+      if (!container) return;
+      var allCb = container.querySelector('input[data-select-all]');
+      var itemCbs = container.querySelectorAll('input[type="checkbox"]:not([data-select-all])');
+      if (!allCb || !itemCbs.length) return;
+      var allChecked = itemCbs.length > 0 && Array.prototype.every.call(itemCbs, function(c) { return c.checked; });
+      allCb.checked = allChecked;
+    }
+
+    function toggleIndexMultiSelect(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      document.querySelectorAll('.filter-bar .multi-select.open').forEach(function(ms) {
+        if (ms.id !== id) ms.classList.remove('open');
+      });
+      el.classList.toggle('open');
+    }
+
+    function removeIndexMultiTag(e, btnEl) {
+      e.stopPropagation();
+      var selectId = btnEl && btnEl.dataset && btnEl.dataset.selectId;
+      var value = btnEl && btnEl.dataset && btnEl.dataset.value;
+      if (!selectId || value === undefined) return;
+      var container = document.getElementById(selectId);
+      var inputs = container ? container.querySelectorAll('input[type="checkbox"]') : [];
+      for (var i = 0; i < inputs.length; i++) {
+        if (inputs[i].value === value) { inputs[i].checked = false; break; }
+      }
+      refreshIndexMultiTags(selectId);
+      if (selectId === 'roleFilter') updateEmployeeFilter();
+      else renderEmployeeResults();
+    }
+
+    function refreshIndexMultiTags(selectId) {
+      var container = document.getElementById(selectId);
+      if (!container) return;
+      var tagsEl = container.querySelector('.multi-select-tags');
+      if (!tagsEl) return;
+      var placeholder = (container.dataset && container.dataset.placeholder) || '请选择';
+      var cbs = container.querySelectorAll('input[type="checkbox"]:checked:not([data-select-all])');
+      tagsEl.innerHTML = '';
+      if (cbs.length === 0) {
+        tagsEl.innerHTML = '<span class="multi-select-placeholder">' + placeholder + '</span>';
+        return;
+      }
+      cbs.forEach(function(cb) {
+        var tag = document.createElement('span');
+        tag.className = 'multi-select-tag';
+        tag.innerHTML = (cb.value || '') + ' <i data-select-id="' + selectId + '" data-value="' + (cb.value || '').replace(/"/g, '&quot;') + '" onclick="removeIndexMultiTag(event, this)">×</i>';
+        tagsEl.appendChild(tag);
+      });
+    }
+
+    function updateEmployeeFilter() {
+      var roles = getSelectedRoles();
+      var prevSelected = getSelectedEmployees();
+      var dropdown = document.getElementById('employeeFilterDropdown');
+      if (!dropdown) return;
+      var list = roles.length > 0
+        ? employees.filter(function(e) { return roles.indexOf(e.role) >= 0; })
+        : employees;
+      var allChecked = list.length > 0 && list.every(function(e) { return prevSelected.indexOf(e.name) >= 0; });
+      var allHtml = '<label class="multi-select-option multi-select-all" style="border-bottom:1px solid var(--border-light);margin-bottom:4px;padding-bottom:6px"><input type="checkbox" value="__all__" data-select-all' + (allChecked ? ' checked' : '') + '> 全选</label>';
+      var itemsHtml = list.map(function(e) {
+        var checked = prevSelected.indexOf(e.name) >= 0 ? ' checked' : '';
+        return '<label class="multi-select-option"><input type="checkbox" value="' + (e.name || '').replace(/"/g, '&quot;') + '"' + checked + '> ' + (e.name || '') + '</label>';
+      }).join('');
+      dropdown.innerHTML = allHtml + itemsHtml;
+      refreshIndexMultiTags('employeeFilter');
+      renderEmployeeResults();
+    }
+
     function pad(n) { return n < 10 ? '0' + n : '' + n; }
     function formatDateKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
     function formatTabLabel(d) { return pad(d.getMonth() + 1) + '/' + pad(d.getDate()); }
@@ -348,6 +498,15 @@
       showNotification('已取消分配，状态已恢复为待分配', 'info');
     }
 
+    function getFilteredEmployees() {
+      var roles = getSelectedRoles();
+      var empNames = getSelectedEmployees();
+      var list = employees;
+      if (roles.length > 0) list = list.filter(function(e) { return roles.indexOf(e.role) >= 0; });
+      if (empNames.length > 0) list = list.filter(function(e) { return empNames.indexOf(e.name) >= 0; });
+      return list;
+    }
+
     function renderEmployeeResults() {
       var dates = getDateRange();
       var allocatedDates = getAllocatedDates();
@@ -360,7 +519,9 @@
         return;
       }
 
-      employees.forEach(function(emp, idx) {
+      var filteredEmps = getFilteredEmployees();
+      filteredEmps.forEach(function(emp) {
+        var idx = employees.indexOf(emp);
         var dailyData = [];
         dates.forEach(function(dateKey) {
           if (allocatedDates.has(dateKey)) {
@@ -409,9 +570,17 @@
 
     function selectDay(el) {
       var isPending = el.getAttribute('data-pending') === '1';
+      var dateKey = el.getAttribute('data-date') || '';
       if (isPending && !hasTipRules()) {
         showNotification('请先创建小费分配规则', 'error');
         setTimeout(function() { window.location.href = 'rules.html'; }, 1500);
+        return;
+      }
+      if (!isPending && dateKey) {
+        var store = (document.getElementById('storeSelect') || {}).value || '';
+        var url = 'detail.html?date=' + encodeURIComponent(dateKey);
+        if (store) url += '&store=' + encodeURIComponent(store);
+        window.location.href = url;
         return;
       }
       document.querySelectorAll('.day-tab').forEach(function(t) { t.classList.remove('active'); });
@@ -442,7 +611,28 @@
       if (stores.length > 0 && !sel.value) sel.value = stores[0];
     }
 
+    document.addEventListener('change', function(e) {
+      var target = e.target;
+      var ms = target && target.closest && target.closest('.filter-bar .multi-select');
+      if (!ms) return;
+      var id = ms.id;
+      if (target.dataset && target.dataset.selectAll !== undefined) {
+        toggleSelectAll(id, target.checked);
+        return;
+      }
+      refreshIndexMultiTags(id);
+      syncSelectAllState(id);
+      if (id === 'roleFilter') updateEmployeeFilter();
+      else if (id === 'employeeFilter') renderEmployeeResults();
+    });
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest || !e.target.closest('.filter-bar .multi-select')) {
+        document.querySelectorAll('.filter-bar .multi-select.open').forEach(function(ms) { ms.classList.remove('open'); });
+      }
+    });
+
     initStoreSelect();
+    updateEmployeeFilter();
     renderDayTabs();
   </script>
   <script src="export.js"></script>
