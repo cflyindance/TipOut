@@ -271,8 +271,24 @@
     }
 
     function formatSurchargeConditions(cond) {
-      if (!cond || !cond.types || !cond.types.length) return '';
-      return '加收类型: ' + cond.types.join(', ');
+      if (!cond || typeof cond !== 'object') return '';
+      if (cond.types && Array.isArray(cond.types) && cond.types.length) return '加收类型: ' + cond.types.join(', ');
+      var parts = [];
+      if (Array.isArray(cond.role) && cond.role.length) parts.push('角色: ' + cond.role.join(', '));
+      else if (cond.role) parts.push('角色: ' + cond.role);
+      if (Array.isArray(cond.employees) && cond.employees.length) parts.push('员工: ' + cond.employees.join(', '));
+      if (cond.area) parts.push('订单区域: ' + (Array.isArray(cond.area) ? cond.area.join(', ') : cond.area));
+      if (cond.orderType) parts.push('订单类型: ' + (Array.isArray(cond.orderType) ? cond.orderType.join(', ') : cond.orderType));
+      if (cond.tipType) parts.push('小费类型: ' + cond.tipType);
+      if (cond.containsProduct && (Array.isArray(cond.containsProduct.category) && cond.containsProduct.category.length || Array.isArray(cond.containsProduct.item) && cond.containsProduct.item.length)) {
+        var cp = cond.containsProduct;
+        var cpParts = [];
+        if (cp.category && cp.category.length) cpParts.push('类: ' + cp.category.join(', '));
+        if (cp.item && cp.item.length) cpParts.push('菜: ' + cp.item.join(', '));
+        if (cpParts.length) parts.push('订单需包含商品: ' + cpParts.join('；'));
+      }
+      if (cond.hours && (cond.hours.start || cond.hours.end)) parts.push('营业时间段: ' + (cond.hours.start || '') + '-' + (cond.hours.end || ''));
+      return parts.join(' | ');
     }
 
     function formatConditions(cond) {
@@ -280,6 +296,7 @@
       var parts = [];
       if (Array.isArray(cond.role) && cond.role.length) parts.push('角色: ' + cond.role.join(', '));
       else if (cond.role) parts.push('角色: ' + cond.role);
+      if (Array.isArray(cond.employees) && cond.employees.length) parts.push('员工: ' + cond.employees.join(', '));
       if (cond.area) parts.push('订单区域: ' + (Array.isArray(cond.area) ? cond.area.join(', ') : cond.area));
       if (cond.orderType) parts.push('订单类型: ' + (Array.isArray(cond.orderType) ? cond.orderType.join(', ') : cond.orderType));
       if (cond.menu) {
@@ -323,7 +340,7 @@
         } else {
           valStr = '占比 ' + (pr.pct || 0) + '%';
           var cond = pr.conditions || (pr.type === 'sales' && rule.salesConditions) || (pr.type === 'tips' && rule.tipsConditions) || (pr.type === 'surcharge' && rule.surchargeConditions);
-          if (cond && pr.type === 'surcharge' && cond.types) valStr += ' | ' + formatSurchargeConditions(cond);
+          if (cond && (pr.type === 'surcharge' || pr.type === 'tips')) valStr += ' | ' + formatSurchargeConditions(cond);
           else if (cond && typeof cond === 'object' && Object.keys(cond).length) valStr += ' | ' + formatConditions(cond);
         }
         html += '<div class="rule-detail-item"><div class="label">' + name + '</div><div class="value">' + valStr + '</div></div>';
@@ -332,8 +349,7 @@
         '<div class="rule-detail-item"><div class="value">' + ((rule.deductRoles || []).join(', ') || '—') + '</div></div>' +
         '<div class="divider"></div><h4 style="margin-bottom:12px;font-size:14px">接收方规则</h4>';
       (rule.receivers || []).forEach(function(r) {
-        var poolName = poolRuleNames[r.poolRuleId] || r.poolRuleId || '';
-        html += '<div class="rule-detail-item"><div class="value">' + ((r.roles || []).join(' / ') || '') + ' ← ' + poolName + ' ' + (r.pct || 0) + '%</div></div>';
+        html += '<div class="rule-detail-item"><div class="value">' + ((r.roles || []).join(' / ') || '') + ' ' + (r.pct || 0) + '%</div></div>';
       });
       html += '<div class="rule-detail-item"><div class="label">分配方式</div><div class="value">' + (distNames[rule.distribution] || rule.distribution || '—') + '</div></div>';
       body.innerHTML = html;
@@ -402,32 +418,24 @@
         '</div>';
     }
 
-    function buildRoleConfigFromRule(rule, poolByRule) {
-      poolByRule = poolByRule || {};
-      var poolRuleNames = {};
-      (rule.poolRules || []).forEach(function(pr) {
-        poolRuleNames[pr.id || pr.type] = pr.name || poolTypeNames[pr.type] || pr.type;
-      });
+    function buildRoleConfigFromRule(rule) {
       var config = [];
       (rule.receivers || []).forEach(function(r) {
         var roles = r.roles || [];
         var roleLabel = roles.join(' / ');
-        var poolRuleId = r.poolRuleId || (rule.poolRules && rule.poolRules[0] && (rule.poolRules[0].id || rule.poolRules[0].type));
-        var poolRuleName = poolRuleNames[poolRuleId] || poolRuleId || '';
         var employees = [];
         roles.forEach(function(role) {
           (roleEmployees[role] || []).forEach(function(emp) {
             if (employees.indexOf(emp) === -1) employees.push(emp);
           });
         });
-        if (roleLabel && poolRuleId) config.push({ role: roleLabel, roles: roles, poolRuleId: poolRuleId, poolRuleName: poolRuleName, pct: r.pct || 0, employees: employees });
+        if (roleLabel) config.push({ role: roleLabel, roles: roles, pct: r.pct || 0, employees: employees });
       });
       return config;
     }
 
     function renderDetailTable(data, dateKey, rule) {
-      var poolByRule = data.poolByRule || {};
-      var roleConfig = buildRoleConfigFromRule(rule || currentRule, poolByRule);
+      var roleConfig = buildRoleConfigFromRule(rule || currentRule);
       if (roleConfig.length === 0) {
         document.getElementById('detailCardArea').innerHTML =
           '<div class="card detail-card"><div class="card-body" style="padding:24px;color:var(--text-secondary)">该规则暂无接收方配置</div></div>';
@@ -437,11 +445,11 @@
       var rng = seedRandom(seed);
       var html = '<div class="card detail-card"><div class="card-header"><span>小费池分配明细</span></div>' +
         '<div class="card-body" style="padding:0"><table class="detail-table" id="detailTable1"><thead><tr>' +
-        '<th>角色</th><th>小费池规则</th><th>角色分配比例</th><th>角色分配金额</th><th>分配员工</th><th>员工分配比例</th><th>员工分配金额</th><th>操作</th>' +
+        '<th>角色</th><th>角色分配比例</th><th>角色分配金额</th><th>分配员工</th><th>员工分配比例</th><th>员工分配金额</th><th>操作</th>' +
         '</tr></thead><tbody>';
 
       roleConfig.forEach(function(rc) {
-        var poolAmt = poolByRule[rc.poolRuleId] || data.pool || 0;
+        var poolAmt = data.pool || 0;
         var roleAmount = +(poolAmt * rc.pct / 100).toFixed(2);
         var empCount = rc.employees.length;
         var empPcts = [];
@@ -464,9 +472,8 @@
             return '<option' + (e === emp ? ' selected' : '') + '>' + e + '</option>';
           }).join('');
 
-          html += '<tr data-role="' + rc.role + '" data-pool-rule="' + (rc.poolRuleId || '') + '"' + (isHead ? ' data-role-head="true"' : '') + '>';
+          html += '<tr data-role="' + rc.role + '"' + (isHead ? ' data-role-head="true"' : '') + '>';
           html += '<td>' + (isHead ? '<span class="role-label">' + rc.role + '</span>' : '') + '</td>';
-          html += '<td>' + (isHead ? rc.poolRuleName : '') + '</td>';
           html += '<td>' + (isHead ? '<span class="input-cell"><input type="number" value="' + rc.pct + '" onchange="recalcRoleAmount(\'detailTable1\')"> %</span>' : '') + '</td>';
           html += '<td' + (isHead ? ' class="role-amount"' : '') + '>' + (isHead ? money(roleAmount) : '') + '</td>';
           html += '<td><select class="form-control" style="width:140px;height:28px;font-size:13px">' + opts + '</select></td>';
@@ -484,23 +491,18 @@
       var card = document.querySelector('#detailCardArea .detail-card');
       if (card) {
         card.setAttribute('data-pool', data.pool);
-        card.setAttribute('data-pool-by-rule', JSON.stringify(data.poolByRule || {}));
       }
     }
 
     function getRoleFromRow(row) { return row.getAttribute('data-role'); }
 
-    function getLastRowOfRole(tableId, role, poolRuleId) {
-      var sel = '#' + tableId + ' tbody tr[data-role="' + role + '"]';
-      if (poolRuleId) sel += '[data-pool-rule="' + poolRuleId + '"]';
-      var rows = document.querySelectorAll(sel);
+    function getLastRowOfRole(tableId, role) {
+      var rows = document.querySelectorAll('#' + tableId + ' tbody tr[data-role="' + role + '"]');
       return rows.length ? rows[rows.length - 1] : null;
     }
 
-    function getSelectedEmployeesInRole(tableId, role, poolRuleId) {
-      var sel = '#' + tableId + ' tbody tr[data-role="' + role + '"]';
-      if (poolRuleId) sel += '[data-pool-rule="' + poolRuleId + '"]';
-      var rows = document.querySelectorAll(sel);
+    function getSelectedEmployeesInRole(tableId, role) {
+      var rows = document.querySelectorAll('#' + tableId + ' tbody tr[data-role="' + role + '"]');
       var selected = [];
       rows.forEach(function(r) {
         var sel = r.querySelector('td select');
@@ -523,18 +525,16 @@
     function addDetailRow(tableId, triggerEl) {
       var currentRow = triggerEl.closest('tr');
       var role = getRoleFromRow(currentRow);
-      var poolRuleId = currentRow.getAttribute('data-pool-rule') || '';
       if (!role) return;
       var allEmployees = getEmployeesForRoleGroup(role);
-      var selectedEmployees = getSelectedEmployeesInRole(tableId, role, poolRuleId);
+      var selectedEmployees = getSelectedEmployeesInRole(tableId, role);
       var available = allEmployees.filter(function(e) { return selectedEmployees.indexOf(e) === -1; });
       if (available.length === 0) { showNotification('该角色下所有员工已被分配，无可选员工', 'warning'); return; }
       var options = available.map(function(e) { return '<option>' + e + '</option>'; }).join('');
-      var lastRow = getLastRowOfRole(tableId, role, poolRuleId);
+      var lastRow = getLastRowOfRole(tableId, role);
       var newRow = document.createElement('tr');
       newRow.setAttribute('data-role', role);
-      newRow.setAttribute('data-pool-rule', poolRuleId);
-      newRow.innerHTML = '<td></td><td></td><td></td><td></td>' +
+      newRow.innerHTML = '<td></td><td></td><td></td>' +
         '<td><select class="form-control" style="width:140px;height:28px;font-size:13px">' + options + '</select></td>' +
         '<td class="input-cell"><input type="number" value="0"> %</td><td>$0.00</td>' +
         '<td class="action-cell"><a href="javascript:void(0)" onclick="addDetailRow(\'' + tableId + '\',this)">新增行</a>' +
@@ -546,25 +546,21 @@
     function removeDetailRow(tableId, triggerEl) {
       var row = triggerEl.closest('tr');
       var role = getRoleFromRow(row);
-      var poolRuleId = row.getAttribute('data-pool-rule') || '';
       var isHead = row.getAttribute('data-role-head') === 'true';
-      var roleRows = document.querySelectorAll('#' + tableId + ' tbody tr[data-role="' + role + '"][data-pool-rule="' + poolRuleId + '"]');
+      var roleRows = document.querySelectorAll('#' + tableId + ' tbody tr[data-role="' + role + '"]');
       if (roleRows.length <= 1) { showNotification('每个角色至少需要保留一名员工', 'warning'); return; }
       if (isHead) {
         var nextRow = roleRows[1];
         nextRow.setAttribute('data-role-head', 'true');
-        nextRow.setAttribute('data-pool-rule', poolRuleId);
         var cells = nextRow.querySelectorAll('td');
         var headCells = row.querySelectorAll('td');
         cells[0].innerHTML = '<span class="role-label">' + role + '</span>';
-        cells[1].innerHTML = headCells[1] ? headCells[1].innerHTML : '';
-        cells[1].className = headCells[1] ? headCells[1].className : '';
-        var ratioInput = headCells[2] ? headCells[2].querySelector('input') : null;
-        var amountText = headCells[3] ? headCells[3].textContent : '';
-        cells[2].className = 'input-cell';
-        cells[2].innerHTML = '<input type="number" value="' + (ratioInput ? ratioInput.value : '') + '" onchange="recalcRoleAmount(\'' + tableId + '\')"> %';
-        cells[3].className = 'role-amount';
-        cells[3].textContent = amountText;
+        var ratioInput = headCells[1] ? headCells[1].querySelector('input') : null;
+        var amountText = headCells[2] ? headCells[2].textContent : '';
+        cells[1].className = 'input-cell';
+        cells[1].innerHTML = '<input type="number" value="' + (ratioInput ? ratioInput.value : '') + '" onchange="recalcRoleAmount(\'' + tableId + '\')"> %';
+        cells[2].className = 'role-amount';
+        cells[2].textContent = amountText;
       }
       row.style.opacity = '0';
       row.style.transition = 'opacity 0.2s';
@@ -576,38 +572,31 @@
       var table = document.getElementById(tableId);
       var card = table ? table.closest('.detail-card') : document.querySelector('.detail-card');
       if (!card || !table) return;
-      var poolByRule = {};
-      try {
-        if (card.getAttribute('data-pool-by-rule')) poolByRule = JSON.parse(card.getAttribute('data-pool-by-rule') || '{}');
-      } catch (e) {}
       var pool = parseFloat(card.getAttribute('data-pool')) || 0;
       var roleGroups = {};
       table.querySelectorAll('tbody tr[data-role]').forEach(function(tr) {
         var role = tr.getAttribute('data-role');
-        var poolRuleId = tr.getAttribute('data-pool-rule') || '';
-        var key = role + '|' + poolRuleId;
-        if (!roleGroups[key]) roleGroups[key] = { poolRuleId: poolRuleId, pctInput: null, amountCell: null, empRows: [] };
+        if (!roleGroups[role]) roleGroups[role] = { pctInput: null, amountCell: null, empRows: [] };
         var isHead = tr.getAttribute('data-role-head') === 'true';
         if (isHead) {
-          roleGroups[key].pctInput = tr.querySelector('td:nth-child(3) input');
-          roleGroups[key].amountCell = tr.querySelector('td.role-amount');
+          roleGroups[role].pctInput = tr.querySelector('td:nth-child(2) input');
+          roleGroups[role].amountCell = tr.querySelector('td.role-amount');
         }
-        roleGroups[key].empRows.push(tr);
+        roleGroups[role].empRows.push(tr);
       });
-      Object.keys(roleGroups).forEach(function(key) {
-        var g = roleGroups[key];
+      Object.keys(roleGroups).forEach(function(role) {
+        var g = roleGroups[role];
         var pct = g.pctInput ? (parseFloat(g.pctInput.value) || 0) : 0;
-        var poolAmt = (poolByRule[g.poolRuleId] != null ? poolByRule[g.poolRuleId] : pool);
-        var roleAmt = +(poolAmt * pct / 100).toFixed(2);
+        var roleAmt = +(pool * pct / 100).toFixed(2);
         if (g.amountCell) g.amountCell.textContent = money(roleAmt);
         var empPctSum = 0;
         g.empRows.forEach(function(tr) {
-          var empInp = tr.querySelector('td:nth-child(6) input');
+          var empInp = tr.querySelector('td:nth-child(5) input');
           if (empInp) empPctSum += parseFloat(empInp.value) || 0;
         });
         g.empRows.forEach(function(tr) {
-          var empInp = tr.querySelector('td:nth-child(6) input');
-          var amtCell = tr.querySelector('td:nth-child(7)');
+          var empInp = tr.querySelector('td:nth-child(5) input');
+          var amtCell = tr.querySelector('td:nth-child(6)');
           var empPct = empInp ? (parseFloat(empInp.value) || 0) : 0;
           var empAmt = empPctSum > 0 ? +(roleAmt * empPct / empPctSum).toFixed(2) : 0;
           if (amtCell) amtCell.textContent = money(empAmt);

@@ -27,8 +27,17 @@
       border-bottom: 1px solid rgba(0,0,0,0.06);
       display: flex; align-items: center; justify-content: space-between; gap: 16px;
     }
-    .pool-rule-header .pool-rule-label { font-weight: 500; font-size: 14px; display: flex; align-items: center; gap: 4px; }
+    .pool-rule-header .pool-rule-label { font-weight: 500; font-size: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .pool-rule-header .pool-rule-label .num { color: var(--primary); font-weight: 600; margin-right: 4px; }
+    .pool-rule-type-tag {
+      display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;
+      background: rgba(22,119,255,0.1); color: var(--primary);
+    }
+    .pool-rule-type-tag.sales { background: rgba(82,196,26,0.12); color: #389e0d; }
+    .pool-rule-type-tag.tips { background: rgba(22,119,255,0.1); color: var(--primary); }
+    .pool-rule-type-tag.surcharge { background: rgba(250,173,20,0.15); color: #d48806; }
+    .pool-rule-type-tag.manual { background: rgba(114,46,209,0.12); color: #531dab; }
+    .pool-rule-type-tag.custom { background: rgba(0,0,0,0.06); color: var(--text-secondary); }
     .pool-rule-conditions {
       padding: 10px 24px 14px; font-size: 13px; color: var(--text-secondary);
       border-top: 1px solid rgba(0,0,0,0.04); background: rgba(0,0,0,0.01);
@@ -97,6 +106,22 @@
     .weight-link.disabled {
       color: var(--text-tertiary); cursor: not-allowed; pointer-events: none; opacity: 0.6;
     }
+    .field-desc-wrap { display: inline-flex; align-items: center; gap: 4px; }
+    .field-desc-icon {
+      cursor: pointer; color: var(--text-tertiary); font-size: 14px; width: 18px; height: 18px;
+      display: inline-flex; align-items: center; justify-content: center; border-radius: 50%;
+      transition: color 0.2s, background 0.2s; flex-shrink: 0;
+    }
+    .field-desc-icon:hover { color: var(--primary); background: rgba(22,119,255,0.08); }
+    .field-desc-icon.has-desc { color: var(--primary); }
+    .field-desc-tooltip {
+      position: fixed; max-width: 320px; padding: 10px 12px; font-size: 13px; line-height: 1.5;
+      background: var(--bg-elevated, #fff); border: 1px solid var(--border-color, rgba(0,0,0,0.1));
+      border-radius: var(--radius-sm); box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.12));
+      z-index: 3000; white-space: pre-wrap; word-break: break-word; pointer-events: none;
+      display: none;
+    }
+    .field-desc-tooltip.show { display: block; }
 
     .condition-card {
       border: 1px solid rgba(0,0,0,0.06); border-radius: 10px;
@@ -112,7 +137,7 @@
 
     #salesDrawer .drawer-body,
     #tipsDrawer .drawer-body,
-    #surchargeDrawer .drawer-body { overflow: visible; }
+    #surchargeDrawer .drawer-body { overflow-y: auto; min-height: 0; }
     #salesDrawer .condition-card,
     #tipsDrawer .condition-card,
     #surchargeDrawer .condition-card { overflow: visible; }
@@ -252,11 +277,11 @@
           <!-- Rule Name -->
           <div class="form-section">
             <div class="form-group">
-              <label class="form-label"><span class="required">*</span>规则名称</label>
+              <label class="form-label"><span class="required">*</span>规则名称 <span class="field-desc-wrap" data-field-id="ruleName"><span class="field-desc-icon" data-field-id="ruleName" data-label="规则名称" onclick="event.preventDefault();openFieldDescEditor('ruleName','规则名称')" title="点击编辑字段说明">ⓘ</span></span></label>
               <input type="text" id="ruleName" class="form-control" placeholder="请输入规则名称" style="max-width:460px">
             </div>
             <div class="form-group">
-              <label class="form-label"><span class="required">*</span>门店</label>
+              <label class="form-label"><span class="required">*</span>门店 <span class="field-desc-wrap" data-field-id="store"><span class="field-desc-icon" data-field-id="store" data-label="门店" onclick="event.preventDefault();openFieldDescEditor('store','门店')" title="点击编辑字段说明">ⓘ</span></span></label>
               <select id="storeSelect" class="form-control" style="max-width:460px">
                 <option value="">请选择门店</option>
                 <option value="Golden Dragon Chinese Kitchen - Dallas, TX 75231">Golden Dragon Chinese Kitchen - Dallas, TX 75231</option>
@@ -269,7 +294,7 @@
           <!-- Tip Pool Calculation Rules -->
           <div class="form-section">
             <div class="form-section-title">
-              <span>小费池计算规则</span>
+              <span class="field-desc-wrap" data-field-id="poolRules">小费池计算规则 <span class="field-desc-icon" data-field-id="poolRules" data-label="小费池计算规则" onclick="event.preventDefault();openFieldDescEditor('poolRules','小费池计算规则')" title="点击编辑字段说明">ⓘ</span></span>
             </div>
 
             <div id="poolRulesContainer"></div>
@@ -291,9 +316,9 @@
 
           <!-- Deduction Rules -->
           <div class="form-section" id="deductRulesSection" style="display:none">
-            <div class="form-section-title">扣除方规则</div>
+            <div class="form-section-title"><span class="field-desc-wrap" data-field-id="deductRoles">扣除方规则 <span class="field-desc-icon" data-field-id="deductRoles" data-label="扣除方规则" onclick="event.preventDefault();openFieldDescEditor('deductRoles','扣除方规则')" title="点击编辑字段说明">ⓘ</span></span></div>
             <div class="form-group">
-              <label class="form-label">按照角色选择（多选）</label>
+              <label class="form-label"><span class="field-desc-wrap" data-field-id="deductRoleSelect">按照角色选择（多选） <span class="field-desc-icon" data-field-id="deductRoleSelect" data-label="按照角色选择" onclick="event.preventDefault();openFieldDescEditor('deductRoleSelect','按照角色选择')" title="点击编辑字段说明">ⓘ</span></span></label>
               <div class="multi-select" id="deductRoleSelect" style="max-width:460px">
                 <div class="multi-select-input" onclick="toggleMultiSelect('deductRoleSelect')">
                   <div class="multi-select-tags">
@@ -322,14 +347,13 @@
           <!-- Receiver Rules -->
           <div class="form-section">
             <div class="form-section-title">
-              <span>接收方规则</span>
+              <span class="field-desc-wrap" data-field-id="receiverRules">接收方规则 <span class="field-desc-icon" data-field-id="receiverRules" data-label="接收方规则" onclick="event.preventDefault();openFieldDescEditor('receiverRules','接收方规则')" title="点击编辑字段说明">ⓘ</span></span>
               <span style="font-size:12px;color:var(--text-tertiary);font-weight:400;margin-left:auto">合计: <span id="totalPercent">0</span>%</span>
             </div>
             <table class="receiver-table" id="receiverTable">
               <thead>
                 <tr>
                   <th>角色</th>
-                  <th>小费池规则</th>
                   <th>占比百分比</th>
                   <th>操作</th>
                 </tr>
@@ -342,9 +366,22 @@
             </button>
           </div>
 
+          <!-- Clock-in Method -->
+          <div class="form-section">
+            <div class="form-section-title"><span class="field-desc-wrap" data-field-id="clockin">员工打卡方式（单选） <span class="field-desc-icon" data-field-id="clockin" data-label="员工打卡方式" onclick="event.preventDefault();openFieldDescEditor('clockin','员工打卡方式')" title="点击编辑字段说明">ⓘ</span></span></div>
+            <div class="radio-group">
+              <label class="radio-item">
+                <input type="radio" name="clockin" value="clock" checked onchange="updateDistributionOptions()"> 打卡上班
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="clockin" value="noclock" onchange="updateDistributionOptions()"> 不打卡
+              </label>
+            </div>
+          </div>
+
           <!-- Distribution Method -->
           <div class="form-section">
-            <div class="form-section-title">分配方式（单选）</div>
+            <div class="form-section-title"><span class="field-desc-wrap" data-field-id="distribution">分配方式（单选） <span class="field-desc-icon" data-field-id="distribution" data-label="分配方式" onclick="event.preventDefault();openFieldDescEditor('distribution','分配方式')" title="点击编辑字段说明">ⓘ</span></span></div>
             <div class="radio-group">
               <label class="radio-item">
                 <input type="radio" name="distribution" value="average" checked> 按员工数量平均分配
@@ -352,21 +389,8 @@
               <label class="radio-item">
                 <input type="radio" name="distribution" value="hours"> 按工作时长占比分配
               </label>
-              <label class="radio-item">
+              <label class="radio-item" id="distributionOrdersRow">
                 <input type="radio" name="distribution" value="orders"> 按订单占比分配
-              </label>
-            </div>
-          </div>
-
-          <!-- Clock-in Method -->
-          <div class="form-section">
-            <div class="form-section-title">员工打卡方式（单选）</div>
-            <div class="radio-group">
-              <label class="radio-item">
-                <input type="radio" name="clockin" value="clock" checked> 打卡上班
-              </label>
-              <label class="radio-item">
-                <input type="radio" name="clockin" value="noclock"> 不打卡
               </label>
             </div>
           </div>
@@ -398,6 +422,25 @@
       </div>
     </div>
   </div>
+
+  <!-- Field Description Edit Modal -->
+  <div class="modal-overlay" id="fieldDescModal">
+    <div class="modal" style="width:420px">
+      <div class="modal-header">
+        <h3>字段说明</h3>
+        <button class="modal-close" onclick="closeModal('fieldDescModal')">×</button>
+      </div>
+      <div class="modal-body">
+        <p id="fieldDescModalLabel" style="font-size:13px;color:var(--text-secondary);margin-bottom:8px"></p>
+        <textarea id="fieldDescModalText" class="form-control" rows="4" placeholder="输入该字段的定义、逻辑说明，便于开发理解..." style="resize:vertical;min-height:80px"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('fieldDescModal')">取消</button>
+        <button class="btn btn-primary" onclick="saveFieldDesc()">保存</button>
+      </div>
+    </div>
+  </div>
+  <div id="fieldDescTooltip" class="field-desc-tooltip"></div>
 
   <!-- Employee Weight Modal -->
   <div class="modal-overlay" id="weightModal">
@@ -463,17 +506,17 @@
       <button class="modal-close" onclick="closeDrawer('surchargeDrawer')">×</button>
     </div>
     <div class="drawer-body">
-      <div class="form-group">
-        <label class="form-label">加收服务费类型（多选）</label>
-        <div class="multi-select" id="surchargeTypeSelect" style="max-width:460px" data-placeholder="请选择">
-          <div class="multi-select-input" onclick="toggleMultiSelect('surchargeTypeSelect')">
-            <div class="multi-select-tags"><span class="multi-select-placeholder">请选择</span></div>
-            <svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
-          </div>
-          <div class="multi-select-dropdown">
-            <label class="multi-select-option"><input type="checkbox" value="现金加收"> 现金加收</label>
-            <label class="multi-select-option"><input type="checkbox" value="信用卡加收服务费"> 信用卡加收服务费</label>
-          </div>
+      <div id="surchargeConditionsContainer"></div>
+      <div class="add-option-dropdown">
+        <button class="btn" type="button" onclick="toggleAddConditionMenu('surchargeDrawer')">
+          <span style="font-size:16px">+</span> 新增条件
+        </button>
+        <div class="add-option-menu" id="surchargeConditionMenu">
+          <div class="add-option-menu-item" data-type="role" onclick="addSurchargeCondition('role')">角色</div>
+          <div class="add-option-menu-item" data-type="area" onclick="addSurchargeCondition('area')">订单区域</div>
+          <div class="add-option-menu-item" data-type="orderType" onclick="addSurchargeCondition('orderType')">订单类型</div>
+          <div class="add-option-menu-item" data-type="hours" onclick="addSurchargeCondition('hours')">营业时间段</div>
+          <div class="add-option-menu-item" data-type="tipType" onclick="addSurchargeCondition('tipType')">小费类型</div>
         </div>
       </div>
     </div>
@@ -497,10 +540,12 @@
           <span style="font-size:16px">+</span> 新增条件
         </button>
         <div class="add-option-menu" id="tipsConditionMenu">
+          <div class="add-option-menu-item" data-type="role" onclick="addTipsCondition('role')">角色</div>
           <div class="add-option-menu-item" data-type="area" onclick="addTipsCondition('area')">订单区域</div>
           <div class="add-option-menu-item" data-type="orderType" onclick="addTipsCondition('orderType')">订单类型</div>
           <div class="add-option-menu-item" data-type="hours" onclick="addTipsCondition('hours')">营业时间段</div>
           <div class="add-option-menu-item" data-type="tipType" onclick="addTipsCondition('tipType')">小费类型</div>
+          <div class="add-option-menu-item" data-type="containsProduct" onclick="addTipsCondition('containsProduct')">订单需包含商品</div>
         </div>
       </div>
     </div>
@@ -516,6 +561,76 @@
     var poolRuleCounter = { sales: 0, tips: 0, surcharge: 0 };
     var poolRuleConditions = {};
     const existingRules = { sales: false, tips: false, surcharge: false, manual: false, custom: false };
+
+    var FIELD_DESC_STORAGE_KEY = 'ruleAddFieldDesc';
+    function getFieldDesc(fieldId) {
+      try {
+        var raw = localStorage.getItem(FIELD_DESC_STORAGE_KEY);
+        if (!raw) return '';
+        var obj = JSON.parse(raw);
+        return (obj && obj[fieldId]) ? String(obj[fieldId]) : '';
+      } catch (e) { return ''; }
+    }
+    function setFieldDesc(fieldId, text) {
+      try {
+        var raw = localStorage.getItem(FIELD_DESC_STORAGE_KEY);
+        var obj = raw ? JSON.parse(raw) : {};
+        obj[fieldId] = text ? String(text).trim() : '';
+        if (!obj[fieldId]) delete obj[fieldId];
+        localStorage.setItem(FIELD_DESC_STORAGE_KEY, JSON.stringify(obj));
+      } catch (e) {}
+    }
+    var fieldDescEditingId = null;
+    function openFieldDescEditor(fieldId, labelText) {
+      fieldDescEditingId = fieldId;
+      document.getElementById('fieldDescModalLabel').textContent = '字段：' + (labelText || fieldId);
+      document.getElementById('fieldDescModalText').value = getFieldDesc(fieldId);
+      if (typeof openModal === 'function') openModal('fieldDescModal');
+    }
+    function saveFieldDesc() {
+      if (!fieldDescEditingId) return;
+      var text = document.getElementById('fieldDescModalText').value.trim();
+      setFieldDesc(fieldDescEditingId, text);
+      var icon = document.querySelector('.field-desc-icon[data-field-id="' + fieldDescEditingId + '"]');
+      if (icon) icon.classList.toggle('has-desc', !!text);
+      fieldDescEditingId = null;
+      if (typeof closeModal === 'function') closeModal('fieldDescModal');
+      showNotification('说明已保存');
+    }
+    var fieldDescTooltipEl = null;
+    var fieldDescTooltipTimer = null;
+    function showFieldDescTooltip(e, fieldId) {
+      var text = getFieldDesc(fieldId);
+      if (!text) return;
+      fieldDescTooltipEl = document.getElementById('fieldDescTooltip');
+      if (!fieldDescTooltipEl) return;
+      fieldDescTooltipEl.textContent = text;
+      fieldDescTooltipEl.classList.add('show');
+      fieldDescTooltipEl.dataset.forField = fieldId;
+      var x = e.clientX, y = e.clientY;
+      fieldDescTooltipEl.style.left = (x + 12) + 'px';
+      fieldDescTooltipEl.style.top = (y + 8) + 'px';
+    }
+    function initFieldDescTooltip() {
+      document.querySelectorAll('.field-desc-icon').forEach(function(icon) {
+        if (getFieldDesc(icon.dataset.fieldId)) icon.classList.add('has-desc');
+      });
+      document.addEventListener('mouseover', function(e) {
+        var icon = e.target.closest('.field-desc-icon');
+        var wrap = e.target.closest('.field-desc-wrap');
+        if (icon && icon.dataset.fieldId) showFieldDescTooltip(e, icon.dataset.fieldId);
+        else if (wrap && wrap.dataset.fieldId) showFieldDescTooltip(e, wrap.dataset.fieldId);
+      });
+      document.addEventListener('mouseout', function(e) {
+        var related = e.relatedTarget;
+        if (related && (related.closest('.field-desc-wrap') || related.closest('#fieldDescTooltip'))) return;
+        hideFieldDescTooltip();
+      });
+    }
+    function hideFieldDescTooltip() {
+      var el = document.getElementById('fieldDescTooltip');
+      if (el) el.classList.remove('show');
+    }
 
     var roleEmployees = {
       'Assistant Manager': ['Jessica Martinez'],
@@ -568,7 +683,7 @@
           poolRuleConditions[rid] = rule.salesConditions;
         } else if (pr.type === 'tips' && rule.tipsConditions && Object.keys(rule.tipsConditions).length > 0) {
           poolRuleConditions[rid] = rule.tipsConditions;
-        } else if (pr.type === 'surcharge' && rule.surchargeConditions && rule.surchargeConditions.types) {
+        } else if (pr.type === 'surcharge' && rule.surchargeConditions && typeof rule.surchargeConditions === 'object' && Object.keys(rule.surchargeConditions).length > 0) {
           poolRuleConditions[rid] = rule.surchargeConditions;
         }
       });
@@ -577,12 +692,14 @@
         var rid = pr.id || pr.type;
         var card = document.getElementById('rule-' + rid);
         if (card) {
-          if (pr.type === 'custom') {
-            var amtInp = card.querySelector('input.pool-custom-amount');
-            var pctInp = card.querySelector('input.pool-custom-pct');
-            if (amtInp) amtInp.value = pr.amount != null ? pr.amount : 0;
-            if (pctInp) pctInp.value = pr.pct != null ? pr.pct : 100;
-          } else {
+        if (pr.type === 'custom') {
+          var amtInp = card.querySelector('input.pool-custom-amount');
+          var pctInp = card.querySelector('input.pool-custom-pct');
+          var nameInp = card.querySelector('.pool-rule-name');
+          if (amtInp) amtInp.value = pr.amount != null ? pr.amount : 0;
+          if (pctInp) pctInp.value = pr.pct != null ? pr.pct : 100;
+          if (nameInp && pr.name) nameInp.value = pr.name;
+        } else {
             var nameInp = card.querySelector('.pool-rule-name');
             var inp = card.querySelector('input[type="number"]:not(.pool-custom-amount):not(.pool-custom-pct)');
             if (nameInp && pr.name) nameInp.value = pr.name;
@@ -598,6 +715,7 @@
       if (dist) dist.checked = true;
       var clock = document.querySelector('input[name="clockin"][value="' + (rule.clockin || 'clock') + '"]');
       if (clock) clock.checked = true;
+      updateDistributionOptions();
       // Deduct roles
       var deductContainer = document.getElementById('deductRoleSelect');
       deductContainer.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
@@ -607,7 +725,6 @@
       // Receivers - add rows then populate
       var receivers = rule.receivers || [];
       receivers.forEach(function(rec) { addReceiverRow({ pct: rec.pct }); });
-      updateReceiverPoolRuleOptions();
       var rows = document.querySelectorAll('#receiverTableBody tr');
       receivers.forEach(function(rec, idx) {
         if (idx < rows.length) {
@@ -623,14 +740,18 @@
               refreshMultiTags(msId);
             }
           }
-          var poolSel = rows[idx].querySelector('.receiver-pool-rule-select');
-          if (poolSel) poolSel.value = rec.poolRuleId || firstPoolId || '';
           var pctInput = rows[idx].querySelector('input[type="number"]');
           if (pctInput) pctInput.value = rec.pct || 0;
+          var weights = rec.employeeWeights || {};
+          try {
+            rows[idx].dataset.employeeWeights = JSON.stringify(weights);
+          } catch (e) {}
+          renderReceiverRowWeights(rows[idx]);
         }
       });
       calcTotal();
       document.querySelectorAll('#receiverTableBody tr').forEach(function(tr) { updateReceiverRowWeightBtn(tr); });
+      updateAllReceiverRoleOptions();
     }
 
     function updateAddMenu() {
@@ -660,11 +781,14 @@
         if (sm) sm.classList.remove('show');
         var tm = document.getElementById('tipsConditionMenu');
         if (tm) tm.classList.remove('show');
+        var srm = document.getElementById('surchargeConditionMenu');
+        if (srm) srm.classList.remove('show');
       }
     });
 
     var existingSalesConditions = {};
     var existingTipsConditions = {};
+    var existingSurchargeConditions = {};
 
     function loadSalesConditionsForRule(ruleId) {
       var container = document.getElementById('salesConditionsContainer');
@@ -674,9 +798,15 @@
       var cond = poolRuleConditions[ruleId];
       if (cond && typeof cond === 'object') {
         Object.keys(cond).forEach(function(type) {
+          if (type === 'employees') return;
           addSalesCondition(type, true);
-          setSalesConditionValue(type, cond[type]);
+          if (type === 'role') setSalesConditionValue(type, { role: cond.role || [], employees: cond.employees || [] });
+          else setSalesConditionValue(type, cond[type]);
         });
+      }
+      if (!existingSalesConditions['revenueType']) {
+        addSalesCondition('revenueType', true);
+        if (cond && cond.revenueType) setSalesConditionValue('revenueType', cond.revenueType);
       }
       updateSalesConditionMenu();
     }
@@ -688,22 +818,72 @@
       var cond = poolRuleConditions[ruleId];
       if (cond && typeof cond === 'object') {
         Object.keys(cond).forEach(function(type) {
+          if (type === 'employees') return;
+          if (type === 'containsAlcohol') return;
           addTipsCondition(type, true);
-          setTipsConditionValue(type, cond[type]);
+          if (type === 'role') setTipsConditionValue(type, { role: cond.role || [], employees: cond.employees || [] });
+          else setTipsConditionValue(type, cond[type]);
         });
       }
       updateTipsConditionMenu();
     }
     function loadSurchargeConditionsForRule(ruleId) {
-      var cond = poolRuleConditions[ruleId] || {};
-      var types = (cond.types || []);
-      var el = document.getElementById('surchargeTypeSelect');
-      if (el) {
-        el.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
-          cb.checked = types.indexOf(cb.value) >= 0;
+      var container = document.getElementById('surchargeConditionsContainer');
+      if (!container) return;
+      container.innerHTML = '';
+      existingSurchargeConditions = {};
+      var cond = poolRuleConditions[ruleId];
+      if (cond && typeof cond === 'object' && !cond.types) {
+        Object.keys(cond).forEach(function(type) {
+          if (type === 'employees') return;
+          addSurchargeCondition(type, true);
+          if (type === 'role') setSurchargeConditionValue(type, { role: cond.role || [], employees: cond.employees || [] });
+          else setSurchargeConditionValue(type, cond[type]);
         });
-        refreshMultiTags('surchargeTypeSelect');
       }
+      updateSurchargeConditionMenu();
+    }
+    function getEmployeesForSelectedRoles(roles) {
+      var empMap = {};
+      (roles || []).forEach(function(r) {
+        (roleEmployees[r] || []).forEach(function(emp) {
+          empMap[emp] = 1;
+        });
+      });
+      return Object.keys(empMap);
+    }
+    function syncRoleEmployeeSelectAllState(employeeMs) {
+      if (!employeeMs) return;
+      var dropdown = employeeMs.querySelector('.multi-select-dropdown');
+      if (!dropdown) return;
+      var selectAllCb = dropdown.querySelector('.role-employee-select-all-cb');
+      var employeeCbs = dropdown.querySelectorAll('input[type="checkbox"]:not(.role-employee-select-all-cb)');
+      if (!selectAllCb || !employeeCbs.length) return;
+      var checked = dropdown.querySelectorAll('input[type="checkbox"]:not(.role-employee-select-all-cb):checked');
+      selectAllCb.checked = checked.length === employeeCbs.length && employeeCbs.length > 0;
+      selectAllCb.indeterminate = checked.length > 0 && checked.length < employeeCbs.length;
+    }
+    function updateRoleConditionEmployeeOptions(roleMs, employeeMs) {
+      if (!roleMs || !employeeMs) return;
+      var roles = [];
+      roleMs.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) {
+        roles.push(cb.value);
+      });
+      var employees = getEmployeesForSelectedRoles(roles);
+      var dropdown = employeeMs.querySelector('.multi-select-dropdown');
+      if (!dropdown) return;
+      if (employees.length === 0) {
+        dropdown.innerHTML = '<div class="multi-select-placeholder" style="padding:8px 12px">请先选择角色</div>';
+        employeeMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = false; });
+      } else {
+        var selectAllHtml = '<label class="multi-select-option role-employee-select-all"><input type="checkbox" class="role-employee-select-all-cb"> 全选</label>';
+        var listHtml = employees.map(function(emp) {
+          return '<label class="multi-select-option"><input type="checkbox" value="' + String(emp).replace(/"/g, '&quot;') + '"> ' + emp + '</label>';
+        }).join('');
+        dropdown.innerHTML = selectAllHtml + listHtml;
+        syncRoleEmployeeSelectAllState(employeeMs);
+      }
+      if (employeeMs.id) refreshMultiTags(employeeMs.id);
     }
     var roleOptionsHtml = '<label class="multi-select-option"><input type="checkbox" value="Assistant Manager"> Assistant Manager</label>' +
       '<label class="multi-select-option"><input type="checkbox" value="Bartender"> Bartender</label>' +
@@ -758,23 +938,31 @@
     var tipTypeSelectHtml = '<option value="">请选择</option><option>全部</option><option>Credit Card Tips (信用卡小费)</option><option>Cash Tips (现金小费)</option><option>Auto Gratuity (自动服务费)</option><option>Gift Card Tips</option>';
 
     function toggleAddConditionMenu(drawerId) {
-      var menuId = drawerId === 'salesDrawer' ? 'salesConditionMenu' : 'tipsConditionMenu';
+      var menuId = drawerId === 'salesDrawer' ? 'salesConditionMenu' : (drawerId === 'tipsDrawer' ? 'tipsConditionMenu' : 'surchargeConditionMenu');
       var menu = document.getElementById(menuId);
       if (menu) {
         menu.classList.toggle('show');
-        if (drawerId === 'salesDrawer') updateSalesConditionMenu(); else updateTipsConditionMenu();
+        if (drawerId === 'salesDrawer') updateSalesConditionMenu();
+        else if (drawerId === 'tipsDrawer') updateTipsConditionMenu();
+        else if (drawerId === 'surchargeDrawer') updateSurchargeConditionMenu();
       }
     }
     function updateSalesConditionMenu() {
       document.querySelectorAll('#salesConditionMenu .add-option-menu-item').forEach(function(item) {
         var t = item.dataset.type;
-        item.classList.toggle('disabled', !!existingSalesConditions[t]);
+        item.style.display = existingSalesConditions[t] ? 'none' : '';
       });
     }
     function updateTipsConditionMenu() {
       document.querySelectorAll('#tipsConditionMenu .add-option-menu-item').forEach(function(item) {
         var t = item.dataset.type;
-        item.classList.toggle('disabled', !!existingTipsConditions[t]);
+        item.style.display = existingTipsConditions[t] ? 'none' : '';
+      });
+    }
+    function updateSurchargeConditionMenu() {
+      document.querySelectorAll('#surchargeConditionMenu .add-option-menu-item').forEach(function(item) {
+        var t = item.dataset.type;
+        item.style.display = existingSurchargeConditions[t] ? 'none' : '';
       });
     }
 
@@ -784,11 +972,16 @@
       var cardId = 'sales-cond-' + type;
       var body = '';
       if (type === 'role') {
-        body = '<div class="drawer-form-row"><label>角色：</label><div class="multi-select" id="salesRoleSelect" style="flex:1">' +
+        body = '<div class="drawer-form-row"><label>角色：</label><div class="multi-select role-role-select" id="salesRoleSelect" style="flex:1">' +
           '<div class="multi-select-input" onclick="toggleMultiSelect(\'salesRoleSelect\')">' +
           '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择角色</span></div>' +
           '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
-          '<div class="multi-select-dropdown">' + roleOptionsHtml + '</div></div></div>';
+          '<div class="multi-select-dropdown">' + roleOptionsHtml + '</div></div></div>' +
+          '<div class="drawer-form-row"><label>员工：</label><div class="multi-select role-employee-select" id="salesRoleEmployeeSelect" style="flex:1" data-placeholder="请先选择角色">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'salesRoleEmployeeSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请先选择角色</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown"><div class="multi-select-placeholder" style="padding:8px 12px">请先选择角色</div></div></div></div>';
       } else if (type === 'area') {
         body = '<div class="drawer-form-row"><label>订单区域：</label><select class="form-control" style="flex:1">' + areaSelectHtml + '</select></div>';
       } else if (type === 'orderType') {
@@ -812,7 +1005,8 @@
       var card = document.createElement('div');
       card.className = 'condition-card';
       card.id = cardId;
-      card.innerHTML = '<div class="condition-card-header"><span class="label">' + names[type] + '</span><button class="btn btn-sm btn-text-danger" onclick="removeSalesCondition(\'' + type + '\')" style="font-size:18px;padding:0 4px">×</button></div><div class="condition-card-body">' + body + '</div>';
+      var deleteBtn = type === 'revenueType' ? '' : '<button class="btn btn-sm btn-text-danger" onclick="removeSalesCondition(\'' + type + '\')" style="font-size:18px;padding:0 4px">×</button>';
+      card.innerHTML = '<div class="condition-card-header"><span class="label">' + names[type] + '</span>' + deleteBtn + '</div><div class="condition-card-body">' + body + '</div>';
       document.getElementById('salesConditionsContainer').appendChild(card);
       existingSalesConditions[type] = true;
       document.getElementById('salesConditionMenu').classList.remove('show');
@@ -820,16 +1014,118 @@
       if (!silent) showNotification('已添加 ' + names[type]);
     }
     function removeSalesCondition(type) {
+      if (type === 'revenueType') return;
       var card = document.getElementById('sales-cond-' + type);
       if (card) { card.remove(); existingSalesConditions[type] = false; updateSalesConditionMenu(); showNotification('已删除'); }
     }
 
+    var menuCategoriesForProduct = ['酒水', '前菜', '主菜', '甜品', '饮料'];
+    var menuItemsByCategoryForProduct = {
+      '酒水': ['啤酒', '红酒', '鸡尾酒', '白酒', '清酒', '软饮'],
+      '前菜': ['沙拉', '汤', '小食', '拼盘'],
+      '主菜': ['牛排', '鱼', '意面', '汉堡', '烤鸡'],
+      '甜品': ['蛋糕', '冰淇淋', '布丁'],
+      '饮料': ['咖啡', '茶', '果汁', '苏打']
+    };
+    var tipsContainsProductCategoryOptionsHtml = menuCategoriesForProduct.map(function(c) {
+      return '<label class="multi-select-option"><input type="checkbox" value="' + c + '"> ' + c + '</label>';
+    }).join('');
+    function getTipsContainsProductItemOptionsHtml(selectedCategories) {
+      var items = [];
+      var seen = {};
+      (selectedCategories || []).forEach(function(cat) {
+        var list = menuItemsByCategoryForProduct[cat];
+        if (list) list.forEach(function(item) { if (!seen[item]) { seen[item] = 1; items.push(item); } });
+      });
+      return items.length ? items.map(function(item) {
+        return '<label class="multi-select-option"><input type="checkbox" value="' + item + '"> ' + item + '</label>';
+      }).join('') : '<div class="multi-select-placeholder" style="padding:8px 12px">请先选择类</div>';
+    }
+    function onTipsContainsProductCategoryChange(card) {
+      var catMs = card.querySelector('.tips-contains-product-category-select');
+      var itemMs = card.querySelector('.tips-contains-product-item-select');
+      if (!catMs || !itemMs) return;
+      var checked = catMs.querySelectorAll('input[type="checkbox"]:checked');
+      var selected = Array.from(checked).map(function(cb) { return cb.value; });
+      var itemDropdown = itemMs.querySelector('.multi-select-dropdown');
+      if (itemDropdown) {
+        itemDropdown.innerHTML = getTipsContainsProductItemOptionsHtml(selected);
+        itemMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = false; });
+        if (itemMs.id) refreshMultiTags(itemMs.id);
+      }
+    }
     function addTipsCondition(type, silent) {
       if (existingTipsConditions[type]) return;
-      var names = { area: '订单区域', orderType: '订单类型', hours: '营业时间段', tipType: '小费类型' };
+      var names = { role: '角色', area: '订单区域', orderType: '订单类型', hours: '营业时间段', tipType: '小费类型', containsProduct: '订单需包含商品' };
       var cardId = 'tips-cond-' + type;
       var body = '';
-      if (type === 'area') {
+      if (type === 'role') {
+        body = '<div class="drawer-form-row"><label>角色：</label><div class="multi-select role-role-select" id="tipsRoleSelect" style="flex:1">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'tipsRoleSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择角色</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown">' + roleOptionsHtml + '</div></div></div>' +
+          '<div class="drawer-form-row"><label>员工：</label><div class="multi-select role-employee-select" id="tipsRoleEmployeeSelect" style="flex:1" data-placeholder="请先选择角色">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'tipsRoleEmployeeSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请先选择角色</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown"><div class="multi-select-placeholder" style="padding:8px 12px">请先选择角色</div></div></div></div>';
+      } else if (type === 'area') {
+        body = '<div class="drawer-form-row"><label>订单区域：</label><select class="form-control" style="flex:1">' + areaSelectHtml + '</select></div>';
+      } else if (type === 'orderType') {
+        body = '<div class="drawer-form-row"><label>订单类型：</label><select class="form-control" style="flex:1">' + orderTypeSelectHtml + '</select></div>';
+      } else if (type === 'hours') {
+        body = '<div class="drawer-form-row"><label>营业时间段：</label><input type="time" class="form-control" style="width:120px"><span style="color:var(--text-tertiary)">~</span><input type="time" class="form-control" style="width:120px"></div>';
+      } else if (type === 'tipType') {
+        body = '<div class="drawer-form-row"><label>小费类型：</label><select class="form-control" style="flex:1">' + tipTypeSelectHtml + '</select></div>';
+      } else if (type === 'containsProduct') {
+        body = '<div class="drawer-form-row"><label>类：</label><div class="multi-select tips-contains-product-category-select" id="tipsContainsProductCategorySelect" style="flex:1" data-placeholder="请选择类">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'tipsContainsProductCategorySelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择类</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown">' + tipsContainsProductCategoryOptionsHtml + '</div></div></div>' +
+          '<div class="drawer-form-row"><label>菜：</label><div class="multi-select tips-contains-product-item-select" id="tipsContainsProductItemSelect" style="flex:1" data-placeholder="请先选择类">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'tipsContainsProductItemSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请先选择类</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown"><div class="multi-select-placeholder" style="padding:8px 12px">请先选择类</div></div></div></div>';
+      }
+      var card = document.createElement('div');
+      card.className = 'condition-card';
+      card.id = cardId;
+      card.innerHTML = '<div class="condition-card-header"><span class="label">' + names[type] + '</span><button class="btn btn-sm btn-text-danger" onclick="removeTipsCondition(\'' + type + '\')" style="font-size:18px;padding:0 4px">×</button></div><div class="condition-card-body">' + body + '</div>';
+      document.getElementById('tipsConditionsContainer').appendChild(card);
+      if (type === 'containsProduct') {
+        var catMs = card.querySelector('.tips-contains-product-category-select');
+        if (catMs) catMs.addEventListener('change', function() { onTipsContainsProductCategoryChange(card); });
+      }
+      existingTipsConditions[type] = true;
+      document.getElementById('tipsConditionMenu').classList.remove('show');
+      updateTipsConditionMenu();
+      if (!silent) showNotification('已添加 ' + names[type]);
+    }
+    function removeTipsCondition(type) {
+      var card = document.getElementById('tips-cond-' + type);
+      if (card) { card.remove(); existingTipsConditions[type] = false; updateTipsConditionMenu(); showNotification('已删除'); }
+    }
+
+    function addSurchargeCondition(type, silent) {
+      if (existingSurchargeConditions[type]) return;
+      var names = { role: '角色', area: '订单区域', orderType: '订单类型', hours: '营业时间段', tipType: '小费类型' };
+      var cardId = 'surcharge-cond-' + type;
+      var body = '';
+      if (type === 'role') {
+        body = '<div class="drawer-form-row"><label>角色：</label><div class="multi-select role-role-select" id="surchargeRoleSelect" style="flex:1">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'surchargeRoleSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择角色</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown">' + roleOptionsHtml + '</div></div></div>' +
+          '<div class="drawer-form-row"><label>员工：</label><div class="multi-select role-employee-select" id="surchargeRoleEmployeeSelect" style="flex:1" data-placeholder="请先选择角色">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'surchargeRoleEmployeeSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请先选择角色</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown"><div class="multi-select-placeholder" style="padding:8px 12px">请先选择角色</div></div></div></div>';
+      } else if (type === 'area') {
         body = '<div class="drawer-form-row"><label>订单区域：</label><select class="form-control" style="flex:1">' + areaSelectHtml + '</select></div>';
       } else if (type === 'orderType') {
         body = '<div class="drawer-form-row"><label>订单类型：</label><select class="form-control" style="flex:1">' + orderTypeSelectHtml + '</select></div>';
@@ -841,28 +1137,41 @@
       var card = document.createElement('div');
       card.className = 'condition-card';
       card.id = cardId;
-      card.innerHTML = '<div class="condition-card-header"><span class="label">' + names[type] + '</span><button class="btn btn-sm btn-text-danger" onclick="removeTipsCondition(\'' + type + '\')" style="font-size:18px;padding:0 4px">×</button></div><div class="condition-card-body">' + body + '</div>';
-      document.getElementById('tipsConditionsContainer').appendChild(card);
-      existingTipsConditions[type] = true;
-      document.getElementById('tipsConditionMenu').classList.remove('show');
-      updateTipsConditionMenu();
+      card.innerHTML = '<div class="condition-card-header"><span class="label">' + names[type] + '</span><button class="btn btn-sm btn-text-danger" onclick="removeSurchargeCondition(\'' + type + '\')" style="font-size:18px;padding:0 4px">×</button></div><div class="condition-card-body">' + body + '</div>';
+      document.getElementById('surchargeConditionsContainer').appendChild(card);
+      existingSurchargeConditions[type] = true;
+      document.getElementById('surchargeConditionMenu').classList.remove('show');
+      updateSurchargeConditionMenu();
       if (!silent) showNotification('已添加 ' + names[type]);
     }
-    function removeTipsCondition(type) {
-      var card = document.getElementById('tips-cond-' + type);
-      if (card) { card.remove(); existingTipsConditions[type] = false; updateTipsConditionMenu(); showNotification('已删除'); }
+    function removeSurchargeCondition(type) {
+      var card = document.getElementById('surcharge-cond-' + type);
+      if (card) { card.remove(); existingSurchargeConditions[type] = false; updateSurchargeConditionMenu(); showNotification('已删除'); }
     }
 
     function setSalesConditionValue(type, value) {
       var card = document.getElementById('sales-cond-' + type);
       if (!card) return;
-      if (type === 'role' && Array.isArray(value)) {
-        var ms = card.querySelector('#salesRoleSelect');
-        if (ms) {
-          ms.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
-            cb.checked = value.indexOf(cb.value) >= 0;
+      if (type === 'role' && value) {
+        var roleMs = card.querySelector('.role-role-select');
+        var employeeMs = card.querySelector('.role-employee-select');
+        var roleArr = Array.isArray(value) ? value : (value.role || []);
+        if (roleMs && roleArr.length) {
+          roleMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+            cb.checked = roleArr.indexOf(cb.value) >= 0;
           });
-          refreshMultiTags('salesRoleSelect');
+          refreshMultiTags(roleMs.id);
+        }
+        if (roleMs && employeeMs) {
+          updateRoleConditionEmployeeOptions(roleMs, employeeMs);
+          var empArr = (value && !Array.isArray(value) && value.employees) ? value.employees : [];
+          if (empArr.length) {
+            employeeMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+              cb.checked = empArr.indexOf(cb.value) >= 0;
+            });
+            if (employeeMs.id) refreshMultiTags(employeeMs.id);
+          }
+          syncRoleEmployeeSelectAllState(employeeMs);
         }
       } else if (type === 'area' || type === 'orderType' || type === 'revenueType') {
         var sel = card.querySelector('select');
@@ -890,7 +1199,77 @@
     function setTipsConditionValue(type, value) {
       var card = document.getElementById('tips-cond-' + type);
       if (!card) return;
-      if (type === 'area' || type === 'orderType' || type === 'tipType') {
+      if (type === 'role' && value) {
+        var roleMs = card.querySelector('.role-role-select');
+        var employeeMs = card.querySelector('.role-employee-select');
+        var roleArr = Array.isArray(value) ? value : (value.role || []);
+        if (roleMs && roleArr.length) {
+          roleMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+            cb.checked = roleArr.indexOf(cb.value) >= 0;
+          });
+          refreshMultiTags(roleMs.id);
+        }
+        if (roleMs && employeeMs) {
+          updateRoleConditionEmployeeOptions(roleMs, employeeMs);
+          var empArr = (value && !Array.isArray(value) && value.employees) ? value.employees : [];
+          if (empArr.length) {
+            employeeMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+              cb.checked = empArr.indexOf(cb.value) >= 0;
+            });
+            if (employeeMs.id) refreshMultiTags(employeeMs.id);
+          }
+          syncRoleEmployeeSelectAllState(employeeMs);
+        }
+      } else if (type === 'area' || type === 'orderType' || type === 'tipType') {
+        var sel = card.querySelector('select');
+        if (sel && value !== undefined) sel.value = value || '';
+      } else if (type === 'containsProduct') {
+        if (value && typeof value === 'object') {
+          var catMs = card.querySelector('.tips-contains-product-category-select');
+          var itemMs = card.querySelector('.tips-contains-product-item-select');
+          var catArr = Array.isArray(value.category) ? value.category : [];
+          var itemArr = Array.isArray(value.item) ? value.item : [];
+          if (catMs) {
+            catMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = catArr.indexOf(cb.value) >= 0; });
+            if (catMs.id) refreshMultiTags(catMs.id);
+          }
+          onTipsContainsProductCategoryChange(card);
+          if (itemMs) {
+            itemMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = itemArr.indexOf(cb.value) >= 0; });
+            if (itemMs.id) refreshMultiTags(itemMs.id);
+          }
+        }
+      } else if (type === 'hours' && value && (value.start || value.end)) {
+        var inputs = card.querySelectorAll('input[type="time"]');
+        if (inputs[0] && value.start) inputs[0].value = value.start;
+        if (inputs[1] && value.end) inputs[1].value = value.end;
+      }
+    }
+    function setSurchargeConditionValue(type, value) {
+      var card = document.getElementById('surcharge-cond-' + type);
+      if (!card) return;
+      if (type === 'role' && value) {
+        var roleMs = card.querySelector('.role-role-select');
+        var employeeMs = card.querySelector('.role-employee-select');
+        var roleArr = Array.isArray(value) ? value : (value.role || []);
+        if (roleMs && roleArr.length) {
+          roleMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+            cb.checked = roleArr.indexOf(cb.value) >= 0;
+          });
+          refreshMultiTags(roleMs.id);
+        }
+        if (roleMs && employeeMs) {
+          updateRoleConditionEmployeeOptions(roleMs, employeeMs);
+          var empArr = (value && !Array.isArray(value) && value.employees) ? value.employees : [];
+          if (empArr.length) {
+            employeeMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+              cb.checked = empArr.indexOf(cb.value) >= 0;
+            });
+            if (employeeMs.id) refreshMultiTags(employeeMs.id);
+          }
+          syncRoleEmployeeSelectAllState(employeeMs);
+        }
+      } else if (type === 'area' || type === 'orderType' || type === 'tipType') {
         var sel = card.querySelector('select');
         if (sel && value) sel.value = value;
       } else if (type === 'hours' && value && (value.start || value.end)) {
@@ -917,7 +1296,6 @@
             existingRules[ruleId] = false;
           }
           updateDeductRulesVisibility();
-          updateReceiverPoolRuleOptions();
         }, 300);
         showNotification('已删除');
       });
@@ -939,6 +1317,21 @@
     function updateDeductRulesVisibility() {
       var el = document.getElementById('deductRulesSection');
       if (el) el.style.display = existingRules.sales ? 'block' : 'none';
+    }
+
+    function updateDistributionOptions() {
+      var clockRadio = document.querySelector('input[name="clockin"]:checked');
+      var ordersRow = document.getElementById('distributionOrdersRow');
+      if (!ordersRow) return;
+      var isNoClock = clockRadio && clockRadio.value === 'noclock';
+      ordersRow.style.display = isNoClock ? 'none' : '';
+      if (isNoClock) {
+        var ordersRadio = document.querySelector('input[name="distribution"][value="orders"]');
+        if (ordersRadio && ordersRadio.checked) {
+          var avgRadio = document.querySelector('input[name="distribution"][value="average"]');
+          if (avgRadio) avgRadio.checked = true;
+        }
+      }
     }
 
     var poolNumChars = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨'];
@@ -966,46 +1359,23 @@
       card.id = 'rule-' + ruleId;
       card.dataset.ruleId = ruleId;
       card.dataset.ruleType = type;
+      var typeTag = '<span class="pool-rule-type-tag ' + type + '">' + baseNames[type] + '</span>';
+      var titleHtml = '<input type="text" class="pool-rule-name" placeholder="规则名称" value="' + (opt.name || displayName) + '" style="width:140px;padding:2px 8px;border:1px solid var(--border-color);border-radius:4px;font-size:13px">';
       card.innerHTML = '<div class="pool-rule-header">' +
-        '<div class="pool-rule-label"><span class="num">' + numChar + '</span> ' +
-        (hasCondition ? '<input type="text" class="pool-rule-name" placeholder="规则名称" value="' + (opt.name || displayName) + '" style="width:140px;padding:2px 8px;border:1px solid var(--border-color);border-radius:4px;font-size:13px">' : '<span>' + baseNames[type] + '</span>') +
+        '<div class="pool-rule-label"><span class="num">' + numChar + '</span> ' + typeTag + titleHtml +
         '</div>' +
         '<div style="display:flex;align-items:center;gap:8px">' +
         (type === 'custom' ? '<span style="font-size:13px;color:var(--text-secondary)">金额</span><input type="number" value="0" class="pool-custom-amount" placeholder="0" style="width:80px;height:28px;padding:2px 8px;border:1px solid var(--border-color);border-radius:4px;font-size:13px;text-align:center"><span style="font-size:13px;color:var(--text-secondary)">$</span><span style="font-size:13px;color:var(--text-secondary);margin-left:8px">占比</span><input type="number" value="100" class="pool-custom-pct" placeholder="100" style="width:80px;height:28px;padding:2px 8px;border:1px solid var(--border-color);border-radius:4px;font-size:13px;text-align:center"><span style="font-size:13px;color:var(--text-secondary)">%</span>' : '<span style="font-size:13px;color:var(--text-secondary)">占比</span><input type="number" value="' + (opt.pct != null ? opt.pct : 100) + '" style="width:80px;height:28px;padding:2px 8px;border:1px solid var(--border-color);border-radius:4px;font-size:13px;text-align:center"><span style="font-size:13px;color:var(--text-secondary)">%</span>') +
-        (hasCondition ? '<button class="btn btn-sm" onclick="openDrawerForRule(\'' + drawerName + '\',\'' + ruleId + '\')">设置取值条件</button>' : '') +
+        (hasCondition ? '<button class="btn btn-sm" onclick="openDrawerForRule(\'' + drawerName + '\',\'' + ruleId + '\')">设置取值条件 <span style="color:var(--danger)">*</span></button>' : '') +
         '<button class="btn btn-sm btn-text-danger" onclick="removePoolRule(\'rule-' + ruleId + '\')" style="font-size:18px;padding:0 4px">×</button>' +
         '</div></div>' +
-        (hasCondition ? '<div class="pool-rule-conditions empty" id="rule-' + ruleId + '-conditions" data-rule-id="' + ruleId + '"><span class="cond-label">取值条件：</span><span class="cond-text">未设置</span></div>' : '');
+        (hasCondition ? '<div class="pool-rule-conditions empty" id="rule-' + ruleId + '-conditions" data-rule-id="' + ruleId + '"><span class="cond-label">取值条件<span style="color:var(--danger);margin-left:2px">*</span>：</span><span class="cond-text">未设置</span></div>' : '');
 
       document.getElementById('poolRulesContainer').appendChild(card);
       document.getElementById('addOptionMenu').classList.remove('show');
       updateAddMenu();
       updateDeductRulesVisibility();
-      updateReceiverPoolRuleOptions();
       showNotification('已添加 ' + (opt.name || baseNames[type]));
-    }
-
-    function getPoolRulesForDropdown() {
-      var items = [];
-      document.querySelectorAll('.pool-rule-card').forEach(function(card) {
-        var ruleId = card.dataset.ruleId;
-        var type = card.dataset.ruleType;
-        var nameInp = card.querySelector('.pool-rule-name');
-        var baseNames = { sales: '销售额', tips: '小费', surcharge: '加收服务费', manual: '手动上报小费', custom: '自定义小费' };
-        var name = (nameInp && nameInp.value && nameInp.value.trim()) || (ruleId.indexOf('_') >= 0 ? baseNames[type] + ruleId.split('_')[1] : baseNames[type]);
-        items.push({ id: ruleId, name: name });
-      });
-      return items;
-    }
-    function updateReceiverPoolRuleOptions() {
-      var opts = getPoolRulesForDropdown();
-      document.querySelectorAll('.receiver-pool-rule-select').forEach(function(sel) {
-        var v = sel.value;
-        sel.innerHTML = '<option value="">请选择小费池规则</option>' + opts.map(function(o) {
-          return '<option value="' + o.id + '">' + o.name + '</option>';
-        }).join('');
-        sel.value = v;
-      });
     }
 
     var receiverRoleCounter = 0;
@@ -1014,14 +1384,10 @@
       receiverRoleCounter++;
       var msId = 'receiverRole' + receiverRoleCounter;
       var tbody = document.getElementById('receiverTableBody');
-      var poolOpts = getPoolRulesForDropdown();
-      var poolOptionsHtml = '<option value="">请选择小费池规则</option>' + poolOpts.map(function(o) {
-        return '<option value="' + o.id + '">' + o.name + '</option>';
-      }).join('');
       const row = document.createElement('tr');
       row.innerHTML =
         '<td>' +
-          '<div class="multi-select" id="' + msId + '" style="width:220px">' +
+          '<div class="multi-select receiver-role-select" id="' + msId + '" style="width:220px">' +
             '<div class="multi-select-input" onclick="toggleMultiSelect(\'' + msId + '\')">' +
               '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择角色</span></div>' +
               '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>' +
@@ -1030,6 +1396,7 @@
               '<label class="multi-select-option"><input type="checkbox" value="Assistant Manager"> Assistant Manager</label>' +
               '<label class="multi-select-option"><input type="checkbox" value="Bartender"> Bartender</label>' +
               '<label class="multi-select-option"><input type="checkbox" value="Busser"> Busser</label>' +
+              '<label class="multi-select-option"><input type="checkbox" value="Chef"> Chef</label>' +
               '<label class="multi-select-option"><input type="checkbox" value="Cashier"> Cashier</label>' +
               '<label class="multi-select-option"><input type="checkbox" value="Host"> Host</label>' +
               '<label class="multi-select-option"><input type="checkbox" value="Runner"> Runner</label>' +
@@ -1037,14 +1404,45 @@
               '<label class="multi-select-option"><input type="checkbox" value="Shift Lead"> Shift Lead</label>' +
             '</div>' +
           '</div>' +
+          '<div class="receiver-row-weights" style="font-size:12px;color:var(--text-tertiary);margin-top:6px;min-height:18px;"></div>' +
         '</td>' +
-        '<td><select class="form-control receiver-pool-rule-select" style="min-width:140px" onchange="calcTotal()">' + poolOptionsHtml + '</select></td>' +
         '<td><input type="number" value="' + (opt.pct || 0) + '" oninput="calcTotal()"> %</td>' +
         '<td>' +
           '<a href="javascript:void(0)" class="btn-link weight-link disabled" onclick="openWeightModalForRow(this)" style="font-size:13px">设置员工小费权重</a>' +
-          '<a href="javascript:void(0)" class="btn-link" style="color:var(--danger);font-size:13px;margin-left:8px" onclick="this.closest(\'tr\').remove();calcTotal()">删除</a>' +
+          '<a href="javascript:void(0)" class="btn-link" style="color:var(--danger);font-size:13px;margin-left:8px" onclick="this.closest(\'tr\').remove();calcTotal();updateAllReceiverRoleOptions();">删除</a>' +
         '</td>';
       tbody.appendChild(row);
+      updateAllReceiverRoleOptions();
+    }
+
+    function getReceiverRolesSelectedInOtherRows(excludeRow) {
+      var taken = [];
+      document.querySelectorAll('#receiverTableBody tr').forEach(function(tr) {
+        if (tr === excludeRow) return;
+        var ms = tr.querySelector('.receiver-role-select');
+        if (!ms) return;
+        ms.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) {
+          taken.push(cb.value);
+        });
+      });
+      return taken;
+    }
+
+    function updateAllReceiverRoleOptions() {
+      document.querySelectorAll('#receiverTableBody tr').forEach(function(tr) {
+        var ms = tr.querySelector('.receiver-role-select');
+        if (!ms) return;
+        var taken = getReceiverRolesSelectedInOtherRows(tr);
+        var dropdown = ms.querySelector('.multi-select-dropdown');
+        if (!dropdown) return;
+        dropdown.querySelectorAll('label.multi-select-option').forEach(function(label) {
+          var cb = label.querySelector('input[type="checkbox"]');
+          if (!cb) return;
+          var value = cb.value;
+          var isTaken = taken.indexOf(value) >= 0;
+          label.style.display = isTaken ? 'none' : '';
+        });
+      });
     }
 
     function calcTotal() {
@@ -1069,6 +1467,30 @@
       link.classList.toggle('disabled', !hasRole);
     }
 
+    function renderReceiverRowWeights(tr) {
+      var wrap = tr ? tr.querySelector('.receiver-row-weights') : null;
+      if (!wrap) return;
+      var raw = tr.dataset.employeeWeights;
+      if (!raw) { wrap.textContent = ''; wrap.style.display = ''; return; }
+      var weights;
+      try { weights = JSON.parse(raw); } catch (e) { wrap.textContent = ''; return; }
+      if (!weights || typeof weights !== 'object') { wrap.textContent = ''; return; }
+      var parts = [];
+      Object.keys(weights).forEach(function(role) {
+        var empMap = weights[role];
+        if (empMap && typeof empMap === 'object') {
+          var empParts = [];
+          Object.keys(empMap).forEach(function(emp) {
+            var w = empMap[emp];
+            if (w !== undefined && w !== null) empParts.push(emp + ' ' + Number(w));
+          });
+          if (empParts.length) parts.push(role + ': ' + empParts.join(', '));
+        }
+      });
+      wrap.textContent = parts.length ? '员工小费权重: ' + parts.join('；') : '';
+      wrap.style.display = parts.length ? '' : 'none';
+    }
+
     function openWeightModalForRow(linkEl) {
       if (linkEl.classList.contains('disabled')) return;
       var row = linkEl.closest('tr');
@@ -1082,15 +1504,20 @@
         if (tbody) tbody.innerHTML = '';
         if (emptyEl) { emptyEl.style.display = 'block'; emptyEl.textContent = '请先在接收方规则中选择角色'; }
       } else {
+        var existing = {};
+        try {
+          if (row.dataset.employeeWeights) existing = JSON.parse(row.dataset.employeeWeights);
+        } catch (e) {}
         var html = '';
         roles.forEach(function(role) {
           var emps = roleEmployees[role] || [];
           if (emps.length === 0) return;
           emps.forEach(function(emp, i) {
+            var w = (existing[role] && existing[role][emp] !== undefined) ? existing[role][emp] : 1.0;
             html += '<tr>' +
               (i === 0 ? '<td rowspan="' + emps.length + '">' + role + '</td>' : '') +
               '<td>' + emp + '</td>' +
-              '<td><input type="number" value="1.0" step="0.1" min="0"></td></tr>';
+              '<td><input type="number" value="' + w + '" step="0.1" min="0"></td></tr>';
           });
         });
         tbody.innerHTML = html;
@@ -1105,6 +1532,30 @@
     }
 
     function saveWeight() {
+      var modal = document.getElementById('weightModal');
+      var rowIndex = modal && modal.dataset.weightRowIndex !== undefined ? parseInt(modal.dataset.weightRowIndex, 10) : -1;
+      var tbody = document.getElementById('weightModalBody');
+      var rows = tbody ? tbody.querySelectorAll('tr') : [];
+      var weights = {};
+      rows.forEach(function(tr) {
+        var tds = tr.querySelectorAll('td');
+        var roleTd = tds[0];
+        var empTd = tds[1];
+        var input = tr.querySelector('input[type="number"]');
+        if (!roleTd || !empTd || !input) return;
+        var role = roleTd.textContent.trim();
+        var emp = empTd.textContent.trim();
+        var val = parseFloat(input.value);
+        if (isNaN(val)) val = 1;
+        if (!weights[role]) weights[role] = {};
+        weights[role][emp] = val;
+      });
+      var receiverRows = document.querySelectorAll('#receiverTableBody tr');
+      if (rowIndex >= 0 && rowIndex < receiverRows.length) {
+        var tr = receiverRows[rowIndex];
+        tr.dataset.employeeWeights = JSON.stringify(weights);
+        renderReceiverRowWeights(tr);
+      }
       closeModal('weightModal');
       showNotification('员工权重保存成功');
     }
@@ -1114,6 +1565,7 @@
       var parts = [];
       if (Array.isArray(cond.role) && cond.role.length) parts.push('角色: ' + cond.role.join(', '));
       else if (cond.role) parts.push('角色: ' + cond.role);
+      if (Array.isArray(cond.employees) && cond.employees.length) parts.push('员工: ' + cond.employees.join(', '));
       if (cond.area) parts.push('订单区域: ' + cond.area);
       if (cond.orderType) parts.push('订单类型: ' + cond.orderType);
       if (cond.menu && typeof cond.menu === 'object') {
@@ -1128,15 +1580,72 @@
     function formatTipsCondForDisplay(cond) {
       if (!cond || typeof cond !== 'object') return '';
       var parts = [];
+      if (Array.isArray(cond.role) && cond.role.length) parts.push('角色: ' + cond.role.join(', '));
+      else if (cond.role) parts.push('角色: ' + cond.role);
+      if (Array.isArray(cond.employees) && cond.employees.length) parts.push('员工: ' + cond.employees.join(', '));
+      if (cond.area) parts.push('订单区域: ' + cond.area);
+      if (cond.orderType) parts.push('订单类型: ' + cond.orderType);
+      if (cond.tipType) parts.push('小费类型: ' + cond.tipType);
+      if (cond.containsProduct && (Array.isArray(cond.containsProduct.category) && cond.containsProduct.category.length || Array.isArray(cond.containsProduct.item) && cond.containsProduct.item.length)) {
+        var cp = cond.containsProduct;
+        var cpParts = [];
+        if (cp.category && cp.category.length) cpParts.push('类: ' + cp.category.join(', '));
+        if (cp.item && cp.item.length) cpParts.push('菜: ' + cp.item.join(', '));
+        if (cpParts.length) parts.push('订单需包含商品: ' + cpParts.join('；'));
+      }
+      if (cond.hours && (cond.hours.start || cond.hours.end)) parts.push('营业时间段: ' + (cond.hours.start || '') + '-' + (cond.hours.end || ''));
+      return parts.join(' | ');
+    }
+    function formatSurchargeCondForDisplay(cond) {
+      if (!cond || typeof cond !== 'object') return '';
+      if (cond.types && Array.isArray(cond.types) && cond.types.length) return '加收类型: ' + cond.types.join(', ');
+      var parts = [];
+      if (Array.isArray(cond.role) && cond.role.length) parts.push('角色: ' + cond.role.join(', '));
+      else if (cond.role) parts.push('角色: ' + cond.role);
+      if (Array.isArray(cond.employees) && cond.employees.length) parts.push('员工: ' + cond.employees.join(', '));
       if (cond.area) parts.push('订单区域: ' + cond.area);
       if (cond.orderType) parts.push('订单类型: ' + cond.orderType);
       if (cond.tipType) parts.push('小费类型: ' + cond.tipType);
       if (cond.hours && (cond.hours.start || cond.hours.end)) parts.push('营业时间段: ' + (cond.hours.start || '') + '-' + (cond.hours.end || ''));
       return parts.join(' | ');
     }
-    function formatSurchargeCondForDisplay(cond) {
-      if (!cond || !cond.types || !cond.types.length) return '';
-      return '加收类型: ' + cond.types.join(', ');
+    function hasValidConditions(ruleId) {
+      var type = (ruleId || '').split('_')[0];
+      var cond = poolRuleConditions[ruleId];
+      if (type === 'sales') {
+        if (!cond || typeof cond !== 'object') return false;
+        if (Array.isArray(cond.role) && cond.role.length) return true;
+        if (Array.isArray(cond.employees) && cond.employees.length) return true;
+        if (cond.area) return true;
+        if (cond.orderType) return true;
+        if (cond.revenueType) return true;
+        if (cond.menu && (Array.isArray(cond.menu.productLine) && cond.menu.productLine.length || Array.isArray(cond.menu.category) && cond.menu.category.length)) return true;
+        if (cond.hours && (cond.hours.start || cond.hours.end)) return true;
+        return false;
+      }
+      if (type === 'tips') {
+        if (!cond || typeof cond !== 'object') return false;
+        if (Array.isArray(cond.role) && cond.role.length) return true;
+        if (Array.isArray(cond.employees) && cond.employees.length) return true;
+        if (cond.area) return true;
+        if (cond.orderType) return true;
+        if (cond.tipType) return true;
+        if (cond.containsProduct && (Array.isArray(cond.containsProduct.category) && cond.containsProduct.category.length || Array.isArray(cond.containsProduct.item) && cond.containsProduct.item.length)) return true;
+        if (cond.hours && (cond.hours.start || cond.hours.end)) return true;
+        return false;
+      }
+      if (type === 'surcharge') {
+        if (!cond || typeof cond !== 'object') return false;
+        if (cond.types && Array.isArray(cond.types) && cond.types.length) return true;
+        if (Array.isArray(cond.role) && cond.role.length) return true;
+        if (Array.isArray(cond.employees) && cond.employees.length) return true;
+        if (cond.area) return true;
+        if (cond.orderType) return true;
+        if (cond.tipType) return true;
+        if (cond.hours && (cond.hours.start || cond.hours.end)) return true;
+        return false;
+      }
+      return true;
     }
     function updatePoolRuleConditionDisplay(ruleId) {
       var el = document.getElementById('rule-' + ruleId + '-conditions');
@@ -1180,14 +1689,33 @@
     }
 
     function collectSurchargeConditions() {
-      var types = [];
-      var el = document.getElementById('surchargeTypeSelect');
-      if (el) {
-        el.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) {
-          types.push(cb.value);
-        });
-      }
-      return { types: types };
+      var cond = {};
+      var container = document.getElementById('surchargeConditionsContainer');
+      if (!container) return cond;
+      container.querySelectorAll('.condition-card').forEach(function(card) {
+        var id = card.id || '';
+        var type = id.replace('surcharge-cond-', '');
+        if (!type) return;
+        if (type === 'role') {
+          var roleMs = card.querySelector('.role-role-select');
+          var employeeMs = card.querySelector('.role-employee-select');
+          if (roleMs) {
+            var checked = roleMs.querySelectorAll('input[type="checkbox"]:checked');
+            cond.role = Array.from(checked).map(function(c) { return c.value; });
+          }
+          if (employeeMs) {
+            var empChecked = employeeMs.querySelectorAll('input[type="checkbox"]:checked');
+            cond.employees = Array.from(empChecked).map(function(c) { return c.value; });
+          }
+        } else if (type === 'area' || type === 'orderType' || type === 'tipType') {
+          var sel = card.querySelector('select');
+          if (sel) cond[type] = sel.value || '';
+        } else if (type === 'hours') {
+          var inputs = card.querySelectorAll('input[type="time"]');
+          cond.hours = { start: inputs[0] ? inputs[0].value : '', end: inputs[1] ? inputs[1].value : '' };
+        }
+      });
+      return cond;
     }
 
     function cancelRule() {
@@ -1205,10 +1733,15 @@
         var type = id.replace('sales-cond-', '');
         if (!type) return;
         if (type === 'role') {
-          var ms = card.querySelector('#salesRoleSelect');
-          if (ms) {
-            var checked = ms.querySelectorAll('input[type="checkbox"]:checked');
+          var roleMs = card.querySelector('.role-role-select');
+          var employeeMs = card.querySelector('.role-employee-select');
+          if (roleMs) {
+            var checked = roleMs.querySelectorAll('input[type="checkbox"]:checked');
             cond.role = Array.from(checked).map(function(c) { return c.value; });
+          }
+          if (employeeMs) {
+            var empChecked = employeeMs.querySelectorAll('input[type="checkbox"]:checked');
+            cond.employees = Array.from(empChecked).map(function(c) { return c.value; });
           }
         } else if (type === 'area' || type === 'orderType' || type === 'revenueType') {
           var sel = card.querySelector('select');
@@ -1236,9 +1769,33 @@
         var id = card.id || '';
         var type = id.replace('tips-cond-', '');
         if (!type) return;
-        if (type === 'area' || type === 'orderType' || type === 'tipType') {
+        if (type === 'role') {
+          var roleMs = card.querySelector('.role-role-select');
+          var employeeMs = card.querySelector('.role-employee-select');
+          if (roleMs) {
+            var checked = roleMs.querySelectorAll('input[type="checkbox"]:checked');
+            cond.role = Array.from(checked).map(function(c) { return c.value; });
+          }
+          if (employeeMs) {
+            var empChecked = employeeMs.querySelectorAll('input[type="checkbox"]:checked');
+            cond.employees = Array.from(empChecked).map(function(c) { return c.value; });
+          }
+        } else if (type === 'area' || type === 'orderType' || type === 'tipType') {
           var sel = card.querySelector('select');
           if (sel) cond[type] = sel.value || '';
+        } else if (type === 'containsProduct') {
+          var catMs = card.querySelector('.tips-contains-product-category-select');
+          var itemMs = card.querySelector('.tips-contains-product-item-select');
+          if (catMs) {
+            var catChecked = catMs.querySelectorAll('input[type="checkbox"]:checked');
+            cond.containsProduct = cond.containsProduct || {};
+            cond.containsProduct.category = Array.from(catChecked).map(function(c) { return c.value; });
+          }
+          if (itemMs) {
+            var itemChecked = itemMs.querySelectorAll('input[type="checkbox"]:checked');
+            cond.containsProduct = cond.containsProduct || {};
+            cond.containsProduct.item = Array.from(itemChecked).map(function(c) { return c.value; });
+          }
         } else if (type === 'hours') {
           var inputs = card.querySelectorAll('input[type="time"]');
           cond.hours = { start: inputs[0] ? inputs[0].value : '', end: inputs[1] ? inputs[1].value : '' };
@@ -1259,9 +1816,11 @@
         if (type === 'custom') {
           var amtInp = card.querySelector('input.pool-custom-amount');
           var pctInp = card.querySelector('input.pool-custom-pct');
+          var nameInp = card.querySelector('.pool-rule-name');
           var amount = amtInp ? (parseFloat(amtInp.value) || 0) : 0;
           var pct = pctInp ? (parseFloat(pctInp.value) || 100) : 100;
-          poolRules.push({ type: type, id: ruleId, amount: amount, pct: pct });
+          var name = (nameInp && nameInp.value && nameInp.value.trim()) || '自定义小费';
+          poolRules.push({ type: type, id: ruleId, name: name, amount: amount, pct: pct });
         } else {
           var nameInp = card.querySelector('.pool-rule-name');
           var inp = card.querySelector('input[type="number"]:not(.pool-custom-amount):not(.pool-custom-pct)');
@@ -1280,14 +1839,16 @@
       var receivers = [];
       document.querySelectorAll('#receiverTable tbody tr').forEach(function(tr) {
         var ms = tr.querySelector('.multi-select');
-        var poolSel = tr.querySelector('.receiver-pool-rule-select');
         if (!ms) return;
         var roles = [];
         ms.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) { roles.push(cb.value); });
-        var poolRuleId = poolSel ? poolSel.value || '' : '';
         var pctInp = tr.querySelector('input[type="number"]');
         var pct = pctInp ? (parseFloat(pctInp.value) || 0) : 0;
-        if (roles.length > 0 && poolRuleId && pct > 0) receivers.push({ roles: roles, poolRuleId: poolRuleId, pct: pct });
+        var employeeWeights = {};
+        try {
+          if (tr.dataset.employeeWeights) employeeWeights = JSON.parse(tr.dataset.employeeWeights);
+        } catch (e) {}
+        if (roles.length > 0 && pct > 0) receivers.push({ roles: roles, pct: pct, employeeWeights: employeeWeights });
       });
       var distRadio = document.querySelector('input[name="distribution"]:checked');
       var clockRadio = document.querySelector('input[name="clockin"]:checked');
@@ -1332,13 +1893,27 @@
       var hasReceiver = false;
       receivers.forEach(function(tr) {
         var ms = tr.querySelector('.multi-select');
-        var poolSel = tr.querySelector('.receiver-pool-rule-select');
         var pctInp = tr.querySelector('input[type="number"]');
         var pct = pctInp ? (parseFloat(pctInp.value) || 0) : 0;
-        if (ms && ms.querySelectorAll('input[type="checkbox"]:checked').length > 0 && poolSel && poolSel.value && pct > 0) hasReceiver = true;
+        if (ms && ms.querySelectorAll('input[type="checkbox"]:checked').length > 0 && pct > 0) hasReceiver = true;
       });
       if (!hasReceiver) {
-        showNotification('请至少添加一条接收方规则（角色、小费池规则、占比均需填写）', 'error');
+        showNotification('请至少添加一条接收方规则（角色、占比均需填写）', 'error');
+        return;
+      }
+      var condErr = null;
+      document.querySelectorAll('.pool-rule-card[data-rule-id]').forEach(function(card) {
+        var ruleId = card.dataset.ruleId;
+        var type = card.dataset.ruleType || (ruleId || '').split('_')[0];
+        if ((type === 'sales' || type === 'tips' || type === 'surcharge') && !hasValidConditions(ruleId)) {
+          var nameInp = card.querySelector('.pool-rule-name');
+          var baseNames = { sales: '销售额', tips: '小费', surcharge: '加收服务费' };
+          var name = (nameInp && nameInp.value && nameInp.value.trim()) || (ruleId.indexOf('_') >= 0 ? baseNames[type] + ruleId.split('_')[1] : baseNames[type]);
+          condErr = condErr || name;
+        }
+      });
+      if (condErr) {
+        showNotification('请为「' + condErr + '」设置取值条件（必填）', 'error');
         return;
       }
       var data = collectFormData();
@@ -1357,7 +1932,7 @@
           rule.clockin = data.clockin;
           rule.salesConditions = data.salesConditions || {};
           rule.tipsConditions = data.tipsConditions || {};
-          rule.surchargeConditions = data.surchargeConditions || { types: [] };
+          rule.surchargeConditions = data.surchargeConditions || {};
           ruleData.saveRules(rules);
         }
       } else {
@@ -1372,7 +1947,7 @@
           clockin: data.clockin,
           salesConditions: data.salesConditions || {},
           tipsConditions: data.tipsConditions || {},
-          surchargeConditions: data.surchargeConditions || { types: [] }
+          surchargeConditions: data.surchargeConditions || {}
         };
         rules.push(rule);
         ruleData.saveRules(rules);
@@ -1382,6 +1957,7 @@
     }
 
     (function init() {
+      updateDistributionOptions();
       var params = getEditParams();
       if (params.mode === 'edit' && params.id) {
         var rule = ruleData.getRuleById(params.id);
@@ -1432,16 +2008,42 @@
     }
 
     document.addEventListener('change', function(e) {
+      var target = e.target;
+      if (target.classList.contains('role-employee-select-all-cb')) {
+        var employeeMs = target.closest('.role-employee-select');
+        var dropdown = employeeMs ? employeeMs.querySelector('.multi-select-dropdown') : null;
+        if (dropdown && employeeMs) {
+          dropdown.querySelectorAll('input[type="checkbox"]:not(.role-employee-select-all-cb)').forEach(function(cb) { cb.checked = target.checked; });
+          if (employeeMs.id) refreshMultiTags(employeeMs.id);
+        }
+        return;
+      }
+      if (target.type === 'checkbox' && target.closest('.role-employee-select') && !target.closest('.role-employee-select-all')) {
+        var employeeMs = target.closest('.role-employee-select');
+        if (employeeMs) syncRoleEmployeeSelectAllState(employeeMs);
+      }
       if (e.target.closest('.multi-select-option')) {
         const ms = e.target.closest('.multi-select');
         const selectId = ms ? ms.id : null;
         if (selectId) refreshMultiTags(selectId);
+        if (ms && ms.classList.contains('role-role-select')) {
+          var card = ms.closest('.condition-card');
+          var employeeMs = card ? card.querySelector('.role-employee-select') : null;
+          if (employeeMs) updateRoleConditionEmployeeOptions(ms, employeeMs);
+        }
         if (ms && ms.classList.contains('menu-product-line-select')) {
           var card = ms.closest('.condition-card');
           if (card) onMenuProductLineChange(card);
         }
+        if (ms && ms.classList.contains('tips-contains-product-category-select')) {
+          var card = ms.closest('.condition-card');
+          if (card) onTipsContainsProductCategoryChange(card);
+        }
         var receiverRow = ms && ms.closest('#receiverTableBody tr');
-        if (receiverRow) updateReceiverRowWeightBtn(receiverRow);
+        if (receiverRow) {
+          updateReceiverRowWeightBtn(receiverRow);
+          if (ms.classList.contains('receiver-role-select')) updateAllReceiverRoleOptions();
+        }
       }
     });
 
@@ -1450,6 +2052,8 @@
         document.querySelectorAll('.multi-select.open').forEach(ms => ms.classList.remove('open'));
       }
     });
+
+    initFieldDescTooltip();
   </script>
 </body>
 </html>
