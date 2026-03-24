@@ -76,6 +76,10 @@
     .receiver-table input[type="number"]:focus {
       border-color: var(--primary); outline: none;
     }
+    .receiver-secondary-block td { border-bottom: 1px solid var(--border-light); vertical-align: top; }
+    .receiver-sub-table { width: 100%; max-width: 640px; border-collapse: collapse; margin-top: 4px; }
+    .receiver-sub-table th { font-size: 12px; font-weight: 500; padding: 6px 8px; text-align: left; color: var(--text-secondary); border-bottom: 1px solid var(--border-light); }
+    .receiver-sub-table td { padding: 8px; font-size: 13px; border-bottom: 1px solid rgba(0,0,0,0.04); }
 
     .radio-group { display: flex; flex-direction: column; gap: 8px; }
     .radio-item {
@@ -724,34 +728,38 @@
       refreshMultiTags('deductRoleSelect');
       // Receivers - add rows then populate
       var receivers = rule.receivers || [];
-      receivers.forEach(function(rec) { addReceiverRow({ pct: rec.pct }); });
-      var rows = document.querySelectorAll('#receiverTableBody tr');
+      receivers.forEach(function(rec) {
+        addReceiverRow({ pct: rec.pct, subReceivers: rec.subReceivers || [] });
+      });
+      var primaries = document.querySelectorAll('#receiverTableBody tr.receiver-primary-row');
       receivers.forEach(function(rec, idx) {
-        if (idx < rows.length) {
+        if (idx < primaries.length) {
+          var pr = primaries[idx];
           var roles = rec.roles || [];
-          var msId = rows[idx].querySelector('.multi-select');
-          if (msId) {
-            msId = msId.id;
-            var container = document.getElementById(msId);
+          var ms = pr.querySelector('.receiver-role-select');
+          if (ms && ms.id) {
+            var container = document.getElementById(ms.id);
             if (container) {
               container.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
                 cb.checked = roles.indexOf(cb.value) !== -1;
               });
-              refreshMultiTags(msId);
+              refreshMultiTags(ms.id);
             }
           }
-          var pctInput = rows[idx].querySelector('input[type="number"]');
+          var pctInput = pr.querySelector('input[type="number"]');
           if (pctInput) pctInput.value = rec.pct || 0;
           var weights = rec.employeeWeights || {};
           try {
-            rows[idx].dataset.employeeWeights = JSON.stringify(weights);
+            pr.dataset.employeeWeights = JSON.stringify(weights);
           } catch (e) {}
-          renderReceiverRowWeights(rows[idx]);
+          renderReceiverRowWeights(pr);
         }
       });
       calcTotal();
-      document.querySelectorAll('#receiverTableBody tr').forEach(function(tr) { updateReceiverRowWeightBtn(tr); });
+      document.querySelectorAll('#receiverTableBody tr.receiver-primary-row').forEach(function(tr) { updateReceiverRowWeightBtn(tr); });
+      document.querySelectorAll('#receiverTableBody tr.receiver-sub-row').forEach(function(tr) { updateReceiverRowWeightBtn(tr); });
       updateAllReceiverRoleOptions();
+      document.querySelectorAll('#receiverTableBody .receiver-sub-tbody').forEach(function(tb) { updateSubReceiversRoleOptions(tb); });
     }
 
     function updateAddMenu() {
@@ -1379,12 +1387,164 @@
     }
 
     var receiverRoleCounter = 0;
+    var receiverSubCounter = 0;
+    var receiverRoleDropdownHtml =
+      '<label class="multi-select-option"><input type="checkbox" value="Assistant Manager"> Assistant Manager</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Bartender"> Bartender</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Busser"> Busser</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Chef"> Chef</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Cashier"> Cashier</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Host"> Host</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Runner"> Runner</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Server"> Server</label>' +
+      '<label class="multi-select-option"><input type="checkbox" value="Shift Lead"> Shift Lead</label>';
+
+    function getReceiverSecondaryBlock(primaryRow) {
+      var n = primaryRow && primaryRow.nextElementSibling;
+      return n && n.classList.contains('receiver-secondary-block') ? n : null;
+    }
+
+    function toggleReceiverRedistribute(btn) {
+      var pr = btn.closest('tr.receiver-primary-row');
+      if (!pr) return;
+      var block = getReceiverSecondaryBlock(pr);
+      if (!block) return;
+      var panel = block.querySelector('.receiver-secondary-panel');
+      var isHidden = block.style.display === 'none' || block.style.display === '';
+      if (isHidden) {
+        block.style.display = 'table-row';
+        if (panel) panel.style.display = 'block';
+        var stbody = block.querySelector('.receiver-sub-tbody');
+        if (stbody && stbody.querySelectorAll('tr.receiver-sub-row').length === 0) addReceiverSubRow(pr);
+      } else {
+        block.style.display = 'none';
+        if (panel) panel.style.display = 'none';
+      }
+    }
+
+    function addReceiverSubRowFromBtn(btn) {
+      var block = btn.closest('.receiver-secondary-block');
+      if (!block) return;
+      var pr = block.previousElementSibling;
+      if (pr && pr.classList.contains('receiver-primary-row')) addReceiverSubRow(pr);
+    }
+
+    function removeReceiverPrimaryRow(btn) {
+      var pr = btn.closest('tr.receiver-primary-row');
+      if (!pr) return;
+      var block = getReceiverSecondaryBlock(pr);
+      if (block) block.remove();
+      pr.remove();
+      calcTotal();
+      updateAllReceiverRoleOptions();
+    }
+
+    function removeReceiverSubRow(btn) {
+      var tr = btn.closest('tr.receiver-sub-row');
+      if (!tr) return;
+      var tbody = tr.closest('.receiver-sub-tbody');
+      tr.remove();
+      if (tbody) updateSubReceiversRoleOptions(tbody);
+    }
+
+    function addReceiverSubRow(primaryRow, opt) {
+      opt = opt || {};
+      var block = getReceiverSecondaryBlock(primaryRow);
+      if (!block) return;
+      var stbody = block.querySelector('.receiver-sub-tbody');
+      if (!stbody) return;
+      receiverSubCounter++;
+      var sid = 'receiverSubRole' + receiverSubCounter;
+      var rowId = 'recv-sub-' + receiverSubCounter;
+      var subTr = document.createElement('tr');
+      subTr.className = 'receiver-sub-row';
+      subTr.dataset.receiverRowId = rowId;
+      subTr.innerHTML =
+        '<td>' +
+          '<div class="multi-select receiver-sub-role-select" id="' + sid + '" style="width:200px">' +
+            '<div class="multi-select-input" onclick="toggleMultiSelect(\'' + sid + '\')">' +
+              '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择角色</span></div>' +
+              '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>' +
+            '</div>' +
+            '<div class="multi-select-dropdown">' + receiverRoleDropdownHtml + '</div>' +
+          '</div>' +
+          '<div class="receiver-row-weights" style="font-size:11px;color:var(--text-tertiary);margin-top:4px;min-height:16px;"></div>' +
+        '</td>' +
+        '<td><input type="number" value="' + (opt.pct != null ? opt.pct : 0) + '" min="0" max="100" step="0.1"> %</td>' +
+        '<td>' +
+          '<a href="javascript:void(0)" class="btn-link weight-link disabled" onclick="openWeightModalForRow(this)" style="font-size:12px">设置员工小费权重</a>' +
+          '<a href="javascript:void(0)" class="btn-link" style="color:var(--danger);font-size:12px;margin-left:6px" onclick="removeReceiverSubRow(this)">删除</a>' +
+        '</td>';
+      stbody.appendChild(subTr);
+      if (opt.roles && opt.roles.length) {
+        var container = document.getElementById(sid);
+        if (container) {
+          container.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+            cb.checked = opt.roles.indexOf(cb.value) >= 0;
+          });
+          refreshMultiTags(sid);
+        }
+      }
+      if (opt.employeeWeights && Object.keys(opt.employeeWeights).length) {
+        try { subTr.dataset.employeeWeights = JSON.stringify(opt.employeeWeights); } catch (e) {}
+        renderReceiverRowWeights(subTr);
+      }
+      updateReceiverRowWeightBtn(subTr);
+      updateSubReceiversRoleOptions(stbody);
+    }
+
+    function getPrimaryReceiverRolesForSubTbody(tbody) {
+      var block = tbody && tbody.closest('.receiver-secondary-block');
+      if (!block) return [];
+      var pr = block.previousElementSibling;
+      if (!pr || !pr.classList.contains('receiver-primary-row')) return [];
+      var pms = pr.querySelector('.receiver-role-select');
+      if (!pms) return [];
+      var roles = [];
+      pms.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) { roles.push(cb.value); });
+      return roles;
+    }
+
+    function getSubReceiverRolesSelectedInOtherRows(excludeSubTr, tbody) {
+      var taken = [];
+      tbody.querySelectorAll('tr.receiver-sub-row').forEach(function(tr) {
+        if (tr === excludeSubTr) return;
+        var ms = tr.querySelector('.receiver-sub-role-select');
+        if (!ms) return;
+        ms.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) { taken.push(cb.value); });
+      });
+      return taken;
+    }
+
+    function updateSubReceiversRoleOptions(tbody) {
+      if (!tbody) return;
+      var primaryTaken = getPrimaryReceiverRolesForSubTbody(tbody);
+      tbody.querySelectorAll('tr.receiver-sub-row').forEach(function(subTr) {
+        var ms = subTr.querySelector('.receiver-sub-role-select');
+        if (!ms) return;
+        var taken = primaryTaken.concat(getSubReceiverRolesSelectedInOtherRows(subTr, tbody));
+        var dropdown = ms.querySelector('.multi-select-dropdown');
+        if (!dropdown) return;
+        dropdown.querySelectorAll('label.multi-select-option').forEach(function(label) {
+          var cb = label.querySelector('input[type="checkbox"]');
+          if (!cb) return;
+          var hide = taken.indexOf(cb.value) >= 0;
+          if (hide && cb.checked) cb.checked = false;
+          label.style.display = hide ? 'none' : '';
+        });
+        if (ms.id) refreshMultiTags(ms.id);
+      });
+    }
+
     function addReceiverRow(opt) {
       opt = opt || {};
       receiverRoleCounter++;
       var msId = 'receiverRole' + receiverRoleCounter;
+      var rowId = 'recv-' + receiverRoleCounter;
       var tbody = document.getElementById('receiverTableBody');
       const row = document.createElement('tr');
+      row.className = 'receiver-primary-row';
+      row.dataset.receiverRowId = rowId;
       row.innerHTML =
         '<td>' +
           '<div class="multi-select receiver-role-select" id="' + msId + '" style="width:220px">' +
@@ -1392,32 +1552,43 @@
               '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择角色</span></div>' +
               '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>' +
             '</div>' +
-            '<div class="multi-select-dropdown">' +
-              '<label class="multi-select-option"><input type="checkbox" value="Assistant Manager"> Assistant Manager</label>' +
-              '<label class="multi-select-option"><input type="checkbox" value="Bartender"> Bartender</label>' +
-              '<label class="multi-select-option"><input type="checkbox" value="Busser"> Busser</label>' +
-              '<label class="multi-select-option"><input type="checkbox" value="Chef"> Chef</label>' +
-              '<label class="multi-select-option"><input type="checkbox" value="Cashier"> Cashier</label>' +
-              '<label class="multi-select-option"><input type="checkbox" value="Host"> Host</label>' +
-              '<label class="multi-select-option"><input type="checkbox" value="Runner"> Runner</label>' +
-              '<label class="multi-select-option"><input type="checkbox" value="Server"> Server</label>' +
-              '<label class="multi-select-option"><input type="checkbox" value="Shift Lead"> Shift Lead</label>' +
-            '</div>' +
+            '<div class="multi-select-dropdown">' + receiverRoleDropdownHtml + '</div>' +
           '</div>' +
           '<div class="receiver-row-weights" style="font-size:12px;color:var(--text-tertiary);margin-top:6px;min-height:18px;"></div>' +
         '</td>' +
         '<td><input type="number" value="' + (opt.pct || 0) + '" oninput="calcTotal()"> %</td>' +
         '<td>' +
           '<a href="javascript:void(0)" class="btn-link weight-link disabled" onclick="openWeightModalForRow(this)" style="font-size:13px">设置员工小费权重</a>' +
-          '<a href="javascript:void(0)" class="btn-link" style="color:var(--danger);font-size:13px;margin-left:8px" onclick="this.closest(\'tr\').remove();calcTotal();updateAllReceiverRoleOptions();">删除</a>' +
+          '<a href="javascript:void(0)" class="btn-link" style="font-size:13px;margin-left:8px" onclick="toggleReceiverRedistribute(this)">再分配</a>' +
+          '<a href="javascript:void(0)" class="btn-link" style="color:var(--danger);font-size:13px;margin-left:8px" onclick="removeReceiverPrimaryRow(this)">删除</a>' +
+        '</td>';
+      const secondaryRow = document.createElement('tr');
+      secondaryRow.className = 'receiver-secondary-block';
+      secondaryRow.style.display = 'none';
+      secondaryRow.innerHTML =
+        '<td colspan="3" style="padding:8px 12px 12px 32px;background:rgba(0,0,0,0.02);border-left:3px solid var(--primary-border, #91caff)">' +
+          '<div class="receiver-secondary-panel" style="display:none">' +
+            '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;font-weight:500">二级再分配（在本条一级接收方占比内细分）</div>' +
+            '<table class="receiver-sub-table">' +
+              '<thead><tr><th>角色</th><th>占比%</th><th>操作</th></tr></thead>' +
+              '<tbody class="receiver-sub-tbody"></tbody>' +
+            '</table>' +
+            '<button type="button" class="btn btn-sm" style="margin-top:8px" onclick="addReceiverSubRowFromBtn(this)"><span style="font-size:14px">+</span> 添加二级规则</button>' +
+          '</div>' +
         '</td>';
       tbody.appendChild(row);
+      tbody.appendChild(secondaryRow);
+      if (opt.subReceivers && opt.subReceivers.length) {
+        secondaryRow.style.display = 'table-row';
+        secondaryRow.querySelector('.receiver-secondary-panel').style.display = 'block';
+        opt.subReceivers.forEach(function(s) { addReceiverSubRow(row, s); });
+      }
       updateAllReceiverRoleOptions();
     }
 
     function getReceiverRolesSelectedInOtherRows(excludeRow) {
       var taken = [];
-      document.querySelectorAll('#receiverTableBody tr').forEach(function(tr) {
+      document.querySelectorAll('#receiverTableBody tr.receiver-primary-row').forEach(function(tr) {
         if (tr === excludeRow) return;
         var ms = tr.querySelector('.receiver-role-select');
         if (!ms) return;
@@ -1429,7 +1600,7 @@
     }
 
     function updateAllReceiverRoleOptions() {
-      document.querySelectorAll('#receiverTableBody tr').forEach(function(tr) {
+      document.querySelectorAll('#receiverTableBody tr.receiver-primary-row').forEach(function(tr) {
         var ms = tr.querySelector('.receiver-role-select');
         if (!ms) return;
         var taken = getReceiverRolesSelectedInOtherRows(tr);
@@ -1447,7 +1618,7 @@
 
     function calcTotal() {
       let total = 0;
-      document.querySelectorAll('#receiverTable tbody input[type="number"]').forEach(input => {
+      document.querySelectorAll('#receiverTableBody tr.receiver-primary-row input[type="number"]').forEach(function(input) {
         total += parseFloat(input.value) || 0;
       });
       document.getElementById('totalPercent').textContent = total;
@@ -1527,13 +1698,14 @@
           if (emptyEl) { emptyEl.style.display = 'block'; emptyEl.textContent = '所选角色暂无员工数据'; }
         }
       }
-      document.getElementById('weightModal').dataset.weightRowIndex = Array.from(row.parentNode.children).indexOf(row);
+      var rowId = row.dataset.receiverRowId || '';
+      document.getElementById('weightModal').dataset.weightRowId = rowId;
       openModal('weightModal');
     }
 
     function saveWeight() {
       var modal = document.getElementById('weightModal');
-      var rowIndex = modal && modal.dataset.weightRowIndex !== undefined ? parseInt(modal.dataset.weightRowIndex, 10) : -1;
+      var rowId = modal && modal.dataset.weightRowId ? modal.dataset.weightRowId : '';
       var tbody = document.getElementById('weightModalBody');
       var rows = tbody ? tbody.querySelectorAll('tr') : [];
       var weights = {};
@@ -1550,11 +1722,12 @@
         if (!weights[role]) weights[role] = {};
         weights[role][emp] = val;
       });
-      var receiverRows = document.querySelectorAll('#receiverTableBody tr');
-      if (rowIndex >= 0 && rowIndex < receiverRows.length) {
-        var tr = receiverRows[rowIndex];
-        tr.dataset.employeeWeights = JSON.stringify(weights);
-        renderReceiverRowWeights(tr);
+      if (rowId) {
+        var tr = document.querySelector('#receiverTableBody tr[data-receiver-row-id="' + rowId + '"]');
+        if (tr) {
+          tr.dataset.employeeWeights = JSON.stringify(weights);
+          renderReceiverRowWeights(tr);
+        }
       }
       closeModal('weightModal');
       showNotification('员工权重保存成功');
@@ -1837,8 +2010,8 @@
         deductRoles.push(cb.value);
       });
       var receivers = [];
-      document.querySelectorAll('#receiverTable tbody tr').forEach(function(tr) {
-        var ms = tr.querySelector('.multi-select');
+      document.querySelectorAll('#receiverTableBody tr.receiver-primary-row').forEach(function(tr) {
+        var ms = tr.querySelector('.receiver-role-select');
         if (!ms) return;
         var roles = [];
         ms.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) { roles.push(cb.value); });
@@ -1848,7 +2021,29 @@
         try {
           if (tr.dataset.employeeWeights) employeeWeights = JSON.parse(tr.dataset.employeeWeights);
         } catch (e) {}
-        if (roles.length > 0 && pct > 0) receivers.push({ roles: roles, pct: pct, employeeWeights: employeeWeights });
+        var subReceivers = [];
+        var block = getReceiverSecondaryBlock(tr);
+        if (block) {
+          var stbody = block.querySelector('.receiver-sub-tbody');
+          if (stbody) {
+            stbody.querySelectorAll('tr.receiver-sub-row').forEach(function(sr) {
+              var sms = sr.querySelector('.receiver-sub-role-select');
+              if (!sms) return;
+              var sroles = [];
+              sms.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) { sroles.push(cb.value); });
+              var spctInp = sr.querySelector('input[type="number"]');
+              var spct = spctInp ? (parseFloat(spctInp.value) || 0) : 0;
+              var sew = {};
+              try {
+                if (sr.dataset.employeeWeights) sew = JSON.parse(sr.dataset.employeeWeights);
+              } catch (e2) {}
+              if (sroles.length > 0 && spct > 0) subReceivers.push({ roles: sroles, pct: spct, employeeWeights: sew });
+            });
+          }
+        }
+        var rec = { roles: roles, pct: pct, employeeWeights: employeeWeights };
+        if (subReceivers.length) rec.subReceivers = subReceivers;
+        if (roles.length > 0 && pct > 0) receivers.push(rec);
       });
       var distRadio = document.querySelector('input[name="distribution"]:checked');
       var clockRadio = document.querySelector('input[name="clockin"]:checked');
@@ -1889,10 +2084,10 @@
       document.querySelectorAll('#deductRoleSelect input[type="checkbox"]:checked').forEach(function(cb) {
         deductRoles.push(cb.value);
       });
-      var receivers = document.querySelectorAll('#receiverTable tbody tr');
+      var receivers = document.querySelectorAll('#receiverTableBody tr.receiver-primary-row');
       var hasReceiver = false;
       receivers.forEach(function(tr) {
-        var ms = tr.querySelector('.multi-select');
+        var ms = tr.querySelector('.receiver-role-select');
         var pctInp = tr.querySelector('input[type="number"]');
         var pct = pctInp ? (parseFloat(pctInp.value) || 0) : 0;
         if (ms && ms.querySelectorAll('input[type="checkbox"]:checked').length > 0 && pct > 0) hasReceiver = true;
@@ -2042,7 +2237,21 @@
         var receiverRow = ms && ms.closest('#receiverTableBody tr');
         if (receiverRow) {
           updateReceiverRowWeightBtn(receiverRow);
-          if (ms.classList.contains('receiver-role-select')) updateAllReceiverRoleOptions();
+          if (ms.classList.contains('receiver-role-select')) {
+            updateAllReceiverRoleOptions();
+            var pr = ms.closest('tr.receiver-primary-row');
+            if (pr) {
+              var secBlock = getReceiverSecondaryBlock(pr);
+              if (secBlock) {
+                var stb = secBlock.querySelector('.receiver-sub-tbody');
+                if (stb) updateSubReceiversRoleOptions(stb);
+              }
+            }
+          }
+          if (ms.classList.contains('receiver-sub-role-select')) {
+            var stb = ms.closest('.receiver-sub-tbody');
+            if (stb) updateSubReceiversRoleOptions(stb);
+          }
         }
       }
     });

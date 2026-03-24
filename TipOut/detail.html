@@ -350,6 +350,9 @@
         '<div class="divider"></div><h4 style="margin-bottom:12px;font-size:14px">接收方规则</h4>';
       (rule.receivers || []).forEach(function(r) {
         html += '<div class="rule-detail-item"><div class="value">' + ((r.roles || []).join(' / ') || '') + ' ' + (r.pct || 0) + '%</div></div>';
+        (r.subReceivers || []).forEach(function(sr) {
+          html += '<div class="rule-detail-item" style="padding-left:16px"><div class="value" style="font-size:13px;color:var(--text-tertiary)">└ 再分配：' + ((sr.roles || []).join(' / ') || '') + ' ' + (sr.pct || 0) + '%</div></div>';
+        });
       });
       html += '<div class="rule-detail-item"><div class="label">分配方式</div><div class="value">' + (distNames[rule.distribution] || rule.distribution || '—') + '</div></div>';
       body.innerHTML = html;
