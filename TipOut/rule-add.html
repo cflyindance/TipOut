@@ -43,7 +43,7 @@
       border-top: 1px solid rgba(0,0,0,0.04); background: rgba(0,0,0,0.01);
     }
     .pool-rule-conditions .cond-label { color: var(--text-tertiary); margin-right: 6px; }
-    .pool-rule-conditions .cond-text { color: var(--text-secondary); }
+    .pool-rule-conditions .cond-text { color: var(--text-secondary); white-space: pre-line; }
     .pool-rule-conditions.empty .cond-text { color: var(--text-tertiary); font-style: italic; }
     .pool-rule-body {
       padding: 16px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
@@ -141,13 +141,16 @@
 
     #salesDrawer .drawer-body,
     #tipsDrawer .drawer-body,
-    #surchargeDrawer .drawer-body { overflow-y: auto; min-height: 0; }
+    #surchargeDrawer .drawer-body,
+    #manualDrawer .drawer-body { overflow-y: auto; min-height: 0; }
     #salesDrawer .condition-card,
     #tipsDrawer .condition-card,
-    #surchargeDrawer .condition-card { overflow: visible; }
+    #surchargeDrawer .condition-card,
+    #manualDrawer .condition-card { overflow: visible; }
     #salesDrawer .multi-select-dropdown,
     #tipsDrawer .multi-select-dropdown,
-    #surchargeDrawer .multi-select-dropdown { z-index: 1100; }
+    #surchargeDrawer .multi-select-dropdown,
+    #manualDrawer .multi-select-dropdown { z-index: 1100; }
 
     .page-actions {
       position: fixed; bottom: 0; right: 0; left: 264px; z-index: 40;
@@ -205,9 +208,48 @@
     .multi-select-option input[type="checkbox"] {
       width: 14px; height: 14px; accent-color: var(--primary); cursor: pointer;
     }
+    .multi-select-option.shift-option-wrap { align-items: flex-start; }
+    .shift-opt-multiline { display: block; line-height: 1.45; padding: 2px 0; }
+    .shift-opt-line.shift-opt-rules { font-size: 12px; color: var(--text-secondary); white-space: pre-line; }
+    .shift-opt-line.shift-opt-name { font-size: 13px; font-weight: 500; margin-top: 2px; }
+    .shift-opt-line.shift-opt-time { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+    .multi-select-tag.shift-tag-multiline {
+      white-space: normal; align-items: flex-start; max-width: min(100%, 280px);
+      overflow: visible; line-height: 1.35;
+    }
+    .multi-select-tag.shift-tag-multiline .shift-tag-label {
+      white-space: pre-line; flex: 1; min-width: 0; text-align: left;
+    }
+    .multi-select.shift-condition-select .multi-select-tags { align-items: flex-start; }
     .multi-select-placeholder {
       color: var(--text-tertiary); font-size: 13px; padding: 0 4px;
     }
+
+    /* 班次设置弹窗 */
+    .shift-manage-modal .modal-body { max-height: min(72vh, 580px); overflow-y: auto; }
+    .shift-manage-columns { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+    .shift-manage-col-list { flex: 1; min-width: 240px; max-width: 340px; }
+    .shift-manage-col-form { flex: 1.25; min-width: 280px; }
+    .shift-manage-col-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: var(--text-secondary); }
+    .shift-manage-list-scroll {
+      border: 1px solid var(--border-color); border-radius: 8px; max-height: 300px; overflow-y: auto;
+      background: rgba(0,0,0,0.02);
+    }
+    .shift-manage-row {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+      padding: 10px 12px; border-bottom: 1px solid var(--border-light); font-size: 13px;
+    }
+    .shift-manage-row:last-child { border-bottom: none; }
+    .shift-manage-row-text {
+      flex: 1; min-width: 0; line-height: 1.5; color: var(--text-primary);
+      word-break: break-word;
+    }
+    .shift-manage-row-text .shift-manage-name { font-weight: 600; display: block; }
+    .shift-manage-row-text .shift-manage-meta { margin-top: 6px; }
+    .shift-manage-meta-line { display: block; font-size: 12px; color: var(--text-tertiary); line-height: 1.45; }
+    .shift-manage-meta-line + .shift-manage-meta-line { margin-top: 4px; }
+    .shift-manage-row-actions { flex-shrink: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .shift-manage-empty { padding: 20px 12px; text-align: center; color: var(--text-tertiary); font-size: 13px; }
 
     /* Weight Modal Table */
     .weight-table { width: 100%; border-collapse: collapse; }
@@ -473,6 +515,60 @@
     </div>
   </div>
 
+  <!-- 班次设置（取值条件：列表 + 新增/编辑/删除） -->
+  <div class="modal-overlay" id="shiftManageModal">
+    <div class="modal shift-manage-modal" style="width:720px;max-width:calc(100vw - 32px)">
+      <div class="modal-header">
+        <h3>班次设置</h3>
+        <button class="modal-close" onclick="closeModal('shiftManageModal')">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="shift-manage-columns">
+          <div class="shift-manage-col shift-manage-col-list">
+            <div class="shift-manage-col-title">已有班次</div>
+            <div id="shiftManageListBody" class="shift-manage-list-scroll" onclick="shiftManageListBodyClick(event)"></div>
+            <button type="button" class="btn btn-sm btn-primary" style="margin-top:12px" onclick="shiftManageStartCreate()">+ 新增班次</button>
+          </div>
+          <div class="shift-manage-col shift-manage-col-form">
+            <div class="shift-manage-col-title" id="shiftManageFormTitle">新增班次</div>
+            <input type="hidden" id="shiftManageEditingOriginalName" value="">
+            <div class="drawer-form-row" style="margin-bottom:12px"><label style="width:88px;flex-shrink:0">班次名称</label><input type="text" id="shiftManageName" class="form-control" placeholder="输入班次名称" style="flex:1"></div>
+            <div class="drawer-form-row" style="margin-bottom:12px"><label style="width:88px;flex-shrink:0">时间段</label>
+              <input type="time" id="shiftManageTimeStart" class="form-control" style="width:120px">
+              <span style="color:var(--text-tertiary)">~</span>
+              <input type="time" id="shiftManageTimeEnd" class="form-control" style="width:120px">
+              <span style="color:var(--danger);font-size:12px;margin-left:8px;white-space:nowrap">*</span>
+            </div>
+            <div class="drawer-form-row" style="margin-bottom:0;align-items:flex-start">
+              <label style="width:88px;flex-shrink:0;padding-top:6px">小费参与</label>
+              <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--text-secondary)">
+                  <span>至少打卡</span>
+                  <input type="number" id="shiftManageMinClockMinutes" class="form-control" min="0" step="1" placeholder="0" style="width:88px" title="分钟">
+                  <span>分钟</span>
+                </div>
+                <p style="font-size:12px;color:var(--text-tertiary);margin:8px 0 0;line-height:1.5">填 0 或不填表示不限制最低打卡时长。</p>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--text-secondary);margin-top:12px">
+                  <span>打卡工时最多计</span>
+                  <input type="number" id="shiftManageMaxClockMinutes" class="form-control" min="0" step="1" placeholder="0" style="width:88px" title="分钟">
+                  <span>分钟</span>
+                </div>
+                <p style="font-size:12px;color:var(--text-tertiary);margin:8px 0 0;line-height:1.5">填 0 或不填表示不限制上限；若同时设置上下限，上限须不小于下限。</p>
+              </div>
+            </div>
+            <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+              <button type="button" class="btn btn-primary" onclick="shiftManageSaveShift()">保存</button>
+              <button type="button" class="btn" onclick="shiftManageStartCreate()">清空表单</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeModal('shiftManageModal')">完成</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Sales Value Conditions Drawer -->
   <div class="drawer-overlay" id="salesDrawer-overlay"></div>
   <div class="drawer" id="salesDrawer">
@@ -493,6 +589,8 @@
           <div class="add-option-menu-item" data-type="menu" onclick="addSalesCondition('menu')">菜单</div>
           <div class="add-option-menu-item" data-type="revenueType" onclick="addSalesCondition('revenueType')">营业额类型</div>
           <div class="add-option-menu-item" data-type="hours" onclick="addSalesCondition('hours')">营业时间</div>
+          <div class="add-option-menu-item" data-type="shift" onclick="addSalesCondition('shift')">班次</div>
+          <div class="add-option-menu-item" data-type="weekday" onclick="addSalesCondition('weekday')">周期（星期）</div>
         </div>
       </div>
     </div>
@@ -521,6 +619,8 @@
           <div class="add-option-menu-item" data-type="orderType" onclick="addSurchargeCondition('orderType')">订单类型</div>
           <div class="add-option-menu-item" data-type="hours" onclick="addSurchargeCondition('hours')">营业时间段</div>
           <div class="add-option-menu-item" data-type="tipType" onclick="addSurchargeCondition('tipType')">小费类型</div>
+          <div class="add-option-menu-item" data-type="shift" onclick="addSurchargeCondition('shift')">班次</div>
+          <div class="add-option-menu-item" data-type="weekday" onclick="addSurchargeCondition('weekday')">周期（星期）</div>
         </div>
       </div>
     </div>
@@ -550,12 +650,38 @@
           <div class="add-option-menu-item" data-type="hours" onclick="addTipsCondition('hours')">营业时间段</div>
           <div class="add-option-menu-item" data-type="tipType" onclick="addTipsCondition('tipType')">小费类型</div>
           <div class="add-option-menu-item" data-type="containsProduct" onclick="addTipsCondition('containsProduct')">订单需包含商品</div>
+          <div class="add-option-menu-item" data-type="shift" onclick="addTipsCondition('shift')">班次</div>
+          <div class="add-option-menu-item" data-type="weekday" onclick="addTipsCondition('weekday')">周期（星期）</div>
         </div>
       </div>
     </div>
     <div class="drawer-footer">
       <button class="btn" onclick="closeDrawer('tipsDrawer')">取消</button>
       <button class="btn btn-primary" onclick="saveTipsCondition()">提交</button>
+    </div>
+  </div>
+
+  <!-- 手动上报小费 取值条件 -->
+  <div class="drawer-overlay" id="manualDrawer-overlay"></div>
+  <div class="drawer" id="manualDrawer">
+    <div class="drawer-header">
+      <h3>手动上报小费 · 取值条件</h3>
+      <button class="modal-close" onclick="closeDrawer('manualDrawer')">×</button>
+    </div>
+    <div class="drawer-body">
+      <div id="manualConditionsContainer"></div>
+      <div class="add-option-dropdown">
+        <button class="btn" type="button" onclick="toggleAddConditionMenu('manualDrawer')">
+          <span style="font-size:16px">+</span> 新增条件
+        </button>
+        <div class="add-option-menu" id="manualConditionMenu">
+          <div class="add-option-menu-item" data-type="weekday" onclick="addManualCondition('weekday')">周期（星期）</div>
+        </div>
+      </div>
+    </div>
+    <div class="drawer-footer">
+      <button class="btn" onclick="closeDrawer('manualDrawer')">取消</button>
+      <button class="btn btn-primary" onclick="saveManualCondition()">提交</button>
     </div>
   </div>
 
@@ -791,12 +917,35 @@
         if (tm) tm.classList.remove('show');
         var srm = document.getElementById('surchargeConditionMenu');
         if (srm) srm.classList.remove('show');
+        var mm = document.getElementById('manualConditionMenu');
+        if (mm) mm.classList.remove('show');
       }
     });
 
     var existingSalesConditions = {};
     var existingTipsConditions = {};
     var existingSurchargeConditions = {};
+    var existingManualConditions = {};
+
+    var WEEKDAY_COND_OPTIONS = [
+      { v: '1', l: '星期一' }, { v: '2', l: '星期二' }, { v: '3', l: '星期三' }, { v: '4', l: '星期四' },
+      { v: '5', l: '星期五' }, { v: '6', l: '星期六' }, { v: '7', l: '星期日' }
+    ];
+    var WEEKDAY_COND_LABEL_BY_VALUE = { '1': '星期一', '2': '星期二', '3': '星期三', '4': '星期四', '5': '星期五', '6': '星期六', '7': '星期日' };
+    function getWeekdayMultiSelectOptionsHtml() {
+      return WEEKDAY_COND_OPTIONS.map(function(o) {
+        return '<label class="multi-select-option"><input type="checkbox" value="' + o.v + '" data-tag-label="' + o.l + '"> ' + o.l + '</label>';
+      }).join('');
+    }
+    function normalizeWeekdayValues(arr) {
+      if (!Array.isArray(arr)) return [];
+      return arr.map(function(x) { return String(x); }).filter(function(v) { return WEEKDAY_COND_LABEL_BY_VALUE[v]; });
+    }
+    function formatWeekdaysCondDisplay(arr) {
+      var a = normalizeWeekdayValues(arr);
+      if (!a.length) return '';
+      return a.map(function(v) { return WEEKDAY_COND_LABEL_BY_VALUE[v] || v; }).join('、');
+    }
 
     function loadSalesConditionsForRule(ruleId) {
       var container = document.getElementById('salesConditionsContainer');
@@ -807,6 +956,11 @@
       if (cond && typeof cond === 'object') {
         Object.keys(cond).forEach(function(type) {
           if (type === 'employees') return;
+          if (type === 'weekdays') {
+            addSalesCondition('weekday', true);
+            setSalesConditionValue('weekday', cond.weekdays);
+            return;
+          }
           addSalesCondition(type, true);
           if (type === 'role') setSalesConditionValue(type, { role: cond.role || [], employees: cond.employees || [] });
           else setSalesConditionValue(type, cond[type]);
@@ -828,6 +982,11 @@
         Object.keys(cond).forEach(function(type) {
           if (type === 'employees') return;
           if (type === 'containsAlcohol') return;
+          if (type === 'weekdays') {
+            addTipsCondition('weekday', true);
+            setTipsConditionValue('weekday', cond.weekdays);
+            return;
+          }
           addTipsCondition(type, true);
           if (type === 'role') setTipsConditionValue(type, { role: cond.role || [], employees: cond.employees || [] });
           else setTipsConditionValue(type, cond[type]);
@@ -844,12 +1003,29 @@
       if (cond && typeof cond === 'object' && !cond.types) {
         Object.keys(cond).forEach(function(type) {
           if (type === 'employees') return;
+          if (type === 'weekdays') {
+            addSurchargeCondition('weekday', true);
+            setSurchargeConditionValue('weekday', cond.weekdays);
+            return;
+          }
           addSurchargeCondition(type, true);
           if (type === 'role') setSurchargeConditionValue(type, { role: cond.role || [], employees: cond.employees || [] });
           else setSurchargeConditionValue(type, cond[type]);
         });
       }
       updateSurchargeConditionMenu();
+    }
+    function loadManualConditionsForRule(ruleId) {
+      var container = document.getElementById('manualConditionsContainer');
+      if (!container) return;
+      container.innerHTML = '';
+      existingManualConditions = {};
+      var cond = poolRuleConditions[ruleId];
+      if (cond && typeof cond === 'object' && Array.isArray(cond.weekdays) && cond.weekdays.length) {
+        addManualCondition('weekday', true);
+        setManualConditionValue('weekday', cond.weekdays);
+      }
+      updateManualConditionMenu();
     }
     function getEmployeesForSelectedRoles(roles) {
       var empMap = {};
@@ -930,6 +1106,406 @@
         return '<label class="multi-select-option"><input type="checkbox" value="' + c + '"> ' + c + '</label>';
       }).join('');
     }
+    var SHIFT_LIST_STORAGE_KEY = 'ruleAddShiftList';
+    function defaultShiftList() {
+      return [
+        { name: '早班', start: '', end: '', minClockMinutes: 0, maxClockMinutes: 0 },
+        { name: '中班', start: '', end: '', minClockMinutes: 0, maxClockMinutes: 0 },
+        { name: '晚班', start: '', end: '', minClockMinutes: 0, maxClockMinutes: 0 }
+      ];
+    }
+    function parseMinClockMinutes(val) {
+      if (val == null || val === '') return 0;
+      var n = parseInt(val, 10);
+      if (isNaN(n) || n < 0) return NaN;
+      return n;
+    }
+    function normalizeShiftEntry(entry) {
+      if (entry == null || entry === '') return null;
+      if (typeof entry === 'string') return { name: entry.trim(), start: '', end: '', minClockMinutes: 0, maxClockMinutes: 0 };
+      if (typeof entry === 'object' && entry.name) {
+        var minM = parseMinClockMinutes(entry.minClockMinutes);
+        if (isNaN(minM)) minM = 0;
+        var maxM = parseMinClockMinutes(entry.maxClockMinutes);
+        if (isNaN(maxM)) maxM = 0;
+        return {
+          name: String(entry.name).trim(),
+          start: entry.start ? String(entry.start) : '',
+          end: entry.end ? String(entry.end) : '',
+          minClockMinutes: minM,
+          maxClockMinutes: maxM
+        };
+      }
+      return null;
+    }
+    function getShiftList() {
+      try {
+        var raw = localStorage.getItem(SHIFT_LIST_STORAGE_KEY);
+        var arr = raw ? JSON.parse(raw) : null;
+        if (!Array.isArray(arr) || !arr.length) return defaultShiftList();
+        var out = [];
+        var seen = {};
+        var needsMigrate = false;
+        arr.forEach(function(entry) {
+          if (typeof entry === 'string') needsMigrate = true;
+          else if (entry && typeof entry === 'object' && entry.name && (entry.minClockMinutes === undefined || entry.maxClockMinutes === undefined)) needsMigrate = true;
+          var n = normalizeShiftEntry(entry);
+          if (n && n.name && !seen[n.name]) { seen[n.name] = 1; out.push(n); }
+        });
+        if (needsMigrate) saveShiftList(out);
+        return out;
+      } catch (e) {}
+      return defaultShiftList();
+    }
+    function saveShiftList(list) {
+      try { localStorage.setItem(SHIFT_LIST_STORAGE_KEY, JSON.stringify(list)); } catch (e) {}
+    }
+    function mergeShiftsFromSaved(arr) {
+      if (!Array.isArray(arr) || !arr.length) return;
+      var list = getShiftList();
+      var names = {};
+      list.forEach(function(it) { names[it.name] = true; });
+      var changed = false;
+      arr.forEach(function(s) {
+        if (!s || names[s]) return;
+        list.push({ name: String(s), start: '', end: '', minClockMinutes: 0, maxClockMinutes: 0 });
+        names[s] = true;
+        changed = true;
+      });
+      if (changed) saveShiftList(list);
+    }
+    function shiftHasParticipationRules(item) {
+      var minM = item.minClockMinutes != null ? item.minClockMinutes : 0;
+      var maxM = item.maxClockMinutes != null ? item.maxClockMinutes : 0;
+      return minM > 0 || maxM > 0;
+    }
+    function shiftParticipationRulesBodyLines(item) {
+      var minM = item.minClockMinutes != null ? item.minClockMinutes : 0;
+      var maxM = item.maxClockMinutes != null ? item.maxClockMinutes : 0;
+      var lines = [];
+      if (minM > 0) lines.push('至少打卡' + minM + '分钟');
+      if (maxM > 0) lines.push('打卡工时最多计' + maxM + '分钟');
+      return lines;
+    }
+    function shiftParticipationRulesBody(item) {
+      return shiftParticipationRulesBodyLines(item).join('；');
+    }
+    function shiftParticipationRulesLine(item) {
+      return shiftParticipationRulesBodyLines(item).join('\n');
+    }
+    function shiftTimeLineOnly(item) {
+      var start = item.start || '';
+      var end = item.end || '';
+      if (start || end) return '时间段：' + (start || '--') + '-' + (end || '--');
+      return '时间段：未设置';
+    }
+    function shiftDisplayBlocks(item) {
+      return {
+        rulesLine: shiftParticipationRulesLine(item),
+        nameLine: item.name,
+        timeLine: shiftTimeLineOnly(item)
+      };
+    }
+    function shiftOptionDisplayLabel(item) {
+      if (shiftHasParticipationRules(item)) {
+        var b = shiftDisplayBlocks(item);
+        return b.rulesLine + '\n' + b.nameLine + '\n' + b.timeLine;
+      }
+      var parts = [item.name];
+      var start = item.start || '';
+      var end = item.end || '';
+      if (start || end) parts.push('(' + (start || '--') + '-' + (end || '--') + ')');
+      return parts.join(' ');
+    }
+    function escapeHtmlAttr(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    }
+    function escapeHtmlAttrMultiline(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/\r\n/g, '\n')
+        .replace(/\n/g, '&#10;');
+    }
+    function escapeHtmlText(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    function getShiftMultiSelectOptionsHtml() {
+      return getShiftList().map(function(item) {
+        var v = escapeHtmlAttr(item.name);
+        var hasRules = shiftHasParticipationRules(item);
+        var labelHtml;
+        var labelAttr;
+        var extraAttrs = '';
+        var optClass = 'multi-select-option';
+        if (hasRules) {
+          optClass += ' shift-option-wrap';
+          var b = shiftDisplayBlocks(item);
+          labelHtml = '<span class="shift-opt-multiline">' +
+            '<span class="shift-opt-line shift-opt-name">' + escapeHtmlText(b.nameLine) + '</span><br>' +
+            '<span class="shift-opt-line shift-opt-time">' + escapeHtmlText(b.timeLine) + '</span><br>' +
+            '<span class="shift-opt-line shift-opt-rules">' + escapeHtmlText(b.rulesLine) + '</span></span>';
+          labelAttr = escapeHtmlAttrMultiline(b.nameLine + '\n' + b.timeLine + '\n' + b.rulesLine);
+          extraAttrs = ' data-tag-multiline="1"';
+        } else {
+          var disp = shiftOptionDisplayLabel(item);
+          labelHtml = escapeHtmlText(disp);
+          labelAttr = escapeHtmlAttr(disp);
+        }
+        return '<label class="' + optClass + '"><input type="checkbox" value="' + v + '" data-tag-label="' + labelAttr + '"' + extraAttrs + '> ' + labelHtml + '</label>';
+      }).join('');
+    }
+    function renderShiftManageList() {
+      var body = document.getElementById('shiftManageListBody');
+      if (!body) return;
+      var list = getShiftList();
+      if (!list.length) {
+        body.innerHTML = '<div class="shift-manage-empty">暂无班次，点击「新增班次」创建</div>';
+        return;
+      }
+      body.innerHTML = list.map(function(item) {
+        var metaLines = [];
+        metaLines.push(shiftTimeLineOnly(item));
+        if (shiftHasParticipationRules(item)) {
+          shiftParticipationRulesBodyLines(item).forEach(function(ruleLine) {
+            metaLines.push(ruleLine);
+          });
+        }
+        var metaHtml = metaLines.map(function(line) {
+          return '<span class="shift-manage-meta-line">' + escapeHtmlText(line) + '</span>';
+        }).join('');
+        return '<div class="shift-manage-row">' +
+          '<div class="shift-manage-row-text">' +
+          '<span class="shift-manage-name">' + escapeHtmlText(item.name) + '</span>' +
+          '<div class="shift-manage-meta">' + metaHtml + '</div>' +
+          '</div>' +
+          '<div class="shift-manage-row-actions">' +
+          '<button type="button" class="btn btn-sm" data-shift-action="edit" data-shift-name="' + escapeHtmlAttr(item.name) + '">编辑</button>' +
+          '<button type="button" class="btn btn-sm btn-text-danger" data-shift-action="delete" data-shift-name="' + escapeHtmlAttr(item.name) + '">删除</button>' +
+          '</div></div>';
+      }).join('');
+    }
+    function shiftManageListBodyClick(ev) {
+      var btn = ev.target.closest('[data-shift-action]');
+      if (!btn) return;
+      var action = btn.getAttribute('data-shift-action');
+      var name = btn.getAttribute('data-shift-name');
+      if (!name) return;
+      if (action === 'edit') shiftManageLoadShift(name);
+      else if (action === 'delete') shiftManageDeleteShift(name);
+    }
+    function shiftManageClearFormFields() {
+      var n = document.getElementById('shiftManageName');
+      var ts = document.getElementById('shiftManageTimeStart');
+      var te = document.getElementById('shiftManageTimeEnd');
+      var minEl = document.getElementById('shiftManageMinClockMinutes');
+      var maxEl = document.getElementById('shiftManageMaxClockMinutes');
+      var hid = document.getElementById('shiftManageEditingOriginalName');
+      if (n) n.value = '';
+      if (ts) ts.value = '';
+      if (te) te.value = '';
+      if (minEl) minEl.value = '';
+      if (maxEl) maxEl.value = '';
+      if (hid) hid.value = '';
+    }
+    function shiftManageStartCreate() {
+      shiftManageClearFormFields();
+      var title = document.getElementById('shiftManageFormTitle');
+      if (title) title.textContent = '新增班次';
+      var n = document.getElementById('shiftManageName');
+      if (n) setTimeout(function() { try { n.focus(); } catch (e) {} }, 50);
+    }
+    function shiftManageLoadShift(name) {
+      var list = getShiftList();
+      var item = null;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].name === name) { item = list[i]; break; }
+      }
+      if (!item) { showNotification('未找到该班次', 'warning'); return; }
+      var hid = document.getElementById('shiftManageEditingOriginalName');
+      if (hid) hid.value = item.name;
+      var n = document.getElementById('shiftManageName');
+      var ts = document.getElementById('shiftManageTimeStart');
+      var te = document.getElementById('shiftManageTimeEnd');
+      var minEl = document.getElementById('shiftManageMinClockMinutes');
+      var maxEl = document.getElementById('shiftManageMaxClockMinutes');
+      if (n) n.value = item.name;
+      if (ts) ts.value = item.start || '';
+      if (te) te.value = item.end || '';
+      var minM = item.minClockMinutes != null ? item.minClockMinutes : 0;
+      var maxM = item.maxClockMinutes != null ? item.maxClockMinutes : 0;
+      if (minEl) minEl.value = minM > 0 ? String(minM) : '';
+      if (maxEl) maxEl.value = maxM > 0 ? String(maxM) : '';
+      var title = document.getElementById('shiftManageFormTitle');
+      if (title) title.textContent = '编辑：' + item.name;
+      if (n) setTimeout(function() { try { n.focus(); } catch (e) {} }, 50);
+    }
+    function migrateShiftNameInPoolConditions(oldName, newName) {
+      Object.keys(poolRuleConditions).forEach(function(rid) {
+        var c = poolRuleConditions[rid];
+        if (!c || !Array.isArray(c.shift)) return;
+        c.shift = c.shift.map(function(s) { return s === oldName ? newName : s; });
+      });
+    }
+    function removeShiftNameFromPoolConditions(deletedName) {
+      Object.keys(poolRuleConditions).forEach(function(rid) {
+        var c = poolRuleConditions[rid];
+        if (!c || !Array.isArray(c.shift)) return;
+        c.shift = c.shift.filter(function(s) { return s !== deletedName; });
+      });
+    }
+    function refreshAllShiftConditionSelects(nameMap) {
+      document.querySelectorAll('.shift-condition-select').forEach(function(ms) {
+        var prev = [];
+        ms.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) { prev.push(cb.value); });
+        if (nameMap && typeof nameMap === 'object') {
+          prev = prev.map(function(v) { return nameMap.hasOwnProperty(v) ? nameMap[v] : v; });
+        }
+        var dropdown = ms.querySelector('.multi-select-dropdown');
+        if (dropdown) {
+          dropdown.innerHTML = getShiftMultiSelectOptionsHtml();
+          ms.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+            cb.checked = prev.indexOf(cb.value) >= 0;
+          });
+          if (ms.id) refreshMultiTags(ms.id);
+        }
+      });
+    }
+    function refreshPoolRuleConditionDisplaysForShiftChange() {
+      Object.keys(poolRuleConditions).forEach(function(rid) {
+        updatePoolRuleConditionDisplay(rid);
+      });
+    }
+    function shiftManageTargetSelectEnsureChecked(shiftName) {
+      var overlay = document.getElementById('shiftManageModal');
+      var selectId = overlay && overlay.dataset ? overlay.dataset.targetSelectId : '';
+      if (!selectId || !shiftName) return;
+      var ms = document.getElementById(selectId);
+      if (!ms || !ms.classList.contains('shift-condition-select')) return;
+      var cb = null;
+      ms.querySelectorAll('input[type="checkbox"]').forEach(function(c) {
+        if (c.value === shiftName) cb = c;
+      });
+      if (cb) {
+        cb.checked = true;
+        refreshMultiTags(selectId);
+      }
+    }
+    function shiftManageDeleteShift(name) {
+      if (!confirm('确定删除班次「' + name + '」？规则中已选该班次的条件将自动取消勾选。')) return;
+      var list = getShiftList().filter(function(it) { return it.name !== name; });
+      saveShiftList(list);
+      removeShiftNameFromPoolConditions(name);
+      refreshAllShiftConditionSelects();
+      renderShiftManageList();
+      refreshPoolRuleConditionDisplaysForShiftChange();
+      var hid = document.getElementById('shiftManageEditingOriginalName');
+      if (hid && hid.value === name) shiftManageStartCreate();
+      showNotification('已删除班次：' + name);
+    }
+    function shiftManageSaveShift() {
+      var nameInp = document.getElementById('shiftManageName');
+      var tStart = document.getElementById('shiftManageTimeStart');
+      var tEnd = document.getElementById('shiftManageTimeEnd');
+      var minInp = document.getElementById('shiftManageMinClockMinutes');
+      var maxInp = document.getElementById('shiftManageMaxClockMinutes');
+      var origInp = document.getElementById('shiftManageEditingOriginalName');
+      var name = nameInp ? nameInp.value.trim() : '';
+      if (!name) { showNotification('请输入班次名称', 'warning'); return; }
+      var start = tStart && tStart.value ? tStart.value : '';
+      var end = tEnd && tEnd.value ? tEnd.value : '';
+      if (!start || !end) { showNotification('请选择完整时间段（开始和结束时间）', 'warning'); return; }
+      var minClock = minInp && minInp.value !== '' ? parseMinClockMinutes(minInp.value) : 0;
+      if (isNaN(minClock)) { showNotification('最低打卡分钟须为 0 及以上的整数', 'warning'); return; }
+      var maxClock = maxInp && maxInp.value !== '' ? parseMinClockMinutes(maxInp.value) : 0;
+      if (isNaN(maxClock)) { showNotification('最多计入分钟须为 0 及以上的整数', 'warning'); return; }
+      if (maxClock > 0 && minClock > 0 && maxClock < minClock) {
+        showNotification('「最多计入」分钟数不能小于「至少打卡」分钟数', 'warning');
+        return;
+      }
+      var originalName = origInp ? origInp.value.trim() : '';
+      var list = getShiftList();
+      var idxByOrig = -1;
+      if (originalName) {
+        for (var oi = 0; oi < list.length; oi++) {
+          if (list[oi].name === originalName) { idxByOrig = oi; break; }
+        }
+      }
+      var idxByNew = -1;
+      for (var ni = 0; ni < list.length; ni++) {
+        if (list[ni].name === name) { idxByNew = ni; break; }
+      }
+      if (!originalName) {
+        if (idxByNew >= 0) {
+          showNotification('已存在同名班次，请更换名称或在左侧编辑该班次', 'warning');
+          return;
+        }
+        list.push({ name: name, start: start, end: end, minClockMinutes: minClock, maxClockMinutes: maxClock });
+      } else {
+        if (originalName !== name && idxByNew >= 0 && idxByNew !== idxByOrig) {
+          showNotification('已存在同名班次，请更换名称', 'warning');
+          return;
+        }
+        if (idxByOrig < 0) {
+          showNotification('未找到原班次，请重新选择编辑', 'warning');
+          return;
+        }
+        list[idxByOrig].name = name;
+        list[idxByOrig].start = start;
+        list[idxByOrig].end = end;
+        list[idxByOrig].minClockMinutes = minClock;
+        list[idxByOrig].maxClockMinutes = maxClock;
+        if (originalName !== name) {
+          migrateShiftNameInPoolConditions(originalName, name);
+          saveShiftList(list);
+          var map = {};
+          map[originalName] = name;
+          refreshAllShiftConditionSelects(map);
+          refreshPoolRuleConditionDisplaysForShiftChange();
+          renderShiftManageList();
+          if (origInp) origInp.value = name;
+          var title = document.getElementById('shiftManageFormTitle');
+          if (title) title.textContent = '编辑：' + name;
+          shiftManageTargetSelectEnsureChecked(name);
+          showNotification('已更新班次名称及规则引用：' + name);
+          return;
+        }
+      }
+      saveShiftList(list);
+      refreshAllShiftConditionSelects();
+      refreshPoolRuleConditionDisplaysForShiftChange();
+      renderShiftManageList();
+      if (!originalName) {
+        shiftManageTargetSelectEnsureChecked(name);
+        shiftManageStartCreate();
+        showNotification('已创建班次：' + name);
+      } else {
+        if (origInp) origInp.value = name;
+        var title2 = document.getElementById('shiftManageFormTitle');
+        if (title2) title2.textContent = '编辑：' + name;
+        showNotification('已保存班次：' + name);
+      }
+    }
+    function openShiftManageModal(selectId) {
+      var overlay = document.getElementById('shiftManageModal');
+      if (overlay) overlay.dataset.targetSelectId = selectId || '';
+      shiftManageStartCreate();
+      renderShiftManageList();
+      if (typeof openModal === 'function') openModal('shiftManageModal');
+    }
+    function formatShiftSelectionForDisplay(names) {
+      if (!Array.isArray(names) || !names.length) return '';
+      var list = getShiftList();
+      var byName = {};
+      list.forEach(function(it) { byName[it.name] = it; });
+      return names.map(function(nm) {
+        var m = byName[nm];
+        if (!m) return nm;
+        return shiftOptionDisplayLabel(m);
+      }).join('\n\n');
+    }
+
     function onMenuProductLineChange(card) {
       var plMs = card.querySelector('.menu-product-line-select');
       var catMs = card.querySelector('.menu-category-select');
@@ -946,13 +1522,14 @@
     var tipTypeSelectHtml = '<option value="">请选择</option><option>全部</option><option>Credit Card Tips (信用卡小费)</option><option>Cash Tips (现金小费)</option><option>Auto Gratuity (自动服务费)</option><option>Gift Card Tips</option>';
 
     function toggleAddConditionMenu(drawerId) {
-      var menuId = drawerId === 'salesDrawer' ? 'salesConditionMenu' : (drawerId === 'tipsDrawer' ? 'tipsConditionMenu' : 'surchargeConditionMenu');
+      var menuId = drawerId === 'salesDrawer' ? 'salesConditionMenu' : (drawerId === 'tipsDrawer' ? 'tipsConditionMenu' : (drawerId === 'manualDrawer' ? 'manualConditionMenu' : 'surchargeConditionMenu'));
       var menu = document.getElementById(menuId);
       if (menu) {
         menu.classList.toggle('show');
         if (drawerId === 'salesDrawer') updateSalesConditionMenu();
         else if (drawerId === 'tipsDrawer') updateTipsConditionMenu();
         else if (drawerId === 'surchargeDrawer') updateSurchargeConditionMenu();
+        else if (drawerId === 'manualDrawer') updateManualConditionMenu();
       }
     }
     function updateSalesConditionMenu() {
@@ -973,10 +1550,16 @@
         item.style.display = existingSurchargeConditions[t] ? 'none' : '';
       });
     }
+    function updateManualConditionMenu() {
+      document.querySelectorAll('#manualConditionMenu .add-option-menu-item').forEach(function(item) {
+        var t = item.dataset.type;
+        item.style.display = existingManualConditions[t] ? 'none' : '';
+      });
+    }
 
     function addSalesCondition(type, silent) {
       if (existingSalesConditions[type]) return;
-      var names = { role: '角色', area: '订单区域', orderType: '订单类型', menu: '菜单', revenueType: '营业额类型', hours: '营业时间' };
+      var names = { role: '角色', area: '订单区域', orderType: '订单类型', menu: '菜单', revenueType: '营业额类型', hours: '营业时间', shift: '班次', weekday: '周期（星期）' };
       var cardId = 'sales-cond-' + type;
       var body = '';
       if (type === 'role') {
@@ -1009,6 +1592,19 @@
         body = '<div class="drawer-form-row"><label>营业额类型：</label><select class="form-control" style="flex:1"><option value="">请选择</option><option>Net Sales (税前营业额)</option><option>Gross Sales (总销售额)</option></select></div>';
       } else if (type === 'hours') {
         body = '<div class="drawer-form-row"><label>营业时间：</label><input type="time" class="form-control" style="width:120px"><span style="color:var(--text-tertiary)">~</span><input type="time" class="form-control" style="width:120px"></div>';
+      } else if (type === 'shift') {
+        body = '<div class="drawer-form-row"><label>班次：</label><div class="multi-select shift-condition-select" id="salesShiftConditionSelect" style="flex:1" data-placeholder="请选择班次">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'salesShiftConditionSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择班次</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown">' + getShiftMultiSelectOptionsHtml() + '</div></div></div>' +
+          '<div class="drawer-form-row"><button type="button" class="btn btn-sm" onclick="openShiftManageModal(\'salesShiftConditionSelect\')">班次设置</button></div>';
+      } else if (type === 'weekday') {
+        body = '<div class="drawer-form-row"><label>周期：</label><div class="multi-select weekday-condition-select" id="salesWeekdayConditionSelect" style="flex:1" data-placeholder="请选择星期">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'salesWeekdayConditionSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择星期</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown">' + getWeekdayMultiSelectOptionsHtml() + '</div></div></div>';
       }
       var card = document.createElement('div');
       card.className = 'condition-card';
@@ -1064,7 +1660,7 @@
     }
     function addTipsCondition(type, silent) {
       if (existingTipsConditions[type]) return;
-      var names = { role: '角色', area: '订单区域', orderType: '订单类型', hours: '营业时间段', tipType: '小费类型', containsProduct: '订单需包含商品' };
+      var names = { role: '角色', area: '订单区域', orderType: '订单类型', hours: '营业时间段', tipType: '小费类型', containsProduct: '订单需包含商品', shift: '班次', weekday: '周期（星期）' };
       var cardId = 'tips-cond-' + type;
       var body = '';
       if (type === 'role') {
@@ -1097,6 +1693,19 @@
           '<div class="multi-select-tags"><span class="multi-select-placeholder">请先选择类</span></div>' +
           '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
           '<div class="multi-select-dropdown"><div class="multi-select-placeholder" style="padding:8px 12px">请先选择类</div></div></div></div>';
+      } else if (type === 'shift') {
+        body = '<div class="drawer-form-row"><label>班次：</label><div class="multi-select shift-condition-select" id="tipsShiftConditionSelect" style="flex:1" data-placeholder="请选择班次">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'tipsShiftConditionSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择班次</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown">' + getShiftMultiSelectOptionsHtml() + '</div></div></div>' +
+          '<div class="drawer-form-row"><button type="button" class="btn btn-sm" onclick="openShiftManageModal(\'tipsShiftConditionSelect\')">班次设置</button></div>';
+      } else if (type === 'weekday') {
+        body = '<div class="drawer-form-row"><label>周期：</label><div class="multi-select weekday-condition-select" id="tipsWeekdayConditionSelect" style="flex:1" data-placeholder="请选择星期">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'tipsWeekdayConditionSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择星期</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown">' + getWeekdayMultiSelectOptionsHtml() + '</div></div></div>';
       }
       var card = document.createElement('div');
       card.className = 'condition-card';
@@ -1119,7 +1728,7 @@
 
     function addSurchargeCondition(type, silent) {
       if (existingSurchargeConditions[type]) return;
-      var names = { role: '角色', area: '订单区域', orderType: '订单类型', hours: '营业时间段', tipType: '小费类型' };
+      var names = { role: '角色', area: '订单区域', orderType: '订单类型', hours: '营业时间段', tipType: '小费类型', shift: '班次', weekday: '周期（星期）' };
       var cardId = 'surcharge-cond-' + type;
       var body = '';
       if (type === 'role') {
@@ -1141,6 +1750,19 @@
         body = '<div class="drawer-form-row"><label>营业时间段：</label><input type="time" class="form-control" style="width:120px"><span style="color:var(--text-tertiary)">~</span><input type="time" class="form-control" style="width:120px"></div>';
       } else if (type === 'tipType') {
         body = '<div class="drawer-form-row"><label>小费类型：</label><select class="form-control" style="flex:1">' + tipTypeSelectHtml + '</select></div>';
+      } else if (type === 'shift') {
+        body = '<div class="drawer-form-row"><label>班次：</label><div class="multi-select shift-condition-select" id="surchargeShiftConditionSelect" style="flex:1" data-placeholder="请选择班次">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'surchargeShiftConditionSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择班次</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown">' + getShiftMultiSelectOptionsHtml() + '</div></div></div>' +
+          '<div class="drawer-form-row"><button type="button" class="btn btn-sm" onclick="openShiftManageModal(\'surchargeShiftConditionSelect\')">班次设置</button></div>';
+      } else if (type === 'weekday') {
+        body = '<div class="drawer-form-row"><label>周期：</label><div class="multi-select weekday-condition-select" id="surchargeWeekdayConditionSelect" style="flex:1" data-placeholder="请选择星期">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'surchargeWeekdayConditionSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择星期</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown">' + getWeekdayMultiSelectOptionsHtml() + '</div></div></div>';
       }
       var card = document.createElement('div');
       card.className = 'condition-card';
@@ -1155,6 +1777,48 @@
     function removeSurchargeCondition(type) {
       var card = document.getElementById('surcharge-cond-' + type);
       if (card) { card.remove(); existingSurchargeConditions[type] = false; updateSurchargeConditionMenu(); showNotification('已删除'); }
+    }
+
+    function applyWeekdayConditionValue(card, value) {
+      var wMs = card.querySelector('.weekday-condition-select');
+      if (!wMs) return;
+      var arr = normalizeWeekdayValues(Array.isArray(value) ? value : []);
+      wMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+        cb.checked = arr.indexOf(cb.value) >= 0;
+      });
+      if (wMs.id) refreshMultiTags(wMs.id);
+    }
+
+    function addManualCondition(type, silent) {
+      if (existingManualConditions[type]) return;
+      var names = { weekday: '周期（星期）' };
+      var cardId = 'manual-cond-' + type;
+      var body = '';
+      if (type === 'weekday') {
+        body = '<div class="drawer-form-row"><label>周期：</label><div class="multi-select weekday-condition-select" id="manualWeekdayConditionSelect" style="flex:1" data-placeholder="请选择星期">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'manualWeekdayConditionSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择星期</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown">' + getWeekdayMultiSelectOptionsHtml() + '</div></div></div>';
+      }
+      var card = document.createElement('div');
+      card.className = 'condition-card';
+      card.id = cardId;
+      card.innerHTML = '<div class="condition-card-header"><span class="label">' + names[type] + '</span><button class="btn btn-sm btn-text-danger" onclick="removeManualCondition(\'' + type + '\')" style="font-size:18px;padding:0 4px">×</button></div><div class="condition-card-body">' + body + '</div>';
+      document.getElementById('manualConditionsContainer').appendChild(card);
+      existingManualConditions[type] = true;
+      document.getElementById('manualConditionMenu').classList.remove('show');
+      updateManualConditionMenu();
+      if (!silent) showNotification('已添加 ' + names[type]);
+    }
+    function removeManualCondition(type) {
+      var card = document.getElementById('manual-cond-' + type);
+      if (card) { card.remove(); existingManualConditions[type] = false; updateManualConditionMenu(); showNotification('已删除'); }
+    }
+    function setManualConditionValue(type, value) {
+      var card = document.getElementById('manual-cond-' + type);
+      if (!card) return;
+      if (type === 'weekday') applyWeekdayConditionValue(card, value);
     }
 
     function setSalesConditionValue(type, value) {
@@ -1202,6 +1866,20 @@
         var inputs = card.querySelectorAll('input[type="time"]');
         if (inputs[0] && value.start) inputs[0].value = value.start;
         if (inputs[1] && value.end) inputs[1].value = value.end;
+      } else if (type === 'shift') {
+        var arr = Array.isArray(value) ? value : (value != null && value !== '' ? [String(value)] : []);
+        mergeShiftsFromSaved(arr);
+        var shiftMs = card.querySelector('.shift-condition-select');
+        if (shiftMs) {
+          var dropdown = shiftMs.querySelector('.multi-select-dropdown');
+          if (dropdown) dropdown.innerHTML = getShiftMultiSelectOptionsHtml();
+          shiftMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+            cb.checked = arr.indexOf(cb.value) >= 0;
+          });
+          if (shiftMs.id) refreshMultiTags(shiftMs.id);
+        }
+      } else if (type === 'weekday') {
+        applyWeekdayConditionValue(card, value);
       }
     }
     function setTipsConditionValue(type, value) {
@@ -1251,6 +1929,20 @@
         var inputs = card.querySelectorAll('input[type="time"]');
         if (inputs[0] && value.start) inputs[0].value = value.start;
         if (inputs[1] && value.end) inputs[1].value = value.end;
+      } else if (type === 'shift') {
+        var arr = Array.isArray(value) ? value : (value != null && value !== '' ? [String(value)] : []);
+        mergeShiftsFromSaved(arr);
+        var shiftMs = card.querySelector('.shift-condition-select');
+        if (shiftMs) {
+          var dropdown = shiftMs.querySelector('.multi-select-dropdown');
+          if (dropdown) dropdown.innerHTML = getShiftMultiSelectOptionsHtml();
+          shiftMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+            cb.checked = arr.indexOf(cb.value) >= 0;
+          });
+          if (shiftMs.id) refreshMultiTags(shiftMs.id);
+        }
+      } else if (type === 'weekday') {
+        applyWeekdayConditionValue(card, value);
       }
     }
     function setSurchargeConditionValue(type, value) {
@@ -1284,6 +1976,20 @@
         var inputs = card.querySelectorAll('input[type="time"]');
         if (inputs[0] && value.start) inputs[0].value = value.start;
         if (inputs[1] && value.end) inputs[1].value = value.end;
+      } else if (type === 'shift') {
+        var arr = Array.isArray(value) ? value : (value != null && value !== '' ? [String(value)] : []);
+        mergeShiftsFromSaved(arr);
+        var shiftMs = card.querySelector('.shift-condition-select');
+        if (shiftMs) {
+          var dropdown = shiftMs.querySelector('.multi-select-dropdown');
+          if (dropdown) dropdown.innerHTML = getShiftMultiSelectOptionsHtml();
+          shiftMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+            cb.checked = arr.indexOf(cb.value) >= 0;
+          });
+          if (shiftMs.id) refreshMultiTags(shiftMs.id);
+        }
+      } else if (type === 'weekday') {
+        applyWeekdayConditionValue(card, value);
       }
     }
 
@@ -1318,6 +2024,8 @@
         loadTipsConditionsForRule(ruleId);
       } else if (drawerName === 'surchargeDrawer') {
         loadSurchargeConditionsForRule(ruleId);
+      } else if (drawerName === 'manualDrawer') {
+        loadManualConditionsForRule(ruleId);
       }
       openDrawer(drawerName);
     }
@@ -1357,8 +2065,14 @@
         existingRules[type] = true;
       }
       var displayName = opt.name || (baseNames[type] + (ruleId.indexOf('_') >= 0 ? ruleId.split('_')[1] : ''));
-      var hasCondition = type === 'sales' || type === 'tips' || type === 'surcharge';
-      var drawerName = type === 'sales' ? 'salesDrawer' : (type === 'tips' ? 'tipsDrawer' : 'surchargeDrawer');
+      var hasConditionRow = type === 'sales' || type === 'tips' || type === 'surcharge' || type === 'manual';
+      var drawerName = type === 'sales' ? 'salesDrawer' : (type === 'tips' ? 'tipsDrawer' : (type === 'manual' ? 'manualDrawer' : 'surchargeDrawer'));
+      var condBtnHtml = '';
+      if (type === 'sales' || type === 'tips' || type === 'surcharge') {
+        condBtnHtml = '<button class="btn btn-sm" onclick="openDrawerForRule(\'' + drawerName + '\',\'' + ruleId + '\')">设置取值条件 <span style="color:var(--danger)">*</span></button>';
+      } else if (type === 'manual') {
+        condBtnHtml = '<button class="btn btn-sm" onclick="openDrawerForRule(\'manualDrawer\',\'manual\')">设置取值条件</button>';
+      }
       var count = document.querySelectorAll('.pool-rule-card').length;
       var numChar = poolNumChars[count] || (count + 1);
 
@@ -1374,10 +2088,10 @@
         '</div>' +
         '<div style="display:flex;align-items:center;gap:8px">' +
         (type === 'custom' ? '<span style="font-size:13px;color:var(--text-secondary)">金额</span><input type="number" value="0" class="pool-custom-amount" placeholder="0" style="width:80px;height:28px;padding:2px 8px;border:1px solid var(--border-color);border-radius:4px;font-size:13px;text-align:center"><span style="font-size:13px;color:var(--text-secondary)">$</span><span style="font-size:13px;color:var(--text-secondary);margin-left:8px">占比</span><input type="number" value="100" class="pool-custom-pct" placeholder="100" style="width:80px;height:28px;padding:2px 8px;border:1px solid var(--border-color);border-radius:4px;font-size:13px;text-align:center"><span style="font-size:13px;color:var(--text-secondary)">%</span>' : '<span style="font-size:13px;color:var(--text-secondary)">占比</span><input type="number" value="' + (opt.pct != null ? opt.pct : 100) + '" style="width:80px;height:28px;padding:2px 8px;border:1px solid var(--border-color);border-radius:4px;font-size:13px;text-align:center"><span style="font-size:13px;color:var(--text-secondary)">%</span>') +
-        (hasCondition ? '<button class="btn btn-sm" onclick="openDrawerForRule(\'' + drawerName + '\',\'' + ruleId + '\')">设置取值条件 <span style="color:var(--danger)">*</span></button>' : '') +
+        condBtnHtml +
         '<button class="btn btn-sm btn-text-danger" onclick="removePoolRule(\'rule-' + ruleId + '\')" style="font-size:18px;padding:0 4px">×</button>' +
         '</div></div>' +
-        (hasCondition ? '<div class="pool-rule-conditions empty" id="rule-' + ruleId + '-conditions" data-rule-id="' + ruleId + '"><span class="cond-label">取值条件<span style="color:var(--danger);margin-left:2px">*</span>：</span><span class="cond-text">未设置</span></div>' : '');
+        (hasConditionRow ? '<div class="pool-rule-conditions empty' + (type === 'manual' ? ' manual-pool-conditions' : '') + '" id="rule-' + ruleId + '-conditions" data-rule-id="' + ruleId + '"><span class="cond-label">取值条件' + (type === 'manual' ? '：</span>' : '<span style="color:var(--danger);margin-left:2px">*</span>：</span>') + '<span class="cond-text">未设置</span></div>' : '');
 
       document.getElementById('poolRulesContainer').appendChild(card);
       document.getElementById('addOptionMenu').classList.remove('show');
@@ -1748,6 +2462,8 @@
       }
       if (cond.revenueType) parts.push('营业额类型: ' + cond.revenueType);
       if (cond.hours && (cond.hours.start || cond.hours.end)) parts.push('营业时间: ' + (cond.hours.start || '') + '-' + (cond.hours.end || ''));
+      if (Array.isArray(cond.shift) && cond.shift.length) parts.push('班次: ' + formatShiftSelectionForDisplay(cond.shift));
+      if (Array.isArray(cond.weekdays) && cond.weekdays.length) parts.push('周期: ' + formatWeekdaysCondDisplay(cond.weekdays));
       return parts.join(' | ');
     }
     function formatTipsCondForDisplay(cond) {
@@ -1767,6 +2483,8 @@
         if (cpParts.length) parts.push('订单需包含商品: ' + cpParts.join('；'));
       }
       if (cond.hours && (cond.hours.start || cond.hours.end)) parts.push('营业时间段: ' + (cond.hours.start || '') + '-' + (cond.hours.end || ''));
+      if (Array.isArray(cond.shift) && cond.shift.length) parts.push('班次: ' + formatShiftSelectionForDisplay(cond.shift));
+      if (Array.isArray(cond.weekdays) && cond.weekdays.length) parts.push('周期: ' + formatWeekdaysCondDisplay(cond.weekdays));
       return parts.join(' | ');
     }
     function formatSurchargeCondForDisplay(cond) {
@@ -1780,7 +2498,14 @@
       if (cond.orderType) parts.push('订单类型: ' + cond.orderType);
       if (cond.tipType) parts.push('小费类型: ' + cond.tipType);
       if (cond.hours && (cond.hours.start || cond.hours.end)) parts.push('营业时间段: ' + (cond.hours.start || '') + '-' + (cond.hours.end || ''));
+      if (Array.isArray(cond.shift) && cond.shift.length) parts.push('班次: ' + formatShiftSelectionForDisplay(cond.shift));
+      if (Array.isArray(cond.weekdays) && cond.weekdays.length) parts.push('周期: ' + formatWeekdaysCondDisplay(cond.weekdays));
       return parts.join(' | ');
+    }
+    function formatManualCondForDisplay(cond) {
+      if (!cond || typeof cond !== 'object') return '';
+      if (Array.isArray(cond.weekdays) && cond.weekdays.length) return '周期: ' + formatWeekdaysCondDisplay(cond.weekdays);
+      return '';
     }
     function hasValidConditions(ruleId) {
       var type = (ruleId || '').split('_')[0];
@@ -1794,6 +2519,7 @@
         if (cond.revenueType) return true;
         if (cond.menu && (Array.isArray(cond.menu.productLine) && cond.menu.productLine.length || Array.isArray(cond.menu.category) && cond.menu.category.length)) return true;
         if (cond.hours && (cond.hours.start || cond.hours.end)) return true;
+        if (Array.isArray(cond.shift) && cond.shift.length) return true;
         return false;
       }
       if (type === 'tips') {
@@ -1805,6 +2531,8 @@
         if (cond.tipType) return true;
         if (cond.containsProduct && (Array.isArray(cond.containsProduct.category) && cond.containsProduct.category.length || Array.isArray(cond.containsProduct.item) && cond.containsProduct.item.length)) return true;
         if (cond.hours && (cond.hours.start || cond.hours.end)) return true;
+        if (Array.isArray(cond.shift) && cond.shift.length) return true;
+        if (Array.isArray(cond.weekdays) && cond.weekdays.length) return true;
         return false;
       }
       if (type === 'surcharge') {
@@ -1816,7 +2544,15 @@
         if (cond.orderType) return true;
         if (cond.tipType) return true;
         if (cond.hours && (cond.hours.start || cond.hours.end)) return true;
+        if (Array.isArray(cond.shift) && cond.shift.length) return true;
+        if (Array.isArray(cond.weekdays) && cond.weekdays.length) return true;
         return false;
+      }
+      if (type === 'manual') {
+        var mc = poolRuleConditions[ruleId];
+        if (!mc || typeof mc !== 'object') return true;
+        if (mc.weekdays !== undefined && (!Array.isArray(mc.weekdays) || mc.weekdays.length === 0)) return false;
+        return true;
       }
       return true;
     }
@@ -1829,6 +2565,7 @@
       if (type === 'sales') text = formatSalesCondForDisplay(cond || {});
       else if (type === 'tips') text = formatTipsCondForDisplay(cond || {});
       else if (type === 'surcharge') text = formatSurchargeCondForDisplay(cond || {});
+      else if (type === 'manual') text = formatManualCondForDisplay(cond || {});
       var textEl = el.querySelector('.cond-text');
       if (textEl) textEl.textContent = text || '未设置';
       el.classList.toggle('empty', !text);
@@ -1861,6 +2598,34 @@
       showNotification('加收服务费取值条件保存成功');
     }
 
+    function saveManualCondition() {
+      if (currentEditingRuleId) {
+        poolRuleConditions[currentEditingRuleId] = collectManualConditions();
+        updatePoolRuleConditionDisplay(currentEditingRuleId);
+      }
+      closeDrawer('manualDrawer');
+      showNotification('手动上报小费取值条件保存成功');
+    }
+
+    function collectManualConditions() {
+      var cond = {};
+      var container = document.getElementById('manualConditionsContainer');
+      if (!container) return cond;
+      container.querySelectorAll('.condition-card').forEach(function(card) {
+        var id = card.id || '';
+        var type = id.replace('manual-cond-', '');
+        if (!type) return;
+        if (type === 'weekday') {
+          var wMs = card.querySelector('.weekday-condition-select');
+          if (wMs) {
+            var checked = wMs.querySelectorAll('input[type="checkbox"]:checked');
+            cond.weekdays = Array.from(checked).map(function(c) { return c.value; });
+          }
+        }
+      });
+      return cond;
+    }
+
     function collectSurchargeConditions() {
       var cond = {};
       var container = document.getElementById('surchargeConditionsContainer');
@@ -1886,6 +2651,18 @@
         } else if (type === 'hours') {
           var inputs = card.querySelectorAll('input[type="time"]');
           cond.hours = { start: inputs[0] ? inputs[0].value : '', end: inputs[1] ? inputs[1].value : '' };
+        } else if (type === 'shift') {
+          var shiftMs = card.querySelector('.shift-condition-select');
+          if (shiftMs) {
+            var checked = shiftMs.querySelectorAll('input[type="checkbox"]:checked');
+            cond.shift = Array.from(checked).map(function(c) { return c.value; });
+          }
+        } else if (type === 'weekday') {
+          var wMs = card.querySelector('.weekday-condition-select');
+          if (wMs) {
+            var wChecked = wMs.querySelectorAll('input[type="checkbox"]:checked');
+            cond.weekdays = Array.from(wChecked).map(function(c) { return c.value; });
+          }
         }
       });
       return cond;
@@ -1930,6 +2707,18 @@
         } else if (type === 'hours') {
           var inputs = card.querySelectorAll('input[type="time"]');
           cond.hours = { start: inputs[0] ? inputs[0].value : '', end: inputs[1] ? inputs[1].value : '' };
+        } else if (type === 'shift') {
+          var shiftMs = card.querySelector('.shift-condition-select');
+          if (shiftMs) {
+            var checked = shiftMs.querySelectorAll('input[type="checkbox"]:checked');
+            cond.shift = Array.from(checked).map(function(c) { return c.value; });
+          }
+        } else if (type === 'weekday') {
+          var wMs = card.querySelector('.weekday-condition-select');
+          if (wMs) {
+            var wChecked = wMs.querySelectorAll('input[type="checkbox"]:checked');
+            cond.weekdays = Array.from(wChecked).map(function(c) { return c.value; });
+          }
         }
       });
       return cond;
@@ -1972,6 +2761,18 @@
         } else if (type === 'hours') {
           var inputs = card.querySelectorAll('input[type="time"]');
           cond.hours = { start: inputs[0] ? inputs[0].value : '', end: inputs[1] ? inputs[1].value : '' };
+        } else if (type === 'shift') {
+          var shiftMs = card.querySelector('.shift-condition-select');
+          if (shiftMs) {
+            var checked = shiftMs.querySelectorAll('input[type="checkbox"]:checked');
+            cond.shift = Array.from(checked).map(function(c) { return c.value; });
+          }
+        } else if (type === 'weekday') {
+          var wMs2 = card.querySelector('.weekday-condition-select');
+          if (wMs2) {
+            var wChecked2 = wMs2.querySelectorAll('input[type="checkbox"]:checked');
+            cond.weekdays = Array.from(wChecked2).map(function(c) { return c.value; });
+          }
         }
       });
       return cond;
@@ -2100,9 +2901,9 @@
       document.querySelectorAll('.pool-rule-card[data-rule-id]').forEach(function(card) {
         var ruleId = card.dataset.ruleId;
         var type = card.dataset.ruleType || (ruleId || '').split('_')[0];
-        if ((type === 'sales' || type === 'tips' || type === 'surcharge') && !hasValidConditions(ruleId)) {
+        if ((type === 'sales' || type === 'tips' || type === 'surcharge' || type === 'manual') && !hasValidConditions(ruleId)) {
           var nameInp = card.querySelector('.pool-rule-name');
-          var baseNames = { sales: '销售额', tips: '小费', surcharge: '加收服务费' };
+          var baseNames = { sales: '销售额', tips: '小费', surcharge: '加收服务费', manual: '手动上报小费' };
           var name = (nameInp && nameInp.value && nameInp.value.trim()) || (ruleId.indexOf('_') >= 0 ? baseNames[type] + ruleId.split('_')[1] : baseNames[type]);
           condErr = condErr || name;
         }
@@ -2177,8 +2978,14 @@
     function removeMultiTag(e, selectId, value) {
       e.stopPropagation();
       const container = document.getElementById(selectId);
-      const checkbox = container.querySelector(`input[value="${value}"]`);
-      if (checkbox) checkbox.checked = false;
+      if (!container) return;
+      const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+      for (var i = 0; i < checkboxes.length; i++) {
+        if (checkboxes[i].value === value) {
+          checkboxes[i].checked = false;
+          break;
+        }
+      }
       refreshMultiTags(selectId);
     }
 
@@ -2194,10 +3001,29 @@
         tagsEl.innerHTML = '<span class="multi-select-placeholder">' + placeholder + '</span>';
         return;
       }
-      checked.forEach(cb => {
+      checked.forEach(function(cb) {
         const tag = document.createElement('span');
         tag.className = 'multi-select-tag';
-        tag.innerHTML = `${cb.value} <i onclick="removeMultiTag(event,'${selectId}','${cb.value}')">×</i>`;
+        const labelText = cb.getAttribute('data-tag-label') || cb.value;
+        const isShiftMulti = cb.getAttribute('data-tag-multiline') === '1';
+        if (isShiftMulti) {
+          tag.classList.add('shift-tag-multiline');
+          const labelWrap = document.createElement('span');
+          labelWrap.className = 'shift-tag-label';
+          labelWrap.textContent = labelText;
+          tag.appendChild(labelWrap);
+        } else {
+          tag.appendChild(document.createTextNode(labelText + '\u00a0'));
+        }
+        const close = document.createElement('i');
+        close.textContent = '×';
+        close.style.cursor = 'pointer';
+        close.addEventListener('click', function(ev) {
+          ev.stopPropagation();
+          cb.checked = false;
+          refreshMultiTags(selectId);
+        });
+        tag.appendChild(close);
         tagsEl.appendChild(tag);
       });
     }

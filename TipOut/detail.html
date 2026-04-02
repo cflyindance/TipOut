@@ -63,7 +63,7 @@
     /* Formula detail modal */
     .rule-detail-item { margin-bottom: 12px; }
     .rule-detail-item .label { font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
-    .rule-detail-item .value { font-size: 14px; color: var(--text-primary); }
+    .rule-detail-item .value { font-size: 14px; color: var(--text-primary); white-space: pre-line; }
   </style>
 </head>
 <body>
@@ -270,6 +270,91 @@
       populateFormulaModal(currentRule);
     }
 
+    var DETAIL_SHIFT_LIST_KEY = 'ruleAddShiftList';
+    function detailParseMinClockMinutes(val) {
+      if (val == null || val === '') return 0;
+      var n = parseInt(val, 10);
+      return (isNaN(n) || n < 0) ? 0 : n;
+    }
+    function detailNormalizeShiftList(arr) {
+      if (!Array.isArray(arr)) return [];
+      var out = [];
+      arr.forEach(function(entry) {
+        if (typeof entry === 'string' && entry.trim()) out.push({ name: entry.trim(), start: '', end: '', minClockMinutes: 0, maxClockMinutes: 0 });
+        else if (entry && typeof entry === 'object' && entry.name) {
+          out.push({
+            name: String(entry.name),
+            start: entry.start ? String(entry.start) : '',
+            end: entry.end ? String(entry.end) : '',
+            minClockMinutes: detailParseMinClockMinutes(entry.minClockMinutes),
+            maxClockMinutes: detailParseMinClockMinutes(entry.maxClockMinutes)
+          });
+        }
+      });
+      return out;
+    }
+    function detailGetShiftList() {
+      try {
+        var raw = localStorage.getItem(DETAIL_SHIFT_LIST_KEY);
+        var arr = raw ? JSON.parse(raw) : [];
+        return detailNormalizeShiftList(arr);
+      } catch (e) { return []; }
+    }
+    function detailShiftHasParticipationRules(item) {
+      var minM = item.minClockMinutes != null ? item.minClockMinutes : 0;
+      var maxM = item.maxClockMinutes != null ? item.maxClockMinutes : 0;
+      return minM > 0 || maxM > 0;
+    }
+    function detailShiftParticipationRulesLine(item) {
+      var minM = item.minClockMinutes != null ? item.minClockMinutes : 0;
+      var maxM = item.maxClockMinutes != null ? item.maxClockMinutes : 0;
+      var segs = [];
+      if (minM > 0) segs.push('至少打卡' + minM + '分钟');
+      if (maxM > 0) segs.push('打卡工时最多计' + maxM + '分钟');
+      return segs.join('\n');
+    }
+    function detailShiftTimeLineOnly(item) {
+      var start = item.start || '';
+      var end = item.end || '';
+      if (start || end) return '时间段：' + (start || '--') + '-' + (end || '--');
+      return '时间段：未设置';
+    }
+    function detailShiftDisplayBlocks(item) {
+      return {
+        rulesLine: detailShiftParticipationRulesLine(item),
+        nameLine: item.name,
+        timeLine: detailShiftTimeLineOnly(item)
+      };
+    }
+    function detailShiftDisplayLabel(item) {
+      if (detailShiftHasParticipationRules(item)) {
+        var b = detailShiftDisplayBlocks(item);
+        return b.rulesLine + '\n' + b.nameLine + '\n' + b.timeLine;
+      }
+      var parts = [item.name];
+      var start = item.start || '';
+      var end = item.end || '';
+      if (start || end) parts.push('(' + (start || '--') + '-' + (end || '--') + ')');
+      return parts.join(' ');
+    }
+    function detailFormatShiftNames(names) {
+      if (!Array.isArray(names) || !names.length) return '';
+      var list = detailGetShiftList();
+      var byName = {};
+      list.forEach(function(it) { byName[it.name] = it; });
+      return names.map(function(n) {
+        var m = byName[n];
+        if (!m) return n;
+        return detailShiftDisplayLabel(m);
+      }).join('\n\n');
+    }
+
+    var DETAIL_WEEKDAY_LABELS = { '1': '星期一', '2': '星期二', '3': '星期三', '4': '星期四', '5': '星期五', '6': '星期六', '7': '星期日' };
+    function detailFormatWeekdays(arr) {
+      if (!Array.isArray(arr) || !arr.length) return '';
+      return arr.map(function(v) { return DETAIL_WEEKDAY_LABELS[String(v)] || v; }).join('、');
+    }
+
     function formatSurchargeConditions(cond) {
       if (!cond || typeof cond !== 'object') return '';
       if (cond.types && Array.isArray(cond.types) && cond.types.length) return '加收类型: ' + cond.types.join(', ');
@@ -288,6 +373,8 @@
         if (cpParts.length) parts.push('订单需包含商品: ' + cpParts.join('；'));
       }
       if (cond.hours && (cond.hours.start || cond.hours.end)) parts.push('营业时间段: ' + (cond.hours.start || '') + '-' + (cond.hours.end || ''));
+      if (Array.isArray(cond.shift) && cond.shift.length) parts.push('班次: ' + detailFormatShiftNames(cond.shift));
+      if (Array.isArray(cond.weekdays) && cond.weekdays.length) parts.push('周期: ' + detailFormatWeekdays(cond.weekdays));
       return parts.join(' | ');
     }
 
@@ -311,6 +398,8 @@
       }
       if (cond.revenueType) parts.push('营业额类型: ' + cond.revenueType);
       if (cond.hours && (cond.hours.start || cond.hours.end)) parts.push('营业时间: ' + (cond.hours.start || '') + '-' + (cond.hours.end || ''));
+      if (Array.isArray(cond.shift) && cond.shift.length) parts.push('班次: ' + detailFormatShiftNames(cond.shift));
+      if (Array.isArray(cond.weekdays) && cond.weekdays.length) parts.push('周期: ' + detailFormatWeekdays(cond.weekdays));
       return parts.join(' | ');
     }
 

@@ -550,7 +550,8 @@ select.form-control {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  /* 高于 .drawer(1001)，避免从侧栏抽屉内打开弹窗时被抽屉挡住 */
+  z-index: 1100;
   opacity: 0;
   visibility: hidden;
   transition: all 0.3s;
