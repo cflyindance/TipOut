@@ -11,7 +11,7 @@
       border: 1px solid rgba(0,0,0,0.06);
     }
     .page-title { font-size: 16px; font-weight: 600; margin-bottom: 24px; }
-    .form-section { margin-bottom: 24px; }
+    .form-section { margin-bottom: 24px; overflow: visible; }
     .form-section-title {
       font-size: 14px; font-weight: 600; margin-bottom: 12px;
       display: flex; align-items: center; gap: 8px;
@@ -77,6 +77,23 @@
       border-color: var(--primary); outline: none;
     }
     .receiver-secondary-block td { border-bottom: 1px solid var(--border-light); vertical-align: top; }
+
+    /* 计提小费接受方规则表：与接收方规则一致，禁止外层裁剪下拉，单元格 overflow 可见 */
+    .tip-claims-table-wrap {
+      overflow: visible;
+      width: 100%;
+    }
+    #tipClaimsTable td {
+      overflow: visible;
+      vertical-align: top;
+    }
+    #tipClaimsTable .multi-select.receiver-role-select {
+      width: 220px;
+      max-width: 100%;
+    }
+    #tipClaimsTable .multi-select.open .multi-select-dropdown {
+      z-index: 120;
+    }
     .receiver-sub-table { width: 100%; max-width: 640px; border-collapse: collapse; margin-top: 4px; }
     .receiver-sub-table th { font-size: 12px; font-weight: 500; padding: 6px 8px; text-align: left; color: var(--text-secondary); border-bottom: 1px solid var(--border-light); }
     .receiver-sub-table td { padding: 8px; font-size: 13px; border-bottom: 1px solid rgba(0,0,0,0.04); }
@@ -142,15 +159,18 @@
     #salesDrawer .drawer-body,
     #tipsDrawer .drawer-body,
     #surchargeDrawer .drawer-body,
-    #manualDrawer .drawer-body { overflow-y: auto; min-height: 0; }
+    #manualDrawer .drawer-body,
+    #tipClaimSalesDrawer .drawer-body { overflow-y: auto; min-height: 0; }
     #salesDrawer .condition-card,
     #tipsDrawer .condition-card,
     #surchargeDrawer .condition-card,
-    #manualDrawer .condition-card { overflow: visible; }
+    #manualDrawer .condition-card,
+    #tipClaimSalesDrawer .condition-card { overflow: visible; }
     #salesDrawer .multi-select-dropdown,
     #tipsDrawer .multi-select-dropdown,
     #surchargeDrawer .multi-select-dropdown,
-    #manualDrawer .multi-select-dropdown { z-index: 1100; }
+    #manualDrawer .multi-select-dropdown,
+    #tipClaimSalesDrawer .multi-select-dropdown { z-index: 1100; }
 
     .page-actions {
       position: fixed; bottom: 0; right: 0; left: 264px; z-index: 40;
@@ -337,15 +357,14 @@
             </div>
           </div>
 
-          <!-- Tip Pool Calculation Rules -->
-          <div class="form-section">
+          <!-- 小费池计算规则：两种分配模式共用（位于分配模式之上） -->
+          <div class="form-section" id="sharedPoolRulesSection">
             <div class="form-section-title">
               <span class="field-desc-wrap" data-field-id="poolRules">小费池计算规则 <span class="field-desc-icon" data-field-id="poolRules" data-label="小费池计算规则" onclick="event.preventDefault();openFieldDescEditor('poolRules','小费池计算规则')" title="点击编辑字段说明">ⓘ</span></span>
             </div>
 
             <div id="poolRulesContainer"></div>
 
-            <!-- Add Option -->
             <div class="add-option-dropdown">
               <button class="btn" onclick="toggleAddMenu()" id="addMenuBtn">
                 <span style="font-size:16px">+</span> 新增选项
@@ -360,6 +379,20 @@
             </div>
           </div>
 
+          <div class="form-section" id="allocationModeSection">
+            <div class="form-section-title">分配模式</div>
+            <div class="radio-group">
+              <label class="radio-item">
+                <input type="radio" name="allocationMode" value="legacy_pool" checked onchange="onAllocationModeChange(false)"> 小费池汇总分配（默认）
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="allocationMode" value="order_tip_then_residual" onchange="onAllocationModeChange(false)"> 计提小费占比分配
+              </label>
+            </div>
+            <p style="font-size:12px;color:var(--text-tertiary);margin:8px 0 0;line-height:1.5">「计提小费占比分配」适用于：按菜单销售额等基数从小费池中按比例计提给不同接收方，剩余再按「剩余小费接收方规则」分配（例如酒保按酒水销售额、后厨按菜品销售额计提，剩余归服务员等）。</p>
+          </div>
+
+          <div id="legacyAllocationSections">
           <!-- Deduction Rules -->
           <div class="form-section" id="deductRulesSection" style="display:none">
             <div class="form-section-title"><span class="field-desc-wrap" data-field-id="deductRoles">扣除方规则 <span class="field-desc-icon" data-field-id="deductRoles" data-label="扣除方规则" onclick="event.preventDefault();openFieldDescEditor('deductRoles','扣除方规则')" title="点击编辑字段说明">ⓘ</span></span></div>
@@ -410,6 +443,45 @@
             <button class="btn btn-sm" onclick="addReceiverRow()">
               <span style="font-size:14px">+</span> 新增角色
             </button>
+          </div>
+          </div><!-- /legacyAllocationSections -->
+
+          <div id="orderTipAllocationSection" style="display:none">
+            <div class="form-section">
+              <div class="form-section-title">计提小费接受方规则</div>
+              <div class="tip-claims-table-wrap">
+                <table class="receiver-table" id="tipClaimsTable">
+                  <thead>
+                    <tr>
+                      <th style="width:236px">接收角色</th>
+                      <th style="width:88px">计提%</th>
+                      <th style="min-width:148px">员工小费权重</th>
+                      <th style="min-width:200px">取值条件</th>
+                      <th style="width:56px">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tipClaimsTableBody"></tbody>
+                </table>
+              </div>
+              <button type="button" class="btn btn-sm" style="margin-top:8px" onclick="addTipClaimRow()"><span style="font-size:14px">+</span> 新增计提</button>
+            </div>
+            <div class="form-section">
+              <div class="form-section-title">
+                剩余小费接收方规则
+                <span style="font-size:12px;color:var(--text-tertiary);font-weight:400;margin-left:auto">合计: <span id="orderResidualTotalPercent">0</span>%</span>
+              </div>
+              <table class="receiver-table" id="orderResidualReceiverTable">
+                <thead>
+                  <tr>
+                    <th>角色</th>
+                    <th>占比百分比</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody id="orderResidualReceiverTableBody"></tbody>
+              </table>
+              <button type="button" class="btn btn-sm" style="margin-top:8px" onclick="addOrderResidualReceiverRow()"><span style="font-size:14px">+</span> 新增角色</button>
+            </div>
           </div>
 
           <!-- Clock-in Method -->
@@ -543,13 +615,13 @@
               <label style="width:88px;flex-shrink:0;padding-top:6px">小费参与</label>
               <div style="flex:1;min-width:0">
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--text-secondary)">
-                  <span>至少打卡</span>
+                  <span>该班次至少上班打卡</span>
                   <input type="number" id="shiftManageMinClockMinutes" class="form-control" min="0" step="1" placeholder="0" style="width:88px" title="分钟">
                   <span>分钟</span>
                 </div>
                 <p style="font-size:12px;color:var(--text-tertiary);margin:8px 0 0;line-height:1.5">填 0 或不填表示不限制最低打卡时长。</p>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--text-secondary);margin-top:12px">
-                  <span>打卡工时最多计</span>
+                  <span>该班次上班打卡工时最多计</span>
                   <input type="number" id="shiftManageMaxClockMinutes" class="form-control" min="0" step="1" placeholder="0" style="width:88px" title="分钟">
                   <span>分钟</span>
                 </div>
@@ -584,6 +656,7 @@
         </button>
         <div class="add-option-menu" id="salesConditionMenu">
           <div class="add-option-menu-item" data-type="role" onclick="addSalesCondition('role')">角色</div>
+          <div class="add-option-menu-item" data-type="employee" onclick="addSalesCondition('employee')">员工</div>
           <div class="add-option-menu-item" data-type="area" onclick="addSalesCondition('area')">订单区域</div>
           <div class="add-option-menu-item" data-type="orderType" onclick="addSalesCondition('orderType')">订单类型</div>
           <div class="add-option-menu-item" data-type="menu" onclick="addSalesCondition('menu')">菜单</div>
@@ -597,6 +670,38 @@
     <div class="drawer-footer">
       <button class="btn" onclick="closeDrawer('salesDrawer')">取消</button>
       <button class="btn btn-primary" onclick="saveSalesCondition()">提交</button>
+    </div>
+  </div>
+
+  <!-- Order tip claim value conditions (same types / UX as sales) -->
+  <div class="drawer-overlay" id="tipClaimSalesDrawer-overlay"></div>
+  <div class="drawer" id="tipClaimSalesDrawer">
+    <div class="drawer-header">
+      <h3>计提小费接受方规则 · 取值条件</h3>
+      <button class="modal-close" onclick="closeDrawer('tipClaimSalesDrawer')">×</button>
+    </div>
+    <div class="drawer-body">
+      <div id="tipClaimConditionsContainer"></div>
+      <div class="add-option-dropdown">
+        <button class="btn" type="button" onclick="toggleAddConditionMenu('tipClaimSalesDrawer')">
+          <span style="font-size:16px">+</span> 新增条件
+        </button>
+        <div class="add-option-menu" id="tipClaimConditionMenu">
+          <div class="add-option-menu-item" data-type="role" onclick="addTipClaimSalesCondition('role')">角色</div>
+          <div class="add-option-menu-item" data-type="employee" onclick="addTipClaimSalesCondition('employee')">员工</div>
+          <div class="add-option-menu-item" data-type="area" onclick="addTipClaimSalesCondition('area')">订单区域</div>
+          <div class="add-option-menu-item" data-type="orderType" onclick="addTipClaimSalesCondition('orderType')">订单类型</div>
+          <div class="add-option-menu-item" data-type="menu" onclick="addTipClaimSalesCondition('menu')">菜单</div>
+          <div class="add-option-menu-item" data-type="revenueType" onclick="addTipClaimSalesCondition('revenueType')">营业额类型</div>
+          <div class="add-option-menu-item" data-type="hours" onclick="addTipClaimSalesCondition('hours')">营业时间</div>
+          <div class="add-option-menu-item" data-type="shift" onclick="addTipClaimSalesCondition('shift')">班次</div>
+          <div class="add-option-menu-item" data-type="weekday" onclick="addTipClaimSalesCondition('weekday')">周期（星期）</div>
+        </div>
+      </div>
+    </div>
+    <div class="drawer-footer">
+      <button class="btn" onclick="closeDrawer('tipClaimSalesDrawer')">取消</button>
+      <button class="btn btn-primary" onclick="saveTipClaimSalesConditions()">提交</button>
     </div>
   </div>
 
@@ -615,6 +720,7 @@
         </button>
         <div class="add-option-menu" id="surchargeConditionMenu">
           <div class="add-option-menu-item" data-type="role" onclick="addSurchargeCondition('role')">角色</div>
+          <div class="add-option-menu-item" data-type="employee" onclick="addSurchargeCondition('employee')">员工</div>
           <div class="add-option-menu-item" data-type="area" onclick="addSurchargeCondition('area')">订单区域</div>
           <div class="add-option-menu-item" data-type="orderType" onclick="addSurchargeCondition('orderType')">订单类型</div>
           <div class="add-option-menu-item" data-type="hours" onclick="addSurchargeCondition('hours')">营业时间段</div>
@@ -645,6 +751,7 @@
         </button>
         <div class="add-option-menu" id="tipsConditionMenu">
           <div class="add-option-menu-item" data-type="role" onclick="addTipsCondition('role')">角色</div>
+          <div class="add-option-menu-item" data-type="employee" onclick="addTipsCondition('employee')">员工</div>
           <div class="add-option-menu-item" data-type="area" onclick="addTipsCondition('area')">订单区域</div>
           <div class="add-option-menu-item" data-type="orderType" onclick="addTipsCondition('orderType')">订单类型</div>
           <div class="add-option-menu-item" data-type="hours" onclick="addTipsCondition('hours')">营业时间段</div>
@@ -687,6 +794,7 @@
 
   <script src="common.js"></script>
   <script src="ruleData.js"></script>
+  <script src="tipAllocation.js"></script>
   <script>
     var poolRuleCounter = { sales: 0, tips: 0, surcharge: 0 };
     var poolRuleConditions = {};
@@ -784,13 +892,199 @@
       return params;
     }
 
+    function onAllocationModeChange(skipEnsureClaimRow) {
+      var r = document.querySelector('input[name="allocationMode"]:checked');
+      var v = r ? r.value : 'legacy_pool';
+      var leg = document.getElementById('legacyAllocationSections');
+      var ord = document.getElementById('orderTipAllocationSection');
+      if (leg) leg.style.display = v === 'legacy_pool' ? '' : 'none';
+      if (ord) ord.style.display = v === 'order_tip_then_residual' ? '' : 'none';
+      if (v === 'order_tip_then_residual' && !skipEnsureClaimRow) {
+        var tb = document.getElementById('tipClaimsTableBody');
+        if (tb && !tb.querySelector('tr.tip-claim-row')) addTipClaimRow();
+        var ortb = document.getElementById('orderResidualReceiverTableBody');
+        if (ortb && !ortb.querySelector('tr.order-residual-primary-row')) {
+          addOrderResidualReceiverRow({ roles: ['Server'], pct: 100 });
+        }
+      }
+    }
+
+    function openTipClaimSalesConditionDrawer(btn) {
+      var tr = btn && btn.closest('tr.tip-claim-row');
+      if (!tr || !tr.dataset.claimId) return;
+      currentTipClaimSalesConditionClaimId = tr.dataset.claimId;
+      loadTipClaimSalesConditionsForClaim(currentTipClaimSalesConditionClaimId);
+      openDrawer('tipClaimSalesDrawer');
+    }
+    function updateTipClaimRowConditionSummary(claimId) {
+      var tr = null;
+      document.querySelectorAll('#tipClaimsTableBody tr.tip-claim-row').forEach(function (row) {
+        if (row.dataset.claimId === claimId) tr = row;
+      });
+      if (!tr) return;
+      var el = tr.querySelector('.tc-cond-summary');
+      if (!el) return;
+      var cond = tipClaimConditions[claimId] || {};
+      var text = formatSalesCondForDisplay(cond);
+      el.textContent = text || '未设置';
+      el.title = text || '';
+    }
+
+    function addTipClaimRow(data) {
+      var tbody = document.getElementById('tipClaimsTableBody');
+      if (!tbody) return;
+      var tr = document.createElement('tr');
+      tr.className = 'tip-claim-row';
+      var d = data || {};
+      var mf = (d.base && d.base.menuFilter) || {};
+      var roleList = [];
+      if (Array.isArray(d.receiverRoles)) roleList = d.receiverRoles.slice();
+      else if (typeof d.receiverRoles === 'string' && d.receiverRoles.trim()) {
+        roleList = d.receiverRoles.split(/[,，]/).map(function (s) { return s.trim(); }).filter(Boolean);
+      }
+      tipClaimRoleCounter++;
+      var tcRoleMsId = 'tipClaimRoleSelect_' + tipClaimRoleCounter;
+      var cid = d.id || ('claim_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8));
+      tr.dataset.claimId = cid;
+      if (d.conditions && typeof d.conditions === 'object') {
+        try {
+          tipClaimConditions[cid] = JSON.parse(JSON.stringify(d.conditions));
+        } catch (e) {
+          tipClaimConditions[cid] = d.conditions;
+        }
+        normalizeConditionsRoleEmployeeExclusive(tipClaimConditions[cid]);
+      }
+      tr.innerHTML =
+        '<td><div class="multi-select receiver-role-select tip-claim-role-select" id="' + tcRoleMsId + '" style="width:220px">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'' + tcRoleMsId + '\')">' +
+            '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择角色</span></div>' +
+            '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>' +
+          '</div>' +
+          '<div class="multi-select-dropdown">' + tipClaimRoleDropdownHtml + '</div>' +
+        '</div></td>' +
+        '<td><input type="number" class="form-control tc-pct" step="0.1" min="0" value="' + (d.pct != null ? d.pct : '') + '" placeholder="10"></td>' +
+        '<td><div class="receiver-row-weights" style="font-size:11px;color:var(--text-tertiary);min-height:16px;line-height:1.35"></div>' +
+        '<a href="javascript:void(0)" class="btn-link weight-link disabled" onclick="openWeightModalForRow(this)" style="font-size:12px;margin-top:6px;display:inline-block">设置员工小费权重</a></td>' +
+        '<td><div style="display:flex;flex-direction:column;gap:4px;min-width:160px"><span class="tc-cond-summary" style="font-size:11px;color:var(--text-tertiary);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">未设置</span><button type="button" class="btn btn-sm" onclick="openTipClaimSalesConditionDrawer(this)">设置取值条件</button></div></td>' +
+        '<td><button type="button" class="btn btn-sm btn-text-danger" onclick="removeTipClaimRow(this)">删</button></td>';
+      tbody.appendChild(tr);
+      if (d.name) tr.dataset.claimName = String(d.name);
+      if (d.order != null && d.order !== '') tr.dataset.claimOrder = String(d.order);
+      if (Array.isArray(mf.productLines) && mf.productLines.length) {
+        try { tr.dataset.claimPl = JSON.stringify(mf.productLines); } catch (ePl) {}
+      }
+      if (Array.isArray(mf.categories) && mf.categories.length) {
+        try { tr.dataset.claimCat = JSON.stringify(mf.categories); } catch (eCat) {}
+      }
+      var roleMs = tr.querySelector('.tip-claim-role-select');
+      if (roleMs && roleList.length) {
+        roleList.forEach(function (r) {
+          roleMs.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+            if (cb.value === r) cb.checked = true;
+          });
+        });
+        if (roleMs.id) refreshMultiTags(roleMs.id);
+      }
+      if (d.employeeWeights && typeof d.employeeWeights === 'object' && Object.keys(d.employeeWeights).length) {
+        try { tr.dataset.employeeWeights = JSON.stringify(d.employeeWeights); } catch (eEw) {}
+        renderReceiverRowWeights(tr);
+      }
+      updateReceiverRowWeightBtn(tr);
+      updateTipClaimRowConditionSummary(cid);
+      updateAllTipClaimRoleOptions();
+    }
+
+    function removeTipClaimRow(btn) {
+      var tr = btn && btn.closest('tr.tip-claim-row');
+      if (tr) {
+        var cid = tr.dataset.claimId;
+        if (cid && tipClaimConditions[cid]) delete tipClaimConditions[cid];
+        tr.remove();
+        updateAllTipClaimRoleOptions();
+      }
+    }
+
+    function collectTipClaims() {
+      var out = [];
+      var rows = document.querySelectorAll('#tipClaimsTableBody tr.tip-claim-row');
+      rows.forEach(function (tr, idx) {
+        var pctInp = tr.querySelector('.tc-pct');
+        var roleMs = tr.querySelector('.tip-claim-role-select');
+        var name = tr.dataset.claimName != null ? String(tr.dataset.claimName).trim() : '';
+        var order = tr.dataset.claimOrder != null && tr.dataset.claimOrder !== '' ? parseFloat(tr.dataset.claimOrder, 10) : idx * 10;
+        if (isNaN(order)) order = idx * 10;
+        var pct = pctInp ? parseFloat(pctInp.value) : 0;
+        var productLines = [];
+        var categories = [];
+        if (tr.dataset.claimPl) {
+          try { productLines = JSON.parse(tr.dataset.claimPl) || []; } catch (e3) { productLines = []; }
+        }
+        if (!Array.isArray(productLines)) productLines = [];
+        if (tr.dataset.claimCat) {
+          try { categories = JSON.parse(tr.dataset.claimCat) || []; } catch (e4) { categories = []; }
+        }
+        if (!Array.isArray(categories)) categories = [];
+        var receiverRoles = [];
+        if (roleMs) {
+          roleMs.querySelectorAll('input[type="checkbox"]:checked').forEach(function (cb) {
+            receiverRoles.push(cb.value);
+          });
+        }
+        var cid = tr.dataset.claimId || ('claim_' + idx);
+        var employeeWeights = {};
+        try {
+          if (tr.dataset.employeeWeights) employeeWeights = JSON.parse(tr.dataset.employeeWeights);
+        } catch (eW) { employeeWeights = {}; }
+        var claim = {
+          id: cid,
+          name: name,
+          order: order,
+          pct: isNaN(pct) ? 0 : pct,
+          base: { kind: 'category_sales', menuFilter: { productLines: productLines, categories: categories } },
+          receiverRoles: receiverRoles
+        };
+        if (employeeWeights && typeof employeeWeights === 'object' && Object.keys(employeeWeights).length) {
+          claim.employeeWeights = employeeWeights;
+        }
+        if (tipClaimConditions[cid] && typeof tipClaimConditions[cid] === 'object') {
+          try {
+            claim.conditions = JSON.parse(JSON.stringify(tipClaimConditions[cid]));
+          } catch (e2) {
+            claim.conditions = tipClaimConditions[cid];
+          }
+          normalizeConditionsRoleEmployeeExclusive(claim.conditions);
+        }
+        out.push(claim);
+      });
+      return out;
+    }
+
     // Load rule into form (edit mode)
     function loadRuleForEdit(rule) {
       document.getElementById('ruleName').value = rule.ruleName || '';
       var storeSel = document.getElementById('storeSelect');
       storeSel.value = rule.store || '';
+      var tipBody = document.getElementById('tipClaimsTableBody');
+      if (tipBody) {
+        tipBody.innerHTML = '';
+        tipClaimConditions = {};
+      }
+      var ortbInit = document.getElementById('orderResidualReceiverTableBody');
+      if (ortbInit) ortbInit.innerHTML = '';
+      var allocMode = rule.allocationMode || 'legacy_pool';
+      var amRadio = document.querySelector('input[name="allocationMode"][value="' + allocMode + '"]');
+      if (amRadio) amRadio.checked = true;
+      onAllocationModeChange(true);
       var firstPoolId = null;
       var typeCounters = {};
+      var pcInit = document.getElementById('poolRulesContainer');
+      if (pcInit) pcInit.innerHTML = '';
+      poolRuleConditions = {};
+      ['sales', 'tips', 'surcharge', 'manual', 'custom'].forEach(function(k) { existingRules[k] = false; });
+      poolRuleCounter = { sales: 0, tips: 0, surcharge: 0 };
+      var rtbInit = document.getElementById('receiverTableBody');
+      if (rtbInit) rtbInit.innerHTML = '';
+
       (rule.poolRules || []).forEach(function(pr) {
         var rid = pr.id;
         if (!rid) {
@@ -817,22 +1111,32 @@
           poolRuleConditions[rid] = rule.surchargeConditions;
         }
       });
+      Object.keys(poolRuleConditions).forEach(function(rid) {
+        var pc = poolRuleConditions[rid];
+        if (pc && typeof pc === 'object') normalizeConditionsRoleEmployeeExclusive(pc);
+      });
+      if (allocMode === 'order_tip_then_residual' && document.querySelectorAll('.pool-rule-card').length === 0) {
+        var migPoolId = 'tips_1';
+        addPoolRule('tips', { id: migPoolId, pct: 100, name: '小费' });
+        poolRuleCounter.tips = Math.max(poolRuleCounter.tips || 0, 1);
+        poolRuleConditions[migPoolId] = { tipType: '全部' };
+      }
       updateDeductRulesVisibility();
       (rule.poolRules || []).forEach(function(pr) {
         var rid = pr.id || pr.type;
         var card = document.getElementById('rule-' + rid);
         if (card) {
-        if (pr.type === 'custom') {
-          var amtInp = card.querySelector('input.pool-custom-amount');
-          var pctInp = card.querySelector('input.pool-custom-pct');
-          var nameInp = card.querySelector('.pool-rule-name');
-          if (amtInp) amtInp.value = pr.amount != null ? pr.amount : 0;
-          if (pctInp) pctInp.value = pr.pct != null ? pr.pct : 100;
-          if (nameInp && pr.name) nameInp.value = pr.name;
-        } else {
+          if (pr.type === 'custom') {
+            var amtInp = card.querySelector('input.pool-custom-amount');
+            var pctInp = card.querySelector('input.pool-custom-pct');
             var nameInp = card.querySelector('.pool-rule-name');
-            var inp = card.querySelector('input[type="number"]:not(.pool-custom-amount):not(.pool-custom-pct)');
+            if (amtInp) amtInp.value = pr.amount != null ? pr.amount : 0;
+            if (pctInp) pctInp.value = pr.pct != null ? pr.pct : 100;
             if (nameInp && pr.name) nameInp.value = pr.name;
+          } else {
+            var nameInp2 = card.querySelector('.pool-rule-name');
+            var inp = card.querySelector('input[type="number"]:not(.pool-custom-amount):not(.pool-custom-pct)');
+            if (nameInp2 && pr.name) nameInp2.value = pr.name;
             if (inp) inp.value = pr.pct != null ? pr.pct : 100;
           }
         }
@@ -846,46 +1150,97 @@
       var clock = document.querySelector('input[name="clockin"][value="' + (rule.clockin || 'clock') + '"]');
       if (clock) clock.checked = true;
       updateDistributionOptions();
-      // Deduct roles
       var deductContainer = document.getElementById('deductRoleSelect');
-      deductContainer.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
-        cb.checked = (rule.deductRoles || []).indexOf(cb.value) !== -1;
-      });
-      refreshMultiTags('deductRoleSelect');
-      // Receivers - add rows then populate
-      var receivers = rule.receivers || [];
-      receivers.forEach(function(rec) {
-        addReceiverRow({ pct: rec.pct, subReceivers: rec.subReceivers || [] });
-      });
-      var primaries = document.querySelectorAll('#receiverTableBody tr.receiver-primary-row');
-      receivers.forEach(function(rec, idx) {
-        if (idx < primaries.length) {
-          var pr = primaries[idx];
-          var roles = rec.roles || [];
-          var ms = pr.querySelector('.receiver-role-select');
-          if (ms && ms.id) {
-            var container = document.getElementById(ms.id);
-            if (container) {
-              container.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
-                cb.checked = roles.indexOf(cb.value) !== -1;
-              });
-              refreshMultiTags(ms.id);
+      if (allocMode === 'order_tip_then_residual') {
+        deductContainer.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = false; });
+        refreshMultiTags('deductRoleSelect');
+      } else {
+        deductContainer.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+          cb.checked = (rule.deductRoles || []).indexOf(cb.value) !== -1;
+        });
+        refreshMultiTags('deductRoleSelect');
+        var receivers = rule.receivers || [];
+        receivers.forEach(function(rec) {
+          addReceiverRow({ pct: rec.pct, subReceivers: rec.subReceivers || [] });
+        });
+        var primaries = document.querySelectorAll('#receiverTableBody tr.receiver-primary-row');
+        receivers.forEach(function(rec, idx) {
+          if (idx < primaries.length) {
+            var pr = primaries[idx];
+            var roles = rec.roles || [];
+            var ms = pr.querySelector('.receiver-role-select');
+            if (ms && ms.id) {
+              var container = document.getElementById(ms.id);
+              if (container) {
+                container.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+                  cb.checked = roles.indexOf(cb.value) !== -1;
+                });
+                refreshMultiTags(ms.id);
+              }
             }
+            var pctInput = pr.querySelector('input[type="number"]');
+            if (pctInput) pctInput.value = rec.pct || 0;
+            var weights = rec.employeeWeights || {};
+            try {
+              pr.dataset.employeeWeights = JSON.stringify(weights);
+            } catch (e) {}
+            renderReceiverRowWeights(pr);
           }
-          var pctInput = pr.querySelector('input[type="number"]');
-          if (pctInput) pctInput.value = rec.pct || 0;
-          var weights = rec.employeeWeights || {};
-          try {
-            pr.dataset.employeeWeights = JSON.stringify(weights);
-          } catch (e) {}
-          renderReceiverRowWeights(pr);
-        }
-      });
+        });
+      }
       calcTotal();
       document.querySelectorAll('#receiverTableBody tr.receiver-primary-row').forEach(function(tr) { updateReceiverRowWeightBtn(tr); });
       document.querySelectorAll('#receiverTableBody tr.receiver-sub-row').forEach(function(tr) { updateReceiverRowWeightBtn(tr); });
       updateAllReceiverRoleOptions();
       document.querySelectorAll('#receiverTableBody .receiver-sub-tbody').forEach(function(tb) { updateSubReceiversRoleOptions(tb); });
+      if (allocMode === 'order_tip_then_residual') {
+        (rule.tipClaims || []).forEach(function(c) { addTipClaimRow(c); });
+        if (!document.querySelector('#tipClaimsTableBody tr.tip-claim-row')) addTipClaimRow();
+        var resRecv = (rule.residual && Array.isArray(rule.residual.receivers) && rule.residual.receivers.length)
+          ? rule.residual.receivers
+          : null;
+        if (resRecv) {
+          resRecv.forEach(function(rec) {
+            addOrderResidualReceiverRow({ pct: rec.pct, subReceivers: rec.subReceivers || [] });
+          });
+          var resPrimaries = document.querySelectorAll('#orderResidualReceiverTableBody tr.order-residual-primary-row');
+          resRecv.forEach(function(rec, idx) {
+            if (idx < resPrimaries.length) {
+              var pr = resPrimaries[idx];
+              var roles = rec.roles || [];
+              var ms = pr.querySelector('.receiver-role-select');
+              if (ms && ms.id) {
+                var container = document.getElementById(ms.id);
+                if (container) {
+                  container.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+                    cb.checked = roles.indexOf(cb.value) !== -1;
+                  });
+                  refreshMultiTags(ms.id);
+                }
+              }
+              var pctInput = pr.querySelector('input[type="number"]');
+              if (pctInput) pctInput.value = rec.pct || 0;
+              var weights = rec.employeeWeights || {};
+              try {
+                pr.dataset.employeeWeights = JSON.stringify(weights);
+              } catch (e) {}
+              renderReceiverRowWeights(pr);
+            }
+          });
+        } else if (rule.residual && rule.residual.receiverRoles && rule.residual.receiverRoles.length) {
+          addOrderResidualReceiverRow({ roles: rule.residual.receiverRoles, pct: 100 });
+        } else {
+          addOrderResidualReceiverRow({ roles: ['Server'], pct: 100 });
+        }
+        if (!document.querySelector('#orderResidualReceiverTableBody tr.order-residual-primary-row')) {
+          addOrderResidualReceiverRow({ roles: ['Server'], pct: 100 });
+        }
+        document.querySelectorAll('#orderResidualReceiverTableBody tr.order-residual-primary-row').forEach(function(tr) { updateReceiverRowWeightBtn(tr); });
+        document.querySelectorAll('#orderResidualReceiverTableBody tr.receiver-sub-row').forEach(function(tr) { updateReceiverRowWeightBtn(tr); });
+        updateOrderResidualReceiverRoleOptions();
+        document.querySelectorAll('#orderResidualReceiverTableBody .receiver-sub-tbody').forEach(function(tb) { updateSubReceiversRoleOptions(tb); });
+        calcOrderResidualTotal();
+      }
     }
 
     function updateAddMenu() {
@@ -919,6 +1274,8 @@
         if (srm) srm.classList.remove('show');
         var mm = document.getElementById('manualConditionMenu');
         if (mm) mm.classList.remove('show');
+        var tccm = document.getElementById('tipClaimConditionMenu');
+        if (tccm) tccm.classList.remove('show');
       }
     });
 
@@ -926,6 +1283,9 @@
     var existingTipsConditions = {};
     var existingSurchargeConditions = {};
     var existingManualConditions = {};
+    var currentTipClaimSalesConditionClaimId = null;
+    var tipClaimConditions = {};
+    var existingTipClaimSalesConditions = {};
 
     var WEEKDAY_COND_OPTIONS = [
       { v: '1', l: '星期一' }, { v: '2', l: '星期二' }, { v: '3', l: '星期三' }, { v: '4', l: '星期四' },
@@ -954,15 +1314,16 @@
       existingSalesConditions = {};
       var cond = poolRuleConditions[ruleId];
       if (cond && typeof cond === 'object') {
-        Object.keys(cond).forEach(function(type) {
-          if (type === 'employees') return;
+        normalizeConditionsRoleEmployeeExclusive(cond);
+        sortPoolConditionLoadKeys(Object.keys(cond)).forEach(function(type) {
           if (type === 'weekdays') {
             addSalesCondition('weekday', true);
             setSalesConditionValue('weekday', cond.weekdays);
             return;
           }
           addSalesCondition(type, true);
-          if (type === 'role') setSalesConditionValue(type, { role: cond.role || [], employees: cond.employees || [] });
+          if (type === 'role') setSalesConditionValue(type, { role: cond.role || [] });
+          else if (type === 'employee') setSalesConditionValue(type, { employeeRoles: cond.employeeRoles, employees: cond.employee });
           else setSalesConditionValue(type, cond[type]);
         });
       }
@@ -972,6 +1333,32 @@
       }
       updateSalesConditionMenu();
     }
+    function loadTipClaimSalesConditionsForClaim(claimId) {
+      var container = document.getElementById('tipClaimConditionsContainer');
+      if (!container) return;
+      container.innerHTML = '';
+      existingTipClaimSalesConditions = {};
+      var cond = tipClaimConditions[claimId];
+      if (cond && typeof cond === 'object') {
+        normalizeConditionsRoleEmployeeExclusive(cond);
+        sortPoolConditionLoadKeys(Object.keys(cond)).forEach(function(type) {
+          if (type === 'weekdays') {
+            addTipClaimSalesCondition('weekday', true);
+            setTipClaimSalesConditionValue('weekday', cond.weekdays);
+            return;
+          }
+          addTipClaimSalesCondition(type, true);
+          if (type === 'role') setTipClaimSalesConditionValue(type, { role: cond.role || [], employees: cond.employees || [] });
+          else if (type === 'employee') setTipClaimSalesConditionValue(type, { employeeRoles: cond.employeeRoles, employees: cond.employee });
+          else setTipClaimSalesConditionValue(type, cond[type]);
+        });
+      }
+      if (!existingTipClaimSalesConditions['revenueType']) {
+        addTipClaimSalesCondition('revenueType', true);
+        if (cond && cond.revenueType) setTipClaimSalesConditionValue('revenueType', cond.revenueType);
+      }
+      updateTipClaimSalesConditionMenu();
+    }
     function loadTipsConditionsForRule(ruleId) {
       var container = document.getElementById('tipsConditionsContainer');
       if (!container) return;
@@ -979,8 +1366,8 @@
       existingTipsConditions = {};
       var cond = poolRuleConditions[ruleId];
       if (cond && typeof cond === 'object') {
-        Object.keys(cond).forEach(function(type) {
-          if (type === 'employees') return;
+        normalizeConditionsRoleEmployeeExclusive(cond);
+        sortPoolConditionLoadKeys(Object.keys(cond)).forEach(function(type) {
           if (type === 'containsAlcohol') return;
           if (type === 'weekdays') {
             addTipsCondition('weekday', true);
@@ -988,7 +1375,8 @@
             return;
           }
           addTipsCondition(type, true);
-          if (type === 'role') setTipsConditionValue(type, { role: cond.role || [], employees: cond.employees || [] });
+          if (type === 'role') setTipsConditionValue(type, { role: cond.role || [] });
+          else if (type === 'employee') setTipsConditionValue(type, { employeeRoles: cond.employeeRoles, employees: cond.employee });
           else setTipsConditionValue(type, cond[type]);
         });
       }
@@ -1001,15 +1389,16 @@
       existingSurchargeConditions = {};
       var cond = poolRuleConditions[ruleId];
       if (cond && typeof cond === 'object' && !cond.types) {
-        Object.keys(cond).forEach(function(type) {
-          if (type === 'employees') return;
+        normalizeConditionsRoleEmployeeExclusive(cond);
+        sortPoolConditionLoadKeys(Object.keys(cond)).forEach(function(type) {
           if (type === 'weekdays') {
             addSurchargeCondition('weekday', true);
             setSurchargeConditionValue('weekday', cond.weekdays);
             return;
           }
           addSurchargeCondition(type, true);
-          if (type === 'role') setSurchargeConditionValue(type, { role: cond.role || [], employees: cond.employees || [] });
+          if (type === 'role') setSurchargeConditionValue(type, { role: cond.role || [] });
+          else if (type === 'employee') setSurchargeConditionValue(type, { employeeRoles: cond.employeeRoles, employees: cond.employee });
           else setSurchargeConditionValue(type, cond[type]);
         });
       }
@@ -1035,6 +1424,72 @@
         });
       });
       return Object.keys(empMap);
+    }
+    function inferEmployeeFilterRolesFromNames(names) {
+      var set = {};
+      (names || []).forEach(function(emp) {
+        Object.keys(roleEmployees).forEach(function(r) {
+          if ((roleEmployees[r] || []).indexOf(emp) >= 0) set[r] = true;
+        });
+      });
+      return Object.keys(set).sort();
+    }
+    function stripStandaloneEmployeeCondValue(value) {
+      var roles = [];
+      var emps = [];
+      if (value == null) return { roles: [], employees: [] };
+      if (Array.isArray(value)) {
+        emps = value.slice();
+      } else if (typeof value === 'object') {
+        emps = Array.isArray(value.employees) ? value.employees.slice() : (Array.isArray(value.employee) ? value.employee.slice() : []);
+        roles = Array.isArray(value.roles) ? value.roles.slice() : (Array.isArray(value.employeeRoles) ? value.employeeRoles.slice() : []);
+      }
+      if (!roles.length && emps.length) roles = inferEmployeeFilterRolesFromNames(emps);
+      return { roles: roles, employees: emps };
+    }
+    function applyStandaloneEmployeeConditionToCard(card, value) {
+      if (!card) return;
+      var roleMs = card.querySelector('.employee-condition-role-select');
+      var staffMs = card.querySelector('.employee-condition-staff-select');
+      var parsed = stripStandaloneEmployeeCondValue(value);
+      if (roleMs) {
+        roleMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+          cb.checked = parsed.roles.indexOf(cb.value) >= 0;
+        });
+        if (roleMs.id) refreshMultiTags(roleMs.id);
+      }
+      if (roleMs && staffMs) {
+        updateRoleConditionEmployeeOptions(roleMs, staffMs);
+        if (parsed.employees.length) {
+          staffMs.querySelectorAll('input[type="checkbox"]:not(.role-employee-select-all-cb)').forEach(function(cb) {
+            cb.checked = parsed.employees.indexOf(cb.value) >= 0;
+          });
+          if (staffMs.id) refreshMultiTags(staffMs.id);
+        }
+        syncRoleEmployeeSelectAllState(staffMs);
+      }
+    }
+    function sortPoolConditionLoadKeys(keys) {
+      var preferred = ['role', 'employee', 'area', 'orderType', 'menu', 'revenueType', 'hours', 'tipType', 'containsProduct', 'shift', 'weekdays'];
+      return keys.filter(function(k) { return k !== 'employees' && k !== 'employeeRoles'; }).sort(function(a, b) {
+        var ia = preferred.indexOf(a);
+        var ib = preferred.indexOf(b);
+        if (ia === -1) ia = 999;
+        if (ib === -1) ib = 999;
+        if (ia !== ib) return ia - ib;
+        return String(a).localeCompare(String(b));
+      });
+    }
+    /** 「角色」与独立「员工」取值条件二选一；优先保留角色侧（含角色下 employees，计提场景） */
+    function normalizeConditionsRoleEmployeeExclusive(cond) {
+      if (!cond || typeof cond !== 'object') return;
+      var hasStandaloneEmp = Array.isArray(cond.employee) && cond.employee.length > 0;
+      var hasRoleSide = (Array.isArray(cond.role) && cond.role.length > 0) ||
+        (Array.isArray(cond.employees) && cond.employees.length > 0);
+      if (hasRoleSide && hasStandaloneEmp) {
+        delete cond.employee;
+        delete cond.employeeRoles;
+      }
     }
     function syncRoleEmployeeSelectAllState(employeeMs) {
       if (!employeeMs) return;
@@ -1081,9 +1536,22 @@
       '<label class="multi-select-option"><input type="checkbox" value="Shift Lead"> Shift Lead</label>' +
       '<label class="multi-select-option"><input type="checkbox" value="Trainee"> Trainee</label>' +
       '<label class="multi-select-option"><input type="checkbox" value="Waiter"> Waiter</label>';
+    function getStandaloneEmployeeConditionBodyHtml(roleSelectId, staffSelectId) {
+      return '<div class="drawer-form-row"><label>筛选角色：</label><div class="multi-select employee-condition-role-select" id="' + roleSelectId + '" style="flex:1" data-placeholder="请选择角色">' +
+        '<div class="multi-select-input" onclick="toggleMultiSelect(\'' + roleSelectId + '\')">' +
+        '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择角色</span></div>' +
+        '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+        '<div class="multi-select-dropdown">' + roleOptionsHtml + '</div></div></div>' +
+        '<div class="drawer-form-row"><label>员工：</label><div class="multi-select employee-condition-staff-select role-employee-select" id="' + staffSelectId + '" style="flex:1" data-placeholder="请先选择角色">' +
+        '<div class="multi-select-input" onclick="toggleMultiSelect(\'' + staffSelectId + '\')">' +
+        '<div class="multi-select-tags"><span class="multi-select-placeholder">请先选择角色</span></div>' +
+        '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+        '<div class="multi-select-dropdown"><div class="multi-select-placeholder" style="padding:8px 12px">请先选择角色</div></div></div></div>';
+    }
     var areaSelectHtml = '<option value="">请选择</option><option>全部</option><option>Main Dining</option><option>Bar Area</option><option>Patio</option><option>Private Room</option><option>Counter / To Go</option>';
     var orderTypeSelectHtml = '<option value="">请选择</option><option>全部</option><option>Dine In</option><option>Delivery</option><option>Pick Up</option><option>To Go</option><option>Online Order</option><option>Catering</option>';
     var menuProductLines = ['POS', 'eMenu', 'Kiosklite', 'OO', 'SDI', 'POSGo'];
+    /** 与 POS 类名口径一致，可供其它逻辑参考；菜单树以 MENU_REAL_GROUP_TREE 为准 */
     var menuCategoriesByProductLine = {
       'POS': ['全部', 'Lunch Special', 'Dinner Menu', 'Happy Hour', 'Weekend Brunch', 'Kids Menu', 'Dessert Menu', 'Beverage / Cocktails', 'lunch AYCE', 'dinner AYCE', 'bar menu'],
       'eMenu': ['全部', 'Lunch Special', 'Dinner Menu', 'Happy Hour', 'Weekend Brunch', 'Kids Menu', 'Dessert Menu', 'Beverage / Cocktails', 'lunch AYCE', 'dinner AYCE', 'bar menu'],
@@ -1092,19 +1560,294 @@
       'SDI': ['全部', 'Lunch Special', 'Dinner Menu', 'Happy Hour', 'Weekend Brunch', 'Kids Menu', 'Dessert Menu', 'Beverage / Cocktails', 'lunch AYCE', 'dinner AYCE', 'bar menu'],
       'POSGo': ['全部', 'Lunch Special', 'Dinner Menu', 'Happy Hour', 'Weekend Brunch', 'Kids Menu', 'Dessert Menu', 'Beverage / Cocktails', 'lunch AYCE', 'dinner AYCE', 'bar menu']
     };
+    /** 组 → 类（POS 菜单类名）→ 菜（SKU/菜品名），各产品线共用一份；对接实店时可改为接口数据 */
+    var MENU_REAL_GROUP_TREE = {
+      '堂食组': {
+        '全部': ['门店通用计价项', '跨类促销菜', '店长推荐每日例菜'],
+        'Lunch Special': ['炙烤三文鱼午市套餐', '照烧鸡腿饭', '黑椒牛柳饭', '泰式打抛猪肉饭', '清爽藜麦沙拉碗', '酸辣海鲜汤粉'],
+        'Dinner Menu': ['澳洲 M5 肋眼牛排', '香煎海鲈鱼配柠檬黄油', '黑松露野菌奶油意面', '慢烤春鸡配时蔬', '红酒烩牛颊', '龙虾手工宽面'],
+        'Weekend Brunch': ['班尼迪克蛋·烟熏三文鱼', '牛油果酸种吐司', '莓果松饼枫糖', '全日早餐拼盘', '冰酿咖啡配可颂'],
+        'Kids Menu': ['迷你芝士汉堡儿童餐', '恐龙鸡块配薯条', '番茄肉酱意面（小）', '水果酸奶杯', '玉米杯配牛奶'],
+        'lunch AYCE': ['午餐自助·成人', '午餐自助·儿童', '午餐自助·长者优待'],
+        'dinner AYCE': ['晚餐自助·成人', '晚餐自助·儿童', '周末海鲜自助加档']
+      },
+      '外卖组': {
+        '线上外卖套餐': ['双人炸鸡分享桶', '一人食便当 A（荤）', '一人食便当 B（素）', '轻食鸡胸沙拉盒', '肥牛饭+汤套餐'],
+        '自提打包': ['9 寸披萨自提', '冒菜自热锅', '加购饮品半价券菜', '家庭装炒饭大份']
+      },
+      '其他组': {
+        'Happy Hour': ['欢乐时光生啤 500ml', '招牌鸡尾酒（HH）', '薯条洋葱圈拼', '鸡翅中（6 只）'],
+        'Dessert Menu': ['意式提拉米苏', '纽约重芝士蛋糕', '抹茶千层切件', '冰淇淋双球（自选口味）', '焦糖炖奶'],
+        'Beverage / Cocktails': ['经典莫吉托', '威士忌酸', '金汤力', '精酿 IPA', '鲜榨橙汁', '冰美式', '拿铁', '无酒精特调'],
+        'bar menu': ['单一麦芽威士忌单杯', '吧台腌渍橄榄芝士', '盐酥鸡（小食）', '烤翅拼盘']
+      }
+    };
     var menuProductLineOptionsHtml = menuProductLines.map(function(pl) {
       return '<label class="multi-select-option"><input type="checkbox" value="' + pl + '"> ' + pl + '</label>';
     }).join('');
-    function getMenuCategoryMultiSelectOptionsHtml(selectedProductLines) {
-      var cats = [];
-      var seen = {};
-      (selectedProductLines || []).forEach(function(pl) {
-        var list = menuCategoriesByProductLine[pl];
-        if (list) list.forEach(function(c) { if (!seen[c]) { seen[c] = 1; cats.push(c); } });
+    var MENU_KEY_SEP = '|||';
+    var TIPS_STYLE_MENU_CATEGORIES = ['酒水', '前菜', '主菜', '甜品', '饮料'];
+    var menuItemsByTipsStyleCategory = {
+      '酒水': ['啤酒', '红酒', '鸡尾酒', '白酒', '清酒', '软饮'],
+      '前菜': ['沙拉', '汤', '小食', '拼盘'],
+      '主菜': ['牛排', '鱼', '意面', '汉堡', '烤鸡'],
+      '甜品': ['蛋糕', '冰淇淋', '布丁'],
+      '饮料': ['咖啡', '茶', '果汁', '苏打']
+    };
+    function cloneMenuRealGroupTree(src) {
+      var out = {};
+      Object.keys(src).forEach(function(grp) {
+        out[grp] = {};
+        Object.keys(src[grp]).forEach(function(cls) {
+          out[grp][cls] = src[grp][cls].slice();
+        });
       });
-      return cats.map(function(c) {
-        return '<label class="multi-select-option"><input type="checkbox" value="' + c + '"> ' + c + '</label>';
+      return out;
+    }
+    function buildMenuTreeByProductLine() {
+      var tree = {};
+      menuProductLines.forEach(function(pl) {
+        tree[pl] = cloneMenuRealGroupTree(MENU_REAL_GROUP_TREE);
+        tree[pl]['点餐分类'] = {};
+        TIPS_STYLE_MENU_CATEGORIES.forEach(function(cat) {
+          tree[pl]['点餐分类'][cat] = (menuItemsByTipsStyleCategory[cat] || []).slice();
+        });
+      });
+      return tree;
+    }
+    var menuTreeByProductLine = buildMenuTreeByProductLine();
+    function menuCascadePlaceholderHtml(msg) {
+      return '<div class="multi-select-placeholder" style="padding:8px 12px">' + msg + '</div>';
+    }
+    function menuCascadeCheckedValues(ms) {
+      if (!ms) return [];
+      return Array.from(ms.querySelectorAll('input[type="checkbox"]:checked')).map(function(cb) { return cb.value; });
+    }
+    function menuCascadeOptionsHtml(keys, labelFn) {
+      if (!keys || !keys.length) return '';
+      return keys.map(function(key) {
+        var esc = String(key).replace(/"/g, '&quot;');
+        var lab = labelFn(key);
+        var escLab = String(lab).replace(/"/g, '&quot;');
+        return '<label class="multi-select-option"><input type="checkbox" value="' + esc + '" data-tag-label="' + escLab + '"> ' + lab + '</label>';
       }).join('');
+    }
+    function menuGroupKeysForProductLines(plArr) {
+      var out = [];
+      var seen = {};
+      (plArr || []).forEach(function(pl) {
+        var node = menuTreeByProductLine[pl];
+        if (!node) return;
+        Object.keys(node).forEach(function(gName) {
+          var k = pl + MENU_KEY_SEP + gName;
+          if (!seen[k]) { seen[k] = 1; out.push(k); }
+        });
+      });
+      return out.sort();
+    }
+    function menuGroupKeyLabel(k) {
+      var p = String(k).split(MENU_KEY_SEP);
+      return p.length >= 2 ? p[1] : k;
+    }
+    function menuCategoryKeysForGroupKeys(gKeys) {
+      var out = [];
+      var seen = {};
+      (gKeys || []).forEach(function(gk) {
+        var p = String(gk).split(MENU_KEY_SEP);
+        if (p.length < 2) return;
+        var pl = p[0], g = p[1];
+        var node = menuTreeByProductLine[pl] && menuTreeByProductLine[pl][g];
+        if (!node) return;
+        Object.keys(node).forEach(function(cat) {
+          var k = pl + MENU_KEY_SEP + g + MENU_KEY_SEP + cat;
+          if (!seen[k]) { seen[k] = 1; out.push(k); }
+        });
+      });
+      return out.sort();
+    }
+    function menuCategoryKeyLabel(k) {
+      var p = String(k).split(MENU_KEY_SEP);
+      return p.length >= 3 ? p[2] : k;
+    }
+    function menuItemKeysForCategoryKeys(cKeys) {
+      var out = [];
+      var seen = {};
+      (cKeys || []).forEach(function(ck) {
+        var p = String(ck).split(MENU_KEY_SEP);
+        if (p.length < 3) return;
+        var pl = p[0], g = p[1], cat = p[2];
+        var items = menuTreeByProductLine[pl] && menuTreeByProductLine[pl][g] && menuTreeByProductLine[pl][g][cat];
+        if (!items) return;
+        items.forEach(function(item) {
+          var k = pl + MENU_KEY_SEP + g + MENU_KEY_SEP + cat + MENU_KEY_SEP + item;
+          if (!seen[k]) { seen[k] = 1; out.push(k); }
+        });
+      });
+      return out.sort();
+    }
+    function menuItemKeyLabel(k) {
+      var p = String(k).split(MENU_KEY_SEP);
+      return p.length >= 4 ? p[3] : k;
+    }
+    function onMenuCascadeChange(card, fromLevel) {
+      var plMs = card.querySelector('.menu-cascade-pl');
+      var gMs = card.querySelector('.menu-cascade-group');
+      var cMs = card.querySelector('.menu-cascade-category');
+      var iMs = card.querySelector('.menu-cascade-item');
+      if (!plMs || !gMs || !cMs || !iMs) return;
+      if (fromLevel === 'pl') {
+        var plSel = menuCascadeCheckedValues(plMs);
+        var gDd = gMs.querySelector('.multi-select-dropdown');
+        gDd.innerHTML = plSel.length ? menuCascadeOptionsHtml(menuGroupKeysForProductLines(plSel), menuGroupKeyLabel) : menuCascadePlaceholderHtml('请先选择产品线');
+        gMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = false; });
+        if (gMs.id) refreshMultiTags(gMs.id);
+      }
+      if (fromLevel === 'pl' || fromLevel === 'group') {
+        var gSel = menuCascadeCheckedValues(gMs);
+        var cDd = cMs.querySelector('.multi-select-dropdown');
+        cDd.innerHTML = gSel.length ? menuCascadeOptionsHtml(menuCategoryKeysForGroupKeys(gSel), menuCategoryKeyLabel) : menuCascadePlaceholderHtml('请先选择组');
+        cMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = false; });
+        if (cMs.id) refreshMultiTags(cMs.id);
+      }
+      if (fromLevel === 'pl' || fromLevel === 'group' || fromLevel === 'category') {
+        var cSel = menuCascadeCheckedValues(cMs);
+        var iDd = iMs.querySelector('.multi-select-dropdown');
+        iDd.innerHTML = cSel.length ? menuCascadeOptionsHtml(menuItemKeysForCategoryKeys(cSel), menuItemKeyLabel) : menuCascadePlaceholderHtml('请先选择类');
+        iMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = false; });
+        if (iMs.id) refreshMultiTags(iMs.id);
+      }
+    }
+    function getMenuCascadeFourRowsHtml(ids) {
+      var arrowSvg = '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>';
+      function row(label, id, ph, innerDropdown, extraClass) {
+        var cls = 'multi-select menu-cascade-pl';
+        if (extraClass === 'group') cls = 'multi-select menu-cascade-group';
+        else if (extraClass === 'category') cls = 'multi-select menu-cascade-category';
+        else if (extraClass === 'item') cls = 'multi-select menu-cascade-item';
+        return '<div class="drawer-form-row"><label>' + label + '</label><div class="' + cls + '" id="' + id + '" style="flex:1" data-placeholder="' + ph + '">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'' + id + '\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">' + ph + '</span></div>' +
+          arrowSvg + '</div>' +
+          '<div class="multi-select-dropdown">' + innerDropdown + '</div></div></div>';
+      }
+      return row('产品线：', ids.pl, '请选择产品线', menuProductLineOptionsHtml, 'pl') +
+        row('组：', ids.group, '请先选择产品线', menuCascadePlaceholderHtml('请先选择产品线'), 'group') +
+        row('类：', ids.category, '请先选择组', menuCascadePlaceholderHtml('请先选择组'), 'category') +
+        row('菜：', ids.item, '请先选择类', menuCascadePlaceholderHtml('请先选择类'), 'item');
+    }
+    function inferMenuCascadeKeysFromLegacyCategories(plArr, plainCats) {
+      var gk = [];
+      var ck = [];
+      var seenG = {};
+      var seenC = {};
+      (plArr || []).forEach(function(pl) {
+        (plainCats || []).forEach(function(cat) {
+          var tree = menuTreeByProductLine[pl];
+          if (!tree) return;
+          Object.keys(tree).forEach(function(g) {
+            if (tree[g][cat]) {
+              var kg = pl + MENU_KEY_SEP + g;
+              var kc = pl + MENU_KEY_SEP + g + MENU_KEY_SEP + cat;
+              if (!seenG[kg]) { seenG[kg] = 1; gk.push(kg); }
+              if (!seenC[kc]) { seenC[kc] = 1; ck.push(kc); }
+            }
+          });
+        });
+      });
+      return { groupKeys: gk, categoryKeys: ck };
+    }
+    function inferItemKeysFromLegacyItems(categoryKeys, plainItems) {
+      var all = menuItemKeysForCategoryKeys(categoryKeys);
+      var out = [];
+      var seen = {};
+      (plainItems || []).forEach(function(nm) {
+        all.forEach(function(k) {
+          var p = String(k).split(MENU_KEY_SEP);
+          if (p[p.length - 1] === nm && !seen[k]) { seen[k] = 1; out.push(k); }
+        });
+      });
+      return out;
+    }
+    function applyMenuCascadeValue(card, stored) {
+      if (!card || !stored || typeof stored !== 'object') return;
+      var plMs = card.querySelector('.menu-cascade-pl');
+      var gMs = card.querySelector('.menu-cascade-group');
+      var cMs = card.querySelector('.menu-cascade-category');
+      var iMs = card.querySelector('.menu-cascade-item');
+      if (!plMs || !gMs || !cMs || !iMs) return;
+      var plArr = Array.isArray(stored.productLine) ? stored.productLine.slice() : (stored.productLine ? [stored.productLine] : []);
+      var gArr = Array.isArray(stored.menuGroup) ? stored.menuGroup.slice() : [];
+      var catArr = Array.isArray(stored.category) ? stored.category.slice() : (stored.category ? [stored.category] : []);
+      var itemArr = Array.isArray(stored.item) ? stored.item.slice() : [];
+      var cat0 = catArr[0];
+      var legacyPlainCat = cat0 != null && String(cat0).indexOf(MENU_KEY_SEP) === -1;
+      if (plArr.length && catArr.length && legacyPlainCat && !gArr.length) {
+        var inf = inferMenuCascadeKeysFromLegacyCategories(plArr, catArr);
+        gArr = inf.groupKeys;
+        catArr = inf.categoryKeys;
+      }
+      if (!plArr.length && catArr.length && legacyPlainCat) {
+        plArr = ['POS'];
+        var inf2 = inferMenuCascadeKeysFromLegacyCategories(plArr, catArr);
+        gArr = inf2.groupKeys;
+        catArr = inf2.categoryKeys;
+      }
+      var item0 = itemArr[0];
+      var legacyPlainItem = item0 != null && String(item0).indexOf(MENU_KEY_SEP) === -1;
+      plMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = plArr.indexOf(cb.value) >= 0; });
+      if (plMs.id) refreshMultiTags(plMs.id);
+      onMenuCascadeChange(card, 'pl');
+      gMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = gArr.indexOf(cb.value) >= 0; });
+      if (gMs.id) refreshMultiTags(gMs.id);
+      onMenuCascadeChange(card, 'group');
+      cMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = catArr.indexOf(cb.value) >= 0; });
+      if (cMs.id) refreshMultiTags(cMs.id);
+      onMenuCascadeChange(card, 'category');
+      var itemKeysToSet = itemArr;
+      if (legacyPlainItem && catArr.length) {
+        itemKeysToSet = inferItemKeysFromLegacyItems(catArr, itemArr);
+      }
+      iMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = itemKeysToSet.indexOf(cb.value) >= 0; });
+      if (iMs.id) refreshMultiTags(iMs.id);
+    }
+    function collectMenuCascadeObject(card) {
+      var plMs = card.querySelector('.menu-cascade-pl');
+      var gMs = card.querySelector('.menu-cascade-group');
+      var cMs = card.querySelector('.menu-cascade-category');
+      var iMs = card.querySelector('.menu-cascade-item');
+      if (!plMs || !gMs || !cMs || !iMs) return null;
+      return {
+        productLine: menuCascadeCheckedValues(plMs),
+        menuGroup: menuCascadeCheckedValues(gMs),
+        category: menuCascadeCheckedValues(cMs),
+        item: menuCascadeCheckedValues(iMs)
+      };
+    }
+    function formatMenuCascadeCond(obj) {
+      if (!obj || typeof obj !== 'object') return '';
+      var bits = [];
+      if (Array.isArray(obj.productLine) && obj.productLine.length) bits.push('产品线 ' + obj.productLine.join('、'));
+      if (Array.isArray(obj.menuGroup) && obj.menuGroup.length) {
+        bits.push('组 ' + obj.menuGroup.map(function(k) { return menuGroupKeyLabel(k); }).join('、'));
+      }
+      if (Array.isArray(obj.category) && obj.category.length) {
+        bits.push('类 ' + obj.category.map(function(k) {
+          return String(k).indexOf(MENU_KEY_SEP) >= 0 ? menuCategoryKeyLabel(k) : k;
+        }).join('、'));
+      }
+      if (Array.isArray(obj.item) && obj.item.length) {
+        bits.push('菜 ' + obj.item.map(function(k) {
+          return String(k).indexOf(MENU_KEY_SEP) >= 0 ? menuItemKeyLabel(k) : k;
+        }).join('、'));
+      }
+      return bits.length ? bits.join(' → ') : '';
+    }
+    function menuCascadeHasAnySelection(obj) {
+      if (!obj || typeof obj !== 'object') return false;
+      return (Array.isArray(obj.productLine) && obj.productLine.length) ||
+        (Array.isArray(obj.menuGroup) && obj.menuGroup.length) ||
+        (Array.isArray(obj.category) && obj.category.length) ||
+        (Array.isArray(obj.item) && obj.item.length);
     }
     var SHIFT_LIST_STORAGE_KEY = 'ruleAddShiftList';
     function defaultShiftList() {
@@ -1183,8 +1926,8 @@
       var minM = item.minClockMinutes != null ? item.minClockMinutes : 0;
       var maxM = item.maxClockMinutes != null ? item.maxClockMinutes : 0;
       var lines = [];
-      if (minM > 0) lines.push('至少打卡' + minM + '分钟');
-      if (maxM > 0) lines.push('打卡工时最多计' + maxM + '分钟');
+      if (minM > 0) lines.push('该班次至少上班打卡' + minM + '分钟');
+      if (maxM > 0) lines.push('该班次上班打卡工时最多计' + maxM + '分钟');
       return lines;
     }
     function shiftParticipationRulesBody(item) {
@@ -1421,7 +2164,7 @@
       var maxClock = maxInp && maxInp.value !== '' ? parseMinClockMinutes(maxInp.value) : 0;
       if (isNaN(maxClock)) { showNotification('最多计入分钟须为 0 及以上的整数', 'warning'); return; }
       if (maxClock > 0 && minClock > 0 && maxClock < minClock) {
-        showNotification('「最多计入」分钟数不能小于「至少打卡」分钟数', 'warning');
+        showNotification('「该班次上班打卡工时最多计」分钟数不能小于「该班次至少上班打卡」分钟数', 'warning');
         return;
       }
       var originalName = origInp ? origInp.value.trim() : '';
@@ -1506,48 +2249,49 @@
       }).join('\n\n');
     }
 
-    function onMenuProductLineChange(card) {
-      var plMs = card.querySelector('.menu-product-line-select');
-      var catMs = card.querySelector('.menu-category-select');
-      if (!plMs || !catMs) return;
-      var checked = plMs.querySelectorAll('input[type="checkbox"]:checked');
-      var selected = Array.from(checked).map(function(cb) { return cb.value; });
-      var catDropdown = catMs.querySelector('.multi-select-dropdown');
-      if (catDropdown) {
-        catDropdown.innerHTML = selected.length ? getMenuCategoryMultiSelectOptionsHtml(selected) : '<div class="multi-select-placeholder" style="padding:8px 12px">请先选择产品线</div>';
-        catMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = false; });
-        refreshMultiTags(catMs.id);
-      }
-    }
     var tipTypeSelectHtml = '<option value="">请选择</option><option>全部</option><option>Credit Card Tips (信用卡小费)</option><option>Cash Tips (现金小费)</option><option>Auto Gratuity (自动服务费)</option><option>Gift Card Tips</option>';
 
     function toggleAddConditionMenu(drawerId) {
-      var menuId = drawerId === 'salesDrawer' ? 'salesConditionMenu' : (drawerId === 'tipsDrawer' ? 'tipsConditionMenu' : (drawerId === 'manualDrawer' ? 'manualConditionMenu' : 'surchargeConditionMenu'));
-      var menu = document.getElementById(menuId);
+      var menuIdMap = {
+        salesDrawer: 'salesConditionMenu',
+        tipsDrawer: 'tipsConditionMenu',
+        manualDrawer: 'manualConditionMenu',
+        surchargeDrawer: 'surchargeConditionMenu',
+        tipClaimSalesDrawer: 'tipClaimConditionMenu'
+      };
+      var menuId = menuIdMap[drawerId];
+      var menu = menuId ? document.getElementById(menuId) : null;
       if (menu) {
         menu.classList.toggle('show');
         if (drawerId === 'salesDrawer') updateSalesConditionMenu();
         else if (drawerId === 'tipsDrawer') updateTipsConditionMenu();
         else if (drawerId === 'surchargeDrawer') updateSurchargeConditionMenu();
         else if (drawerId === 'manualDrawer') updateManualConditionMenu();
+        else if (drawerId === 'tipClaimSalesDrawer') updateTipClaimSalesConditionMenu();
       }
+    }
+    function roleEmployeeMenuItemHidden(existingMap, t) {
+      if (existingMap[t]) return true;
+      if (t === 'role' && existingMap['employee']) return true;
+      if (t === 'employee' && existingMap['role']) return true;
+      return false;
     }
     function updateSalesConditionMenu() {
       document.querySelectorAll('#salesConditionMenu .add-option-menu-item').forEach(function(item) {
         var t = item.dataset.type;
-        item.style.display = existingSalesConditions[t] ? 'none' : '';
+        item.style.display = roleEmployeeMenuItemHidden(existingSalesConditions, t) ? 'none' : '';
       });
     }
     function updateTipsConditionMenu() {
       document.querySelectorAll('#tipsConditionMenu .add-option-menu-item').forEach(function(item) {
         var t = item.dataset.type;
-        item.style.display = existingTipsConditions[t] ? 'none' : '';
+        item.style.display = roleEmployeeMenuItemHidden(existingTipsConditions, t) ? 'none' : '';
       });
     }
     function updateSurchargeConditionMenu() {
       document.querySelectorAll('#surchargeConditionMenu .add-option-menu-item').forEach(function(item) {
         var t = item.dataset.type;
-        item.style.display = existingSurchargeConditions[t] ? 'none' : '';
+        item.style.display = roleEmployeeMenuItemHidden(existingSurchargeConditions, t) ? 'none' : '';
       });
     }
     function updateManualConditionMenu() {
@@ -1556,10 +2300,24 @@
         item.style.display = existingManualConditions[t] ? 'none' : '';
       });
     }
+    function updateTipClaimSalesConditionMenu() {
+      document.querySelectorAll('#tipClaimConditionMenu .add-option-menu-item').forEach(function(item) {
+        var t = item.dataset.type;
+        item.style.display = roleEmployeeMenuItemHidden(existingTipClaimSalesConditions, t) ? 'none' : '';
+      });
+    }
 
     function addSalesCondition(type, silent) {
       if (existingSalesConditions[type]) return;
-      var names = { role: '角色', area: '订单区域', orderType: '订单类型', menu: '菜单', revenueType: '营业额类型', hours: '营业时间', shift: '班次', weekday: '周期（星期）' };
+      if (type === 'role' && existingSalesConditions['employee']) {
+        if (!silent) showNotification('已添加「员工」取值条件时不能同时添加「角色」', 'warning');
+        return;
+      }
+      if (type === 'employee' && existingSalesConditions['role']) {
+        if (!silent) showNotification('已添加「角色」取值条件时不能同时添加「员工」', 'warning');
+        return;
+      }
+      var names = { role: '角色', employee: '员工', area: '订单区域', orderType: '订单类型', menu: '菜单', revenueType: '营业额类型', hours: '营业时间', shift: '班次', weekday: '周期（星期）' };
       var cardId = 'sales-cond-' + type;
       var body = '';
       if (type === 'role') {
@@ -1567,27 +2325,15 @@
           '<div class="multi-select-input" onclick="toggleMultiSelect(\'salesRoleSelect\')">' +
           '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择角色</span></div>' +
           '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
-          '<div class="multi-select-dropdown">' + roleOptionsHtml + '</div></div></div>' +
-          '<div class="drawer-form-row"><label>员工：</label><div class="multi-select role-employee-select" id="salesRoleEmployeeSelect" style="flex:1" data-placeholder="请先选择角色">' +
-          '<div class="multi-select-input" onclick="toggleMultiSelect(\'salesRoleEmployeeSelect\')">' +
-          '<div class="multi-select-tags"><span class="multi-select-placeholder">请先选择角色</span></div>' +
-          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
-          '<div class="multi-select-dropdown"><div class="multi-select-placeholder" style="padding:8px 12px">请先选择角色</div></div></div></div>';
+          '<div class="multi-select-dropdown">' + roleOptionsHtml + '</div></div></div>';
+      } else if (type === 'employee') {
+        body = getStandaloneEmployeeConditionBodyHtml('salesEmployeeCondRoleSelect', 'salesEmployeeCondStaffSelect');
       } else if (type === 'area') {
         body = '<div class="drawer-form-row"><label>订单区域：</label><select class="form-control" style="flex:1">' + areaSelectHtml + '</select></div>';
       } else if (type === 'orderType') {
         body = '<div class="drawer-form-row"><label>订单类型：</label><select class="form-control" style="flex:1">' + orderTypeSelectHtml + '</select></div>';
       } else if (type === 'menu') {
-        body = '<div class="drawer-form-row"><label>产品线：</label><div class="multi-select menu-product-line-select" id="salesMenuProductLineSelect" style="flex:1" data-placeholder="请选择产品线">' +
-          '<div class="multi-select-input" onclick="toggleMultiSelect(\'salesMenuProductLineSelect\')">' +
-          '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择产品线</span></div>' +
-          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
-          '<div class="multi-select-dropdown">' + menuProductLineOptionsHtml + '</div></div></div>' +
-          '<div class="drawer-form-row"><label>类名：</label><div class="multi-select menu-category-select" id="salesMenuCategorySelect" style="flex:1" data-placeholder="请选择类名">' +
-          '<div class="multi-select-input" onclick="toggleMultiSelect(\'salesMenuCategorySelect\')">' +
-          '<div class="multi-select-tags"><span class="multi-select-placeholder">请先选择产品线</span></div>' +
-          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
-          '<div class="multi-select-dropdown"><div class="multi-select-placeholder" style="padding:8px 12px">请先选择产品线</div></div></div></div>';
+        body = getMenuCascadeFourRowsHtml({ pl: 'salesMenuProductLineSelect', group: 'salesMenuGroupSelect', category: 'salesMenuCategorySelect', item: 'salesMenuItemSelect' });
       } else if (type === 'revenueType') {
         body = '<div class="drawer-form-row"><label>营业额类型：</label><select class="form-control" style="flex:1"><option value="">请选择</option><option>Net Sales (税前营业额)</option><option>Gross Sales (总销售额)</option></select></div>';
       } else if (type === 'hours') {
@@ -1623,44 +2369,85 @@
       if (card) { card.remove(); existingSalesConditions[type] = false; updateSalesConditionMenu(); showNotification('已删除'); }
     }
 
-    var menuCategoriesForProduct = ['酒水', '前菜', '主菜', '甜品', '饮料'];
-    var menuItemsByCategoryForProduct = {
-      '酒水': ['啤酒', '红酒', '鸡尾酒', '白酒', '清酒', '软饮'],
-      '前菜': ['沙拉', '汤', '小食', '拼盘'],
-      '主菜': ['牛排', '鱼', '意面', '汉堡', '烤鸡'],
-      '甜品': ['蛋糕', '冰淇淋', '布丁'],
-      '饮料': ['咖啡', '茶', '果汁', '苏打']
-    };
-    var tipsContainsProductCategoryOptionsHtml = menuCategoriesForProduct.map(function(c) {
-      return '<label class="multi-select-option"><input type="checkbox" value="' + c + '"> ' + c + '</label>';
-    }).join('');
-    function getTipsContainsProductItemOptionsHtml(selectedCategories) {
-      var items = [];
-      var seen = {};
-      (selectedCategories || []).forEach(function(cat) {
-        var list = menuItemsByCategoryForProduct[cat];
-        if (list) list.forEach(function(item) { if (!seen[item]) { seen[item] = 1; items.push(item); } });
-      });
-      return items.length ? items.map(function(item) {
-        return '<label class="multi-select-option"><input type="checkbox" value="' + item + '"> ' + item + '</label>';
-      }).join('') : '<div class="multi-select-placeholder" style="padding:8px 12px">请先选择类</div>';
-    }
-    function onTipsContainsProductCategoryChange(card) {
-      var catMs = card.querySelector('.tips-contains-product-category-select');
-      var itemMs = card.querySelector('.tips-contains-product-item-select');
-      if (!catMs || !itemMs) return;
-      var checked = catMs.querySelectorAll('input[type="checkbox"]:checked');
-      var selected = Array.from(checked).map(function(cb) { return cb.value; });
-      var itemDropdown = itemMs.querySelector('.multi-select-dropdown');
-      if (itemDropdown) {
-        itemDropdown.innerHTML = getTipsContainsProductItemOptionsHtml(selected);
-        itemMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = false; });
-        if (itemMs.id) refreshMultiTags(itemMs.id);
+    function addTipClaimSalesCondition(type, silent) {
+      if (existingTipClaimSalesConditions[type]) return;
+      if (type === 'role' && existingTipClaimSalesConditions['employee']) {
+        if (!silent) showNotification('已添加「员工」取值条件时不能同时添加「角色」', 'warning');
+        return;
       }
+      if (type === 'employee' && existingTipClaimSalesConditions['role']) {
+        if (!silent) showNotification('已添加「角色」取值条件时不能同时添加「员工」', 'warning');
+        return;
+      }
+      var names = { role: '角色', employee: '员工', area: '订单区域', orderType: '订单类型', menu: '菜单', revenueType: '营业额类型', hours: '营业时间', shift: '班次', weekday: '周期（星期）' };
+      var cardId = 'tcc-cond-' + type;
+      var body = '';
+      if (type === 'role') {
+        body = '<div class="drawer-form-row"><label>角色：</label><div class="multi-select role-role-select" id="tccRoleSelect" style="flex:1">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'tccRoleSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择角色</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown">' + roleOptionsHtml + '</div></div></div>' +
+          '<div class="drawer-form-row"><label>员工：</label><div class="multi-select role-employee-select" id="tccRoleEmployeeSelect" style="flex:1" data-placeholder="请先选择角色">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'tccRoleEmployeeSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请先选择角色</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown"><div class="multi-select-placeholder" style="padding:8px 12px">请先选择角色</div></div></div></div>';
+      } else if (type === 'employee') {
+        body = getStandaloneEmployeeConditionBodyHtml('tccEmployeeCondRoleSelect', 'tccEmployeeCondStaffSelect');
+      } else if (type === 'area') {
+        body = '<div class="drawer-form-row"><label>订单区域：</label><select class="form-control" style="flex:1">' + areaSelectHtml + '</select></div>';
+      } else if (type === 'orderType') {
+        body = '<div class="drawer-form-row"><label>订单类型：</label><select class="form-control" style="flex:1">' + orderTypeSelectHtml + '</select></div>';
+      } else if (type === 'menu') {
+        body = getMenuCascadeFourRowsHtml({ pl: 'tccMenuProductLineSelect', group: 'tccMenuGroupSelect', category: 'tccMenuCategorySelect', item: 'tccMenuItemSelect' });
+      } else if (type === 'revenueType') {
+        body = '<div class="drawer-form-row"><label>营业额类型：</label><select class="form-control" style="flex:1"><option value="">请选择</option><option>Net Sales (税前营业额)</option><option>Gross Sales (总销售额)</option></select></div>';
+      } else if (type === 'hours') {
+        body = '<div class="drawer-form-row"><label>营业时间：</label><input type="time" class="form-control" style="width:120px"><span style="color:var(--text-tertiary)">~</span><input type="time" class="form-control" style="width:120px"></div>';
+      } else if (type === 'shift') {
+        body = '<div class="drawer-form-row"><label>班次：</label><div class="multi-select shift-condition-select" id="tccShiftConditionSelect" style="flex:1" data-placeholder="请选择班次">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'tccShiftConditionSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择班次</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown">' + getShiftMultiSelectOptionsHtml() + '</div></div></div>' +
+          '<div class="drawer-form-row"><button type="button" class="btn btn-sm" onclick="openShiftManageModal(\'tccShiftConditionSelect\')">班次设置</button></div>';
+      } else if (type === 'weekday') {
+        body = '<div class="drawer-form-row"><label>周期：</label><div class="multi-select weekday-condition-select" id="tccWeekdayConditionSelect" style="flex:1" data-placeholder="请选择星期">' +
+          '<div class="multi-select-input" onclick="toggleMultiSelect(\'tccWeekdayConditionSelect\')">' +
+          '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择星期</span></div>' +
+          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
+          '<div class="multi-select-dropdown">' + getWeekdayMultiSelectOptionsHtml() + '</div></div></div>';
+      }
+      var card = document.createElement('div');
+      card.className = 'condition-card';
+      card.id = cardId;
+      var deleteBtn = type === 'revenueType' ? '' : '<button class="btn btn-sm btn-text-danger" onclick="removeTipClaimSalesCondition(\'' + type + '\')" style="font-size:18px;padding:0 4px">×</button>';
+      card.innerHTML = '<div class="condition-card-header"><span class="label">' + names[type] + '</span>' + deleteBtn + '</div><div class="condition-card-body">' + body + '</div>';
+      document.getElementById('tipClaimConditionsContainer').appendChild(card);
+      existingTipClaimSalesConditions[type] = true;
+      var tcm = document.getElementById('tipClaimConditionMenu');
+      if (tcm) tcm.classList.remove('show');
+      updateTipClaimSalesConditionMenu();
+      if (!silent) showNotification('已添加 ' + names[type]);
     }
+    function removeTipClaimSalesCondition(type) {
+      if (type === 'revenueType') return;
+      var card = document.getElementById('tcc-cond-' + type);
+      if (card) { card.remove(); existingTipClaimSalesConditions[type] = false; updateTipClaimSalesConditionMenu(); showNotification('已删除'); }
+    }
+
     function addTipsCondition(type, silent) {
       if (existingTipsConditions[type]) return;
-      var names = { role: '角色', area: '订单区域', orderType: '订单类型', hours: '营业时间段', tipType: '小费类型', containsProduct: '订单需包含商品', shift: '班次', weekday: '周期（星期）' };
+      if (type === 'role' && existingTipsConditions['employee']) {
+        if (!silent) showNotification('已添加「员工」取值条件时不能同时添加「角色」', 'warning');
+        return;
+      }
+      if (type === 'employee' && existingTipsConditions['role']) {
+        if (!silent) showNotification('已添加「角色」取值条件时不能同时添加「员工」', 'warning');
+        return;
+      }
+      var names = { role: '角色', employee: '员工', area: '订单区域', orderType: '订单类型', hours: '营业时间段', tipType: '小费类型', containsProduct: '订单需包含商品', shift: '班次', weekday: '周期（星期）' };
       var cardId = 'tips-cond-' + type;
       var body = '';
       if (type === 'role') {
@@ -1668,12 +2455,9 @@
           '<div class="multi-select-input" onclick="toggleMultiSelect(\'tipsRoleSelect\')">' +
           '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择角色</span></div>' +
           '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
-          '<div class="multi-select-dropdown">' + roleOptionsHtml + '</div></div></div>' +
-          '<div class="drawer-form-row"><label>员工：</label><div class="multi-select role-employee-select" id="tipsRoleEmployeeSelect" style="flex:1" data-placeholder="请先选择角色">' +
-          '<div class="multi-select-input" onclick="toggleMultiSelect(\'tipsRoleEmployeeSelect\')">' +
-          '<div class="multi-select-tags"><span class="multi-select-placeholder">请先选择角色</span></div>' +
-          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
-          '<div class="multi-select-dropdown"><div class="multi-select-placeholder" style="padding:8px 12px">请先选择角色</div></div></div></div>';
+          '<div class="multi-select-dropdown">' + roleOptionsHtml + '</div></div></div>';
+      } else if (type === 'employee') {
+        body = getStandaloneEmployeeConditionBodyHtml('tipsEmployeeCondRoleSelect', 'tipsEmployeeCondStaffSelect');
       } else if (type === 'area') {
         body = '<div class="drawer-form-row"><label>订单区域：</label><select class="form-control" style="flex:1">' + areaSelectHtml + '</select></div>';
       } else if (type === 'orderType') {
@@ -1683,16 +2467,7 @@
       } else if (type === 'tipType') {
         body = '<div class="drawer-form-row"><label>小费类型：</label><select class="form-control" style="flex:1">' + tipTypeSelectHtml + '</select></div>';
       } else if (type === 'containsProduct') {
-        body = '<div class="drawer-form-row"><label>类：</label><div class="multi-select tips-contains-product-category-select" id="tipsContainsProductCategorySelect" style="flex:1" data-placeholder="请选择类">' +
-          '<div class="multi-select-input" onclick="toggleMultiSelect(\'tipsContainsProductCategorySelect\')">' +
-          '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择类</span></div>' +
-          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
-          '<div class="multi-select-dropdown">' + tipsContainsProductCategoryOptionsHtml + '</div></div></div>' +
-          '<div class="drawer-form-row"><label>菜：</label><div class="multi-select tips-contains-product-item-select" id="tipsContainsProductItemSelect" style="flex:1" data-placeholder="请先选择类">' +
-          '<div class="multi-select-input" onclick="toggleMultiSelect(\'tipsContainsProductItemSelect\')">' +
-          '<div class="multi-select-tags"><span class="multi-select-placeholder">请先选择类</span></div>' +
-          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
-          '<div class="multi-select-dropdown"><div class="multi-select-placeholder" style="padding:8px 12px">请先选择类</div></div></div></div>';
+        body = getMenuCascadeFourRowsHtml({ pl: 'tipsCpPlSelect', group: 'tipsCpGroupSelect', category: 'tipsCpCategorySelect', item: 'tipsCpItemSelect' });
       } else if (type === 'shift') {
         body = '<div class="drawer-form-row"><label>班次：</label><div class="multi-select shift-condition-select" id="tipsShiftConditionSelect" style="flex:1" data-placeholder="请选择班次">' +
           '<div class="multi-select-input" onclick="toggleMultiSelect(\'tipsShiftConditionSelect\')">' +
@@ -1712,10 +2487,6 @@
       card.id = cardId;
       card.innerHTML = '<div class="condition-card-header"><span class="label">' + names[type] + '</span><button class="btn btn-sm btn-text-danger" onclick="removeTipsCondition(\'' + type + '\')" style="font-size:18px;padding:0 4px">×</button></div><div class="condition-card-body">' + body + '</div>';
       document.getElementById('tipsConditionsContainer').appendChild(card);
-      if (type === 'containsProduct') {
-        var catMs = card.querySelector('.tips-contains-product-category-select');
-        if (catMs) catMs.addEventListener('change', function() { onTipsContainsProductCategoryChange(card); });
-      }
       existingTipsConditions[type] = true;
       document.getElementById('tipsConditionMenu').classList.remove('show');
       updateTipsConditionMenu();
@@ -1728,7 +2499,15 @@
 
     function addSurchargeCondition(type, silent) {
       if (existingSurchargeConditions[type]) return;
-      var names = { role: '角色', area: '订单区域', orderType: '订单类型', hours: '营业时间段', tipType: '小费类型', shift: '班次', weekday: '周期（星期）' };
+      if (type === 'role' && existingSurchargeConditions['employee']) {
+        if (!silent) showNotification('已添加「员工」取值条件时不能同时添加「角色」', 'warning');
+        return;
+      }
+      if (type === 'employee' && existingSurchargeConditions['role']) {
+        if (!silent) showNotification('已添加「角色」取值条件时不能同时添加「员工」', 'warning');
+        return;
+      }
+      var names = { role: '角色', employee: '员工', area: '订单区域', orderType: '订单类型', hours: '营业时间段', tipType: '小费类型', shift: '班次', weekday: '周期（星期）' };
       var cardId = 'surcharge-cond-' + type;
       var body = '';
       if (type === 'role') {
@@ -1736,12 +2515,9 @@
           '<div class="multi-select-input" onclick="toggleMultiSelect(\'surchargeRoleSelect\')">' +
           '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择角色</span></div>' +
           '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
-          '<div class="multi-select-dropdown">' + roleOptionsHtml + '</div></div></div>' +
-          '<div class="drawer-form-row"><label>员工：</label><div class="multi-select role-employee-select" id="surchargeRoleEmployeeSelect" style="flex:1" data-placeholder="请先选择角色">' +
-          '<div class="multi-select-input" onclick="toggleMultiSelect(\'surchargeRoleEmployeeSelect\')">' +
-          '<div class="multi-select-tags"><span class="multi-select-placeholder">请先选择角色</span></div>' +
-          '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg></div>' +
-          '<div class="multi-select-dropdown"><div class="multi-select-placeholder" style="padding:8px 12px">请先选择角色</div></div></div></div>';
+          '<div class="multi-select-dropdown">' + roleOptionsHtml + '</div></div></div>';
+      } else if (type === 'employee') {
+        body = getStandaloneEmployeeConditionBodyHtml('surchargeEmployeeCondRoleSelect', 'surchargeEmployeeCondStaffSelect');
       } else if (type === 'area') {
         body = '<div class="drawer-form-row"><label>订单区域：</label><select class="form-control" style="flex:1">' + areaSelectHtml + '</select></div>';
       } else if (type === 'orderType') {
@@ -1826,6 +2602,45 @@
       if (!card) return;
       if (type === 'role' && value) {
         var roleMs = card.querySelector('.role-role-select');
+        var roleArr = Array.isArray(value) ? value : (value.role || []);
+        if (roleMs) {
+          roleMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+            cb.checked = roleArr.indexOf(cb.value) >= 0;
+          });
+          if (roleMs.id) refreshMultiTags(roleMs.id);
+        }
+      } else if (type === 'employee') {
+        applyStandaloneEmployeeConditionToCard(card, value);
+      } else if (type === 'area' || type === 'orderType' || type === 'revenueType') {
+        var sel = card.querySelector('select');
+        if (sel && value) sel.value = value;
+      } else if (type === 'menu' && value) {
+        applyMenuCascadeValue(card, value);
+      } else if (type === 'hours' && value && (value.start || value.end)) {
+        var inputs = card.querySelectorAll('input[type="time"]');
+        if (inputs[0] && value.start) inputs[0].value = value.start;
+        if (inputs[1] && value.end) inputs[1].value = value.end;
+      } else if (type === 'shift') {
+        var arr = Array.isArray(value) ? value : (value != null && value !== '' ? [String(value)] : []);
+        mergeShiftsFromSaved(arr);
+        var shiftMs = card.querySelector('.shift-condition-select');
+        if (shiftMs) {
+          var dropdown = shiftMs.querySelector('.multi-select-dropdown');
+          if (dropdown) dropdown.innerHTML = getShiftMultiSelectOptionsHtml();
+          shiftMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+            cb.checked = arr.indexOf(cb.value) >= 0;
+          });
+          if (shiftMs.id) refreshMultiTags(shiftMs.id);
+        }
+      } else if (type === 'weekday') {
+        applyWeekdayConditionValue(card, value);
+      }
+    }
+    function setTipClaimSalesConditionValue(type, value) {
+      var card = document.getElementById('tcc-cond-' + type);
+      if (!card) return;
+      if (type === 'role' && value) {
+        var roleMs = card.querySelector('.role-role-select');
         var employeeMs = card.querySelector('.role-employee-select');
         var roleArr = Array.isArray(value) ? value : (value.role || []);
         if (roleMs && roleArr.length) {
@@ -1845,23 +2660,13 @@
           }
           syncRoleEmployeeSelectAllState(employeeMs);
         }
+      } else if (type === 'employee') {
+        applyStandaloneEmployeeConditionToCard(card, value);
       } else if (type === 'area' || type === 'orderType' || type === 'revenueType') {
         var sel = card.querySelector('select');
         if (sel && value) sel.value = value;
       } else if (type === 'menu' && value) {
-        var plMs = card.querySelector('.menu-product-line-select');
-        var catMs = card.querySelector('.menu-category-select');
-        if (!plMs || !catMs) return;
-        var plArr = Array.isArray(value.productLine) ? value.productLine : (value.productLine ? [value.productLine] : []);
-        var catArr = Array.isArray(value.category) ? value.category : (value.category ? [value.category] : []);
-        if (plArr.length === 0 && catArr.length > 0) {
-          for (var k in menuCategoriesByProductLine) { if (menuCategoriesByProductLine[k].some(function(c) { return catArr.indexOf(c) >= 0; })) { plArr = [k]; break; } }
-        }
-        plMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = plArr.indexOf(cb.value) >= 0; });
-        refreshMultiTags(plMs.id);
-        onMenuProductLineChange(card);
-        catMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = catArr.indexOf(cb.value) >= 0; });
-        refreshMultiTags(catMs.id);
+        applyMenuCascadeValue(card, value);
       } else if (type === 'hours' && value && (value.start || value.end)) {
         var inputs = card.querySelectorAll('input[type="time"]');
         if (inputs[0] && value.start) inputs[0].value = value.start;
@@ -1887,44 +2692,20 @@
       if (!card) return;
       if (type === 'role' && value) {
         var roleMs = card.querySelector('.role-role-select');
-        var employeeMs = card.querySelector('.role-employee-select');
         var roleArr = Array.isArray(value) ? value : (value.role || []);
-        if (roleMs && roleArr.length) {
+        if (roleMs) {
           roleMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
             cb.checked = roleArr.indexOf(cb.value) >= 0;
           });
-          refreshMultiTags(roleMs.id);
+          if (roleMs.id) refreshMultiTags(roleMs.id);
         }
-        if (roleMs && employeeMs) {
-          updateRoleConditionEmployeeOptions(roleMs, employeeMs);
-          var empArr = (value && !Array.isArray(value) && value.employees) ? value.employees : [];
-          if (empArr.length) {
-            employeeMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
-              cb.checked = empArr.indexOf(cb.value) >= 0;
-            });
-            if (employeeMs.id) refreshMultiTags(employeeMs.id);
-          }
-          syncRoleEmployeeSelectAllState(employeeMs);
-        }
+      } else if (type === 'employee') {
+        applyStandaloneEmployeeConditionToCard(card, value);
       } else if (type === 'area' || type === 'orderType' || type === 'tipType') {
         var sel = card.querySelector('select');
         if (sel && value !== undefined) sel.value = value || '';
       } else if (type === 'containsProduct') {
-        if (value && typeof value === 'object') {
-          var catMs = card.querySelector('.tips-contains-product-category-select');
-          var itemMs = card.querySelector('.tips-contains-product-item-select');
-          var catArr = Array.isArray(value.category) ? value.category : [];
-          var itemArr = Array.isArray(value.item) ? value.item : [];
-          if (catMs) {
-            catMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = catArr.indexOf(cb.value) >= 0; });
-            if (catMs.id) refreshMultiTags(catMs.id);
-          }
-          onTipsContainsProductCategoryChange(card);
-          if (itemMs) {
-            itemMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = itemArr.indexOf(cb.value) >= 0; });
-            if (itemMs.id) refreshMultiTags(itemMs.id);
-          }
-        }
+        if (value && typeof value === 'object') applyMenuCascadeValue(card, value);
       } else if (type === 'hours' && value && (value.start || value.end)) {
         var inputs = card.querySelectorAll('input[type="time"]');
         if (inputs[0] && value.start) inputs[0].value = value.start;
@@ -1950,25 +2731,15 @@
       if (!card) return;
       if (type === 'role' && value) {
         var roleMs = card.querySelector('.role-role-select');
-        var employeeMs = card.querySelector('.role-employee-select');
         var roleArr = Array.isArray(value) ? value : (value.role || []);
-        if (roleMs && roleArr.length) {
+        if (roleMs) {
           roleMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
             cb.checked = roleArr.indexOf(cb.value) >= 0;
           });
-          refreshMultiTags(roleMs.id);
+          if (roleMs.id) refreshMultiTags(roleMs.id);
         }
-        if (roleMs && employeeMs) {
-          updateRoleConditionEmployeeOptions(roleMs, employeeMs);
-          var empArr = (value && !Array.isArray(value) && value.employees) ? value.employees : [];
-          if (empArr.length) {
-            employeeMs.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
-              cb.checked = empArr.indexOf(cb.value) >= 0;
-            });
-            if (employeeMs.id) refreshMultiTags(employeeMs.id);
-          }
-          syncRoleEmployeeSelectAllState(employeeMs);
-        }
+      } else if (type === 'employee') {
+        applyStandaloneEmployeeConditionToCard(card, value);
       } else if (type === 'area' || type === 'orderType' || type === 'tipType') {
         var sel = card.querySelector('select');
         if (sel && value) sel.value = value;
@@ -2101,6 +2872,8 @@
     }
 
     var receiverRoleCounter = 0;
+    var orderResidualRoleCounter = 0;
+    var tipClaimRoleCounter = 0;
     var receiverSubCounter = 0;
     var receiverRoleDropdownHtml =
       '<label class="multi-select-option"><input type="checkbox" value="Assistant Manager"> Assistant Manager</label>' +
@@ -2112,14 +2885,23 @@
       '<label class="multi-select-option"><input type="checkbox" value="Runner"> Runner</label>' +
       '<label class="multi-select-option"><input type="checkbox" value="Server"> Server</label>' +
       '<label class="multi-select-option"><input type="checkbox" value="Shift Lead"> Shift Lead</label>';
+    var tipClaimRoleDropdownHtml = (function () {
+      var opts = ['Assistant Manager', 'Bartender', 'Busser', 'Cashier', 'Driver', 'Host', 'Kitchen', 'Manager', 'Runner', 'Server', 'Shift Lead', 'Trainee', 'Waiter', 'Chef'];
+      var seen = {};
+      return opts.filter(function (o) { if (seen[o]) return false; seen[o] = true; return true; }).map(function (o) {
+        return '<label class="multi-select-option"><input type="checkbox" value="' + String(o).replace(/"/g, '&quot;') + '"> ' + o + '</label>';
+      }).join('');
+    })();
 
     function getReceiverSecondaryBlock(primaryRow) {
       var n = primaryRow && primaryRow.nextElementSibling;
-      return n && n.classList.contains('receiver-secondary-block') ? n : null;
+      if (!n) return null;
+      if (n.classList.contains('receiver-secondary-block') || n.classList.contains('order-residual-secondary-block')) return n;
+      return null;
     }
 
     function toggleReceiverRedistribute(btn) {
-      var pr = btn.closest('tr.receiver-primary-row');
+      var pr = btn.closest('tr.receiver-primary-row, tr.order-residual-primary-row');
       if (!pr) return;
       var block = getReceiverSecondaryBlock(pr);
       if (!block) return;
@@ -2137,20 +2919,29 @@
     }
 
     function addReceiverSubRowFromBtn(btn) {
-      var block = btn.closest('.receiver-secondary-block');
+      var block = btn.closest('.receiver-secondary-block, .order-residual-secondary-block');
       if (!block) return;
       var pr = block.previousElementSibling;
-      if (pr && pr.classList.contains('receiver-primary-row')) addReceiverSubRow(pr);
+      if (pr && (pr.classList.contains('receiver-primary-row') || pr.classList.contains('order-residual-primary-row'))) addReceiverSubRow(pr);
     }
 
     function removeReceiverPrimaryRow(btn) {
       var pr = btn.closest('tr.receiver-primary-row');
+      if (pr) {
+        var block = getReceiverSecondaryBlock(pr);
+        if (block) block.remove();
+        pr.remove();
+        calcTotal();
+        updateAllReceiverRoleOptions();
+        return;
+      }
+      pr = btn.closest('tr.order-residual-primary-row');
       if (!pr) return;
-      var block = getReceiverSecondaryBlock(pr);
-      if (block) block.remove();
+      var block2 = getReceiverSecondaryBlock(pr);
+      if (block2) block2.remove();
       pr.remove();
-      calcTotal();
-      updateAllReceiverRoleOptions();
+      calcOrderResidualTotal();
+      updateOrderResidualReceiverRoleOptions();
     }
 
     function removeReceiverSubRow(btn) {
@@ -2208,10 +2999,10 @@
     }
 
     function getPrimaryReceiverRolesForSubTbody(tbody) {
-      var block = tbody && tbody.closest('.receiver-secondary-block');
+      var block = tbody && tbody.closest('.receiver-secondary-block, .order-residual-secondary-block');
       if (!block) return [];
       var pr = block.previousElementSibling;
-      if (!pr || !pr.classList.contains('receiver-primary-row')) return [];
+      if (!pr || (!pr.classList.contains('receiver-primary-row') && !pr.classList.contains('order-residual-primary-row'))) return [];
       var pms = pr.querySelector('.receiver-role-select');
       if (!pms) return [];
       var roles = [];
@@ -2300,6 +3091,154 @@
       updateAllReceiverRoleOptions();
     }
 
+    function getOrderResidualRolesSelectedInOtherRows(excludeRow) {
+      var taken = [];
+      document.querySelectorAll('#orderResidualReceiverTableBody tr.order-residual-primary-row').forEach(function(tr) {
+        if (tr === excludeRow) return;
+        var ms = tr.querySelector('.receiver-role-select');
+        if (!ms) return;
+        ms.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) {
+          taken.push(cb.value);
+        });
+      });
+      return taken;
+    }
+
+    function updateOrderResidualReceiverRoleOptions() {
+      document.querySelectorAll('#orderResidualReceiverTableBody tr.order-residual-primary-row').forEach(function(tr) {
+        var ms = tr.querySelector('.receiver-role-select');
+        if (!ms) return;
+        var taken = getOrderResidualRolesSelectedInOtherRows(tr);
+        var dropdown = ms.querySelector('.multi-select-dropdown');
+        if (!dropdown) return;
+        dropdown.querySelectorAll('label.multi-select-option').forEach(function(label) {
+          var cb = label.querySelector('input[type="checkbox"]');
+          if (!cb) return;
+          var value = cb.value;
+          var isTaken = taken.indexOf(value) >= 0;
+          label.style.display = isTaken ? 'none' : '';
+        });
+      });
+    }
+
+    function calcOrderResidualTotal() {
+      var total = 0;
+      var el = document.getElementById('orderResidualTotalPercent');
+      if (!el) return;
+      document.querySelectorAll('#orderResidualReceiverTableBody tr.order-residual-primary-row input[type="number"]').forEach(function(input) {
+        total += parseFloat(input.value) || 0;
+      });
+      el.textContent = total;
+      el.style.color = total === 100 ? 'var(--success)' : 'var(--danger)';
+    }
+
+    function addOrderResidualReceiverRow(opt) {
+      opt = opt || {};
+      orderResidualRoleCounter++;
+      var msId = 'orderResRole' + orderResidualRoleCounter;
+      var rowId = 'order-res-recv-' + orderResidualRoleCounter;
+      var tbody = document.getElementById('orderResidualReceiverTableBody');
+      if (!tbody) return;
+      var row = document.createElement('tr');
+      row.className = 'order-residual-primary-row';
+      row.dataset.receiverRowId = rowId;
+      row.innerHTML =
+        '<td>' +
+          '<div class="multi-select receiver-role-select" id="' + msId + '" style="width:220px">' +
+            '<div class="multi-select-input" onclick="toggleMultiSelect(\'' + msId + '\')">' +
+              '<div class="multi-select-tags"><span class="multi-select-placeholder">请选择角色</span></div>' +
+              '<svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>' +
+            '</div>' +
+            '<div class="multi-select-dropdown">' + receiverRoleDropdownHtml + '</div>' +
+          '</div>' +
+          '<div class="receiver-row-weights" style="font-size:12px;color:var(--text-tertiary);margin-top:6px;min-height:18px;"></div>' +
+        '</td>' +
+        '<td><input type="number" value="' + (opt.pct != null ? opt.pct : 0) + '" oninput="calcOrderResidualTotal()"> %</td>' +
+        '<td>' +
+          '<a href="javascript:void(0)" class="btn-link weight-link disabled" onclick="openWeightModalForRow(this)" style="font-size:13px">设置员工小费权重</a>' +
+          '<a href="javascript:void(0)" class="btn-link" style="font-size:13px;margin-left:8px" onclick="toggleReceiverRedistribute(this)">再分配</a>' +
+          '<a href="javascript:void(0)" class="btn-link" style="color:var(--danger);font-size:13px;margin-left:8px" onclick="removeReceiverPrimaryRow(this)">删除</a>' +
+        '</td>';
+      var secondaryRow = document.createElement('tr');
+      secondaryRow.className = 'order-residual-secondary-block';
+      secondaryRow.style.display = 'none';
+      secondaryRow.innerHTML =
+        '<td colspan="3" style="padding:8px 12px 12px 32px;background:rgba(0,0,0,0.02);border-left:3px solid var(--primary-border, #91caff)">' +
+          '<div class="receiver-secondary-panel" style="display:none">' +
+            '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;font-weight:500">二级再分配（在本条一级占比内细分）</div>' +
+            '<table class="receiver-sub-table">' +
+              '<thead><tr><th>角色</th><th>占比%</th><th>操作</th></tr></thead>' +
+              '<tbody class="receiver-sub-tbody"></tbody>' +
+            '</table>' +
+            '<button type="button" class="btn btn-sm" style="margin-top:8px" onclick="addReceiverSubRowFromBtn(this)"><span style="font-size:14px">+</span> 添加二级规则</button>' +
+          '</div>' +
+        '</td>';
+      tbody.appendChild(row);
+      tbody.appendChild(secondaryRow);
+      if (opt.roles && opt.roles.length) {
+        var container = document.getElementById(msId);
+        if (container) {
+          container.querySelectorAll('input[type="checkbox"]').forEach(function(cb) {
+            cb.checked = opt.roles.indexOf(cb.value) >= 0;
+          });
+          refreshMultiTags(msId);
+        }
+      }
+      if (opt.employeeWeights && Object.keys(opt.employeeWeights).length) {
+        try { row.dataset.employeeWeights = JSON.stringify(opt.employeeWeights); } catch (e) {}
+        renderReceiverRowWeights(row);
+      }
+      updateReceiverRowWeightBtn(row);
+      if (opt.subReceivers && opt.subReceivers.length) {
+        secondaryRow.style.display = 'table-row';
+        var panel = secondaryRow.querySelector('.receiver-secondary-panel');
+        if (panel) panel.style.display = 'block';
+        opt.subReceivers.forEach(function(s) { addReceiverSubRow(row, s); });
+      }
+      updateOrderResidualReceiverRoleOptions();
+      calcOrderResidualTotal();
+    }
+
+    function collectOrderResidualReceivers() {
+      var receivers = [];
+      document.querySelectorAll('#orderResidualReceiverTableBody tr.order-residual-primary-row').forEach(function(tr) {
+        var ms = tr.querySelector('.receiver-role-select');
+        if (!ms) return;
+        var roles = [];
+        ms.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) { roles.push(cb.value); });
+        var pctInp = tr.querySelector('input[type="number"]');
+        var pct = pctInp ? (parseFloat(pctInp.value) || 0) : 0;
+        var employeeWeights = {};
+        try {
+          if (tr.dataset.employeeWeights) employeeWeights = JSON.parse(tr.dataset.employeeWeights);
+        } catch (e) {}
+        var subReceivers = [];
+        var block = getReceiverSecondaryBlock(tr);
+        if (block) {
+          var stbody = block.querySelector('.receiver-sub-tbody');
+          if (stbody) {
+            stbody.querySelectorAll('tr.receiver-sub-row').forEach(function(sr) {
+              var sms = sr.querySelector('.receiver-sub-role-select');
+              if (!sms) return;
+              var sroles = [];
+              sms.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) { sroles.push(cb.value); });
+              var spctInp = sr.querySelector('input[type="number"]');
+              var spct = spctInp ? (parseFloat(spctInp.value) || 0) : 0;
+              var sew = {};
+              try {
+                if (sr.dataset.employeeWeights) sew = JSON.parse(sr.dataset.employeeWeights);
+              } catch (e2) {}
+              if (sroles.length > 0 && spct > 0) subReceivers.push({ roles: sroles, pct: spct, employeeWeights: sew });
+            });
+          }
+        }
+        var rec = { roles: roles, pct: pct, employeeWeights: employeeWeights };
+        if (subReceivers.length) rec.subReceivers = subReceivers;
+        if (roles.length > 0 && pct > 0) receivers.push(rec);
+      });
+      return receivers;
+    }
+
     function getReceiverRolesSelectedInOtherRows(excludeRow) {
       var taken = [];
       document.querySelectorAll('#receiverTableBody tr.receiver-primary-row').forEach(function(tr) {
@@ -2318,6 +3257,36 @@
         var ms = tr.querySelector('.receiver-role-select');
         if (!ms) return;
         var taken = getReceiverRolesSelectedInOtherRows(tr);
+        var dropdown = ms.querySelector('.multi-select-dropdown');
+        if (!dropdown) return;
+        dropdown.querySelectorAll('label.multi-select-option').forEach(function(label) {
+          var cb = label.querySelector('input[type="checkbox"]');
+          if (!cb) return;
+          var value = cb.value;
+          var isTaken = taken.indexOf(value) >= 0;
+          label.style.display = isTaken ? 'none' : '';
+        });
+      });
+    }
+
+    function getTipClaimRolesSelectedInOtherRows(excludeRow) {
+      var taken = [];
+      document.querySelectorAll('#tipClaimsTableBody tr.tip-claim-row').forEach(function(tr) {
+        if (tr === excludeRow) return;
+        var ms = tr.querySelector('.tip-claim-role-select');
+        if (!ms) return;
+        ms.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) {
+          taken.push(cb.value);
+        });
+      });
+      return taken;
+    }
+
+    function updateAllTipClaimRoleOptions() {
+      document.querySelectorAll('#tipClaimsTableBody tr.tip-claim-row').forEach(function(tr) {
+        var ms = tr.querySelector('.tip-claim-role-select');
+        if (!ms) return;
+        var taken = getTipClaimRolesSelectedInOtherRows(tr);
         var dropdown = ms.querySelector('.multi-select-dropdown');
         if (!dropdown) return;
         dropdown.querySelectorAll('label.multi-select-option').forEach(function(label) {
@@ -2380,14 +3349,16 @@
       if (linkEl.classList.contains('disabled')) return;
       var row = linkEl.closest('tr');
       if (!row) return;
+      var isTipClaim = row.classList.contains('tip-claim-row');
       var ms = row.querySelector('.multi-select');
       var roles = [];
       if (ms) ms.querySelectorAll('input[type="checkbox"]:checked').forEach(function(cb) { roles.push(cb.value); });
       var tbody = document.getElementById('weightModalBody');
       var emptyEl = document.getElementById('weightModalEmpty');
+      var hintNoRole = isTipClaim ? '请先在计提小费接受方规则中选择接收角色' : '请先在接收方规则中选择角色';
       if (!tbody || roles.length === 0) {
         if (tbody) tbody.innerHTML = '';
-        if (emptyEl) { emptyEl.style.display = 'block'; emptyEl.textContent = '请先在接收方规则中选择角色'; }
+        if (emptyEl) { emptyEl.style.display = 'block'; emptyEl.textContent = hintNoRole; }
       } else {
         var existing = {};
         try {
@@ -2412,14 +3383,20 @@
           if (emptyEl) { emptyEl.style.display = 'block'; emptyEl.textContent = '所选角色暂无员工数据'; }
         }
       }
-      var rowId = row.dataset.receiverRowId || '';
-      document.getElementById('weightModal').dataset.weightRowId = rowId;
+      var modalEl = document.getElementById('weightModal');
+      if (isTipClaim) {
+        modalEl.dataset.weightTipClaimId = row.dataset.claimId || '';
+        modalEl.dataset.weightRowId = '';
+      } else {
+        modalEl.dataset.weightTipClaimId = '';
+        modalEl.dataset.weightRowId = row.dataset.receiverRowId || '';
+      }
       openModal('weightModal');
     }
 
     function saveWeight() {
       var modal = document.getElementById('weightModal');
-      var rowId = modal && modal.dataset.weightRowId ? modal.dataset.weightRowId : '';
+      var tipClaimId = modal && modal.dataset.weightTipClaimId ? modal.dataset.weightTipClaimId : '';
       var tbody = document.getElementById('weightModalBody');
       var rows = tbody ? tbody.querySelectorAll('tr') : [];
       var weights = {};
@@ -2436,29 +3413,43 @@
         if (!weights[role]) weights[role] = {};
         weights[role][emp] = val;
       });
-      if (rowId) {
-        var tr = document.querySelector('#receiverTableBody tr[data-receiver-row-id="' + rowId + '"]');
-        if (tr) {
-          tr.dataset.employeeWeights = JSON.stringify(weights);
-          renderReceiverRowWeights(tr);
+      if (tipClaimId) {
+        var ttr = null;
+        document.querySelectorAll('#tipClaimsTableBody tr.tip-claim-row').forEach(function(r) {
+          if (r.dataset.claimId === tipClaimId) ttr = r;
+        });
+        if (ttr) {
+          ttr.dataset.employeeWeights = JSON.stringify(weights);
+          renderReceiverRowWeights(ttr);
+        }
+      } else {
+        var rowId = modal && modal.dataset.weightRowId ? modal.dataset.weightRowId : '';
+        if (rowId) {
+          var tr = document.querySelector('#receiverTableBody tr[data-receiver-row-id="' + rowId + '"]')
+            || document.querySelector('#orderResidualReceiverTableBody tr[data-receiver-row-id="' + rowId + '"]');
+          if (tr) {
+            tr.dataset.employeeWeights = JSON.stringify(weights);
+            renderReceiverRowWeights(tr);
+          }
         }
       }
       closeModal('weightModal');
       showNotification('员工权重保存成功');
     }
 
-    function formatSalesCondForDisplay(cond) {
+    function formatSalesCondForDisplay(cond, omitRoleSubEmployees) {
       if (!cond || typeof cond !== 'object') return '';
       var parts = [];
       if (Array.isArray(cond.role) && cond.role.length) parts.push('角色: ' + cond.role.join(', '));
       else if (cond.role) parts.push('角色: ' + cond.role);
-      if (Array.isArray(cond.employees) && cond.employees.length) parts.push('员工: ' + cond.employees.join(', '));
+      if (!omitRoleSubEmployees && Array.isArray(cond.employees) && cond.employees.length) parts.push('员工: ' + cond.employees.join(', '));
+      if (Array.isArray(cond.employeeRoles) && cond.employeeRoles.length) parts.push('员工筛选角色: ' + cond.employeeRoles.join(', '));
+      if (Array.isArray(cond.employee) && cond.employee.length) parts.push('员工: ' + cond.employee.join(', '));
       if (cond.area) parts.push('订单区域: ' + cond.area);
       if (cond.orderType) parts.push('订单类型: ' + cond.orderType);
       if (cond.menu && typeof cond.menu === 'object') {
-        var pl = Array.isArray(cond.menu.productLine) ? cond.menu.productLine.join(', ') : (cond.menu.productLine || '');
-        var cat = Array.isArray(cond.menu.category) ? cond.menu.category.join(', ') : (cond.menu.category || '');
-        if (pl || cat) parts.push('菜单: ' + (pl ? pl + ' / ' : '') + (cat || ''));
+        var menuTxt = formatMenuCascadeCond(cond.menu);
+        if (menuTxt) parts.push('菜单: ' + menuTxt);
       }
       if (cond.revenueType) parts.push('营业额类型: ' + cond.revenueType);
       if (cond.hours && (cond.hours.start || cond.hours.end)) parts.push('营业时间: ' + (cond.hours.start || '') + '-' + (cond.hours.end || ''));
@@ -2471,16 +3462,14 @@
       var parts = [];
       if (Array.isArray(cond.role) && cond.role.length) parts.push('角色: ' + cond.role.join(', '));
       else if (cond.role) parts.push('角色: ' + cond.role);
-      if (Array.isArray(cond.employees) && cond.employees.length) parts.push('员工: ' + cond.employees.join(', '));
+      if (Array.isArray(cond.employeeRoles) && cond.employeeRoles.length) parts.push('员工筛选角色: ' + cond.employeeRoles.join(', '));
+      if (Array.isArray(cond.employee) && cond.employee.length) parts.push('员工: ' + cond.employee.join(', '));
       if (cond.area) parts.push('订单区域: ' + cond.area);
       if (cond.orderType) parts.push('订单类型: ' + cond.orderType);
       if (cond.tipType) parts.push('小费类型: ' + cond.tipType);
-      if (cond.containsProduct && (Array.isArray(cond.containsProduct.category) && cond.containsProduct.category.length || Array.isArray(cond.containsProduct.item) && cond.containsProduct.item.length)) {
-        var cp = cond.containsProduct;
-        var cpParts = [];
-        if (cp.category && cp.category.length) cpParts.push('类: ' + cp.category.join(', '));
-        if (cp.item && cp.item.length) cpParts.push('菜: ' + cp.item.join(', '));
-        if (cpParts.length) parts.push('订单需包含商品: ' + cpParts.join('；'));
+      if (cond.containsProduct && menuCascadeHasAnySelection(cond.containsProduct)) {
+        var cpTxt = formatMenuCascadeCond(cond.containsProduct);
+        if (cpTxt) parts.push('订单需包含商品: ' + cpTxt);
       }
       if (cond.hours && (cond.hours.start || cond.hours.end)) parts.push('营业时间段: ' + (cond.hours.start || '') + '-' + (cond.hours.end || ''));
       if (Array.isArray(cond.shift) && cond.shift.length) parts.push('班次: ' + formatShiftSelectionForDisplay(cond.shift));
@@ -2493,7 +3482,8 @@
       var parts = [];
       if (Array.isArray(cond.role) && cond.role.length) parts.push('角色: ' + cond.role.join(', '));
       else if (cond.role) parts.push('角色: ' + cond.role);
-      if (Array.isArray(cond.employees) && cond.employees.length) parts.push('员工: ' + cond.employees.join(', '));
+      if (Array.isArray(cond.employeeRoles) && cond.employeeRoles.length) parts.push('员工筛选角色: ' + cond.employeeRoles.join(', '));
+      if (Array.isArray(cond.employee) && cond.employee.length) parts.push('员工: ' + cond.employee.join(', '));
       if (cond.area) parts.push('订单区域: ' + cond.area);
       if (cond.orderType) parts.push('订单类型: ' + cond.orderType);
       if (cond.tipType) parts.push('小费类型: ' + cond.tipType);
@@ -2513,11 +3503,11 @@
       if (type === 'sales') {
         if (!cond || typeof cond !== 'object') return false;
         if (Array.isArray(cond.role) && cond.role.length) return true;
-        if (Array.isArray(cond.employees) && cond.employees.length) return true;
+        if (Array.isArray(cond.employee) && cond.employee.length) return true;
         if (cond.area) return true;
         if (cond.orderType) return true;
         if (cond.revenueType) return true;
-        if (cond.menu && (Array.isArray(cond.menu.productLine) && cond.menu.productLine.length || Array.isArray(cond.menu.category) && cond.menu.category.length)) return true;
+        if (cond.menu && menuCascadeHasAnySelection(cond.menu)) return true;
         if (cond.hours && (cond.hours.start || cond.hours.end)) return true;
         if (Array.isArray(cond.shift) && cond.shift.length) return true;
         return false;
@@ -2525,11 +3515,11 @@
       if (type === 'tips') {
         if (!cond || typeof cond !== 'object') return false;
         if (Array.isArray(cond.role) && cond.role.length) return true;
-        if (Array.isArray(cond.employees) && cond.employees.length) return true;
+        if (Array.isArray(cond.employee) && cond.employee.length) return true;
         if (cond.area) return true;
         if (cond.orderType) return true;
         if (cond.tipType) return true;
-        if (cond.containsProduct && (Array.isArray(cond.containsProduct.category) && cond.containsProduct.category.length || Array.isArray(cond.containsProduct.item) && cond.containsProduct.item.length)) return true;
+        if (cond.containsProduct && menuCascadeHasAnySelection(cond.containsProduct)) return true;
         if (cond.hours && (cond.hours.start || cond.hours.end)) return true;
         if (Array.isArray(cond.shift) && cond.shift.length) return true;
         if (Array.isArray(cond.weekdays) && cond.weekdays.length) return true;
@@ -2539,7 +3529,7 @@
         if (!cond || typeof cond !== 'object') return false;
         if (cond.types && Array.isArray(cond.types) && cond.types.length) return true;
         if (Array.isArray(cond.role) && cond.role.length) return true;
-        if (Array.isArray(cond.employees) && cond.employees.length) return true;
+        if (Array.isArray(cond.employee) && cond.employee.length) return true;
         if (cond.area) return true;
         if (cond.orderType) return true;
         if (cond.tipType) return true;
@@ -2562,7 +3552,7 @@
       var cond = poolRuleConditions[ruleId];
       var type = (ruleId || '').split('_')[0];
       var text = '';
-      if (type === 'sales') text = formatSalesCondForDisplay(cond || {});
+      if (type === 'sales') text = formatSalesCondForDisplay(cond || {}, true);
       else if (type === 'tips') text = formatTipsCondForDisplay(cond || {});
       else if (type === 'surcharge') text = formatSurchargeCondForDisplay(cond || {});
       else if (type === 'manual') text = formatManualCondForDisplay(cond || {});
@@ -2573,16 +3563,31 @@
 
     function saveSalesCondition() {
       if (currentEditingRuleId) {
-        poolRuleConditions[currentEditingRuleId] = collectSalesConditions();
+        var sc = collectSalesConditions();
+        normalizeConditionsRoleEmployeeExclusive(sc);
+        poolRuleConditions[currentEditingRuleId] = sc;
         updatePoolRuleConditionDisplay(currentEditingRuleId);
       }
       closeDrawer('salesDrawer');
       showNotification('销售额取值条件保存成功');
     }
+    function saveTipClaimSalesConditions() {
+      if (currentTipClaimSalesConditionClaimId) {
+        var tcc = collectTipClaimSalesConditions();
+        normalizeConditionsRoleEmployeeExclusive(tcc);
+        tipClaimConditions[currentTipClaimSalesConditionClaimId] = tcc;
+        updateTipClaimRowConditionSummary(currentTipClaimSalesConditionClaimId);
+      }
+      currentTipClaimSalesConditionClaimId = null;
+      closeDrawer('tipClaimSalesDrawer');
+      showNotification('计提取值条件已保存');
+    }
 
     function saveTipsCondition() {
       if (currentEditingRuleId) {
-        poolRuleConditions[currentEditingRuleId] = collectTipsConditions();
+        var tc = collectTipsConditions();
+        normalizeConditionsRoleEmployeeExclusive(tc);
+        poolRuleConditions[currentEditingRuleId] = tc;
         updatePoolRuleConditionDisplay(currentEditingRuleId);
       }
       closeDrawer('tipsDrawer');
@@ -2591,7 +3596,9 @@
 
     function saveSurchargeCondition() {
       if (currentEditingRuleId) {
-        poolRuleConditions[currentEditingRuleId] = collectSurchargeConditions();
+        var suc = collectSurchargeConditions();
+        normalizeConditionsRoleEmployeeExclusive(suc);
+        poolRuleConditions[currentEditingRuleId] = suc;
         updatePoolRuleConditionDisplay(currentEditingRuleId);
       }
       closeDrawer('surchargeDrawer');
@@ -2636,14 +3643,18 @@
         if (!type) return;
         if (type === 'role') {
           var roleMs = card.querySelector('.role-role-select');
-          var employeeMs = card.querySelector('.role-employee-select');
           if (roleMs) {
             var checked = roleMs.querySelectorAll('input[type="checkbox"]:checked');
             cond.role = Array.from(checked).map(function(c) { return c.value; });
           }
-          if (employeeMs) {
-            var empChecked = employeeMs.querySelectorAll('input[type="checkbox"]:checked');
-            cond.employees = Array.from(empChecked).map(function(c) { return c.value; });
+        } else if (type === 'employee') {
+          var surEcRoleMs = card.querySelector('.employee-condition-role-select');
+          var surEcStaffMs = card.querySelector('.employee-condition-staff-select');
+          if (surEcRoleMs) {
+            cond.employeeRoles = Array.from(surEcRoleMs.querySelectorAll('input[type="checkbox"]:checked')).map(function(c) { return c.value; });
+          }
+          if (surEcStaffMs) {
+            cond.employee = Array.from(surEcStaffMs.querySelectorAll('input[type="checkbox"]:not(.role-employee-select-all-cb):checked')).map(function(c) { return c.value; });
           }
         } else if (type === 'area' || type === 'orderType' || type === 'tipType') {
           var sel = card.querySelector('select');
@@ -2684,26 +3695,78 @@
         if (!type) return;
         if (type === 'role') {
           var roleMs = card.querySelector('.role-role-select');
+          if (roleMs) {
+            var checked = roleMs.querySelectorAll('input[type="checkbox"]:checked');
+            cond.role = Array.from(checked).map(function(c) { return c.value; });
+          }
+        } else if (type === 'employee') {
+          var ecRoleMs = card.querySelector('.employee-condition-role-select');
+          var ecStaffMs = card.querySelector('.employee-condition-staff-select');
+          if (ecRoleMs) {
+            cond.employeeRoles = Array.from(ecRoleMs.querySelectorAll('input[type="checkbox"]:checked')).map(function(c) { return c.value; });
+          }
+          if (ecStaffMs) {
+            cond.employee = Array.from(ecStaffMs.querySelectorAll('input[type="checkbox"]:not(.role-employee-select-all-cb):checked')).map(function(c) { return c.value; });
+          }
+        } else if (type === 'area' || type === 'orderType' || type === 'revenueType') {
+          var sel = card.querySelector('select');
+          if (sel) cond[type] = sel.value || '';
+        } else if (type === 'menu') {
+          var menuObjSales = collectMenuCascadeObject(card);
+          if (menuObjSales) cond.menu = menuObjSales;
+        } else if (type === 'hours') {
+          var inputs = card.querySelectorAll('input[type="time"]');
+          cond.hours = { start: inputs[0] ? inputs[0].value : '', end: inputs[1] ? inputs[1].value : '' };
+        } else if (type === 'shift') {
+          var shiftMs = card.querySelector('.shift-condition-select');
+          if (shiftMs) {
+            var checked = shiftMs.querySelectorAll('input[type="checkbox"]:checked');
+            cond.shift = Array.from(checked).map(function(c) { return c.value; });
+          }
+        } else if (type === 'weekday') {
+          var wMs = card.querySelector('.weekday-condition-select');
+          if (wMs) {
+            var wChecked = wMs.querySelectorAll('input[type="checkbox"]:checked');
+            cond.weekdays = Array.from(wChecked).map(function(c) { return c.value; });
+          }
+        }
+      });
+      return cond;
+    }
+    function collectTipClaimSalesConditions() {
+      var cond = {};
+      var container = document.getElementById('tipClaimConditionsContainer');
+      if (!container) return cond;
+      container.querySelectorAll('.condition-card').forEach(function(card) {
+        var id = card.id || '';
+        var type = id.replace('tcc-cond-', '');
+        if (!type) return;
+        if (type === 'role') {
+          var roleMs = card.querySelector('.role-role-select');
           var employeeMs = card.querySelector('.role-employee-select');
           if (roleMs) {
             var checked = roleMs.querySelectorAll('input[type="checkbox"]:checked');
             cond.role = Array.from(checked).map(function(c) { return c.value; });
           }
           if (employeeMs) {
-            var empChecked = employeeMs.querySelectorAll('input[type="checkbox"]:checked');
+            var empChecked = employeeMs.querySelectorAll('input[type="checkbox"]:not(.role-employee-select-all-cb):checked');
             cond.employees = Array.from(empChecked).map(function(c) { return c.value; });
+          }
+        } else if (type === 'employee') {
+          var tccEcRoleMs = card.querySelector('.employee-condition-role-select');
+          var tccEcStaffMs = card.querySelector('.employee-condition-staff-select');
+          if (tccEcRoleMs) {
+            cond.employeeRoles = Array.from(tccEcRoleMs.querySelectorAll('input[type="checkbox"]:checked')).map(function(c) { return c.value; });
+          }
+          if (tccEcStaffMs) {
+            cond.employee = Array.from(tccEcStaffMs.querySelectorAll('input[type="checkbox"]:not(.role-employee-select-all-cb):checked')).map(function(c) { return c.value; });
           }
         } else if (type === 'area' || type === 'orderType' || type === 'revenueType') {
           var sel = card.querySelector('select');
           if (sel) cond[type] = sel.value || '';
         } else if (type === 'menu') {
-          var plMs = card.querySelector('.menu-product-line-select');
-          var catMs = card.querySelector('.menu-category-select');
-          if (plMs && catMs) {
-            var plArr = Array.from(plMs.querySelectorAll('input[type="checkbox"]:checked')).map(function(cb) { return cb.value; });
-            var catArr = Array.from(catMs.querySelectorAll('input[type="checkbox"]:checked')).map(function(cb) { return cb.value; });
-            cond.menu = { productLine: plArr, category: catArr };
-          }
+          var menuObjTcc = collectMenuCascadeObject(card);
+          if (menuObjTcc) cond.menu = menuObjTcc;
         } else if (type === 'hours') {
           var inputs = card.querySelectorAll('input[type="time"]');
           cond.hours = { start: inputs[0] ? inputs[0].value : '', end: inputs[1] ? inputs[1].value : '' };
@@ -2733,31 +3796,25 @@
         if (!type) return;
         if (type === 'role') {
           var roleMs = card.querySelector('.role-role-select');
-          var employeeMs = card.querySelector('.role-employee-select');
           if (roleMs) {
             var checked = roleMs.querySelectorAll('input[type="checkbox"]:checked');
             cond.role = Array.from(checked).map(function(c) { return c.value; });
           }
-          if (employeeMs) {
-            var empChecked = employeeMs.querySelectorAll('input[type="checkbox"]:checked');
-            cond.employees = Array.from(empChecked).map(function(c) { return c.value; });
+        } else if (type === 'employee') {
+          var tipsEcRoleMs = card.querySelector('.employee-condition-role-select');
+          var tipsEcStaffMs = card.querySelector('.employee-condition-staff-select');
+          if (tipsEcRoleMs) {
+            cond.employeeRoles = Array.from(tipsEcRoleMs.querySelectorAll('input[type="checkbox"]:checked')).map(function(c) { return c.value; });
+          }
+          if (tipsEcStaffMs) {
+            cond.employee = Array.from(tipsEcStaffMs.querySelectorAll('input[type="checkbox"]:not(.role-employee-select-all-cb):checked')).map(function(c) { return c.value; });
           }
         } else if (type === 'area' || type === 'orderType' || type === 'tipType') {
           var sel = card.querySelector('select');
           if (sel) cond[type] = sel.value || '';
         } else if (type === 'containsProduct') {
-          var catMs = card.querySelector('.tips-contains-product-category-select');
-          var itemMs = card.querySelector('.tips-contains-product-item-select');
-          if (catMs) {
-            var catChecked = catMs.querySelectorAll('input[type="checkbox"]:checked');
-            cond.containsProduct = cond.containsProduct || {};
-            cond.containsProduct.category = Array.from(catChecked).map(function(c) { return c.value; });
-          }
-          if (itemMs) {
-            var itemChecked = itemMs.querySelectorAll('input[type="checkbox"]:checked');
-            cond.containsProduct = cond.containsProduct || {};
-            cond.containsProduct.item = Array.from(itemChecked).map(function(c) { return c.value; });
-          }
+          var cpObj = collectMenuCascadeObject(card);
+          if (cpObj) cond.containsProduct = cpObj;
         } else if (type === 'hours') {
           var inputs = card.querySelectorAll('input[type="time"]');
           cond.hours = { start: inputs[0] ? inputs[0].value : '', end: inputs[1] ? inputs[1].value : '' };
@@ -2851,7 +3908,8 @@
       var salesConditions = collectSalesConditions();
       var tipsConditions = collectTipsConditions();
       var surchargeConditions = collectSurchargeConditions();
-      return {
+      var allocationMode = (document.querySelector('input[name="allocationMode"]:checked') || {}).value || 'legacy_pool';
+      var data = {
         ruleName: ruleName,
         store: store,
         poolRules: poolRules,
@@ -2861,8 +3919,19 @@
         clockin: clockRadio ? clockRadio.value : 'clock',
         salesConditions: salesConditions,
         tipsConditions: tipsConditions,
-        surchargeConditions: surchargeConditions
+        surchargeConditions: surchargeConditions,
+        allocationMode: allocationMode
       };
+      if (allocationMode === 'order_tip_then_residual') {
+        data.tipClaims = collectTipClaims();
+        data.residual = { receivers: collectOrderResidualReceivers() };
+        data.deductRoles = [];
+        data.receivers = [];
+        delete data.salesConditions;
+        delete data.tipsConditions;
+        delete data.surchargeConditions;
+      }
+      return data;
     }
 
     function submitRule() {
@@ -2877,40 +3946,83 @@
         showNotification('请选择门店', 'error');
         return;
       }
-      if (document.querySelectorAll('.pool-rule-card').length === 0) {
-        showNotification('请至少添加一项小费池计算规则', 'error');
-        return;
-      }
-      var deductRoles = [];
-      document.querySelectorAll('#deductRoleSelect input[type="checkbox"]:checked').forEach(function(cb) {
-        deductRoles.push(cb.value);
-      });
-      var receivers = document.querySelectorAll('#receiverTableBody tr.receiver-primary-row');
-      var hasReceiver = false;
-      receivers.forEach(function(tr) {
-        var ms = tr.querySelector('.receiver-role-select');
-        var pctInp = tr.querySelector('input[type="number"]');
-        var pct = pctInp ? (parseFloat(pctInp.value) || 0) : 0;
-        if (ms && ms.querySelectorAll('input[type="checkbox"]:checked').length > 0 && pct > 0) hasReceiver = true;
-      });
-      if (!hasReceiver) {
-        showNotification('请至少添加一条接收方规则（角色、占比均需填写）', 'error');
-        return;
-      }
-      var condErr = null;
-      document.querySelectorAll('.pool-rule-card[data-rule-id]').forEach(function(card) {
-        var ruleId = card.dataset.ruleId;
-        var type = card.dataset.ruleType || (ruleId || '').split('_')[0];
-        if ((type === 'sales' || type === 'tips' || type === 'surcharge' || type === 'manual') && !hasValidConditions(ruleId)) {
-          var nameInp = card.querySelector('.pool-rule-name');
-          var baseNames = { sales: '销售额', tips: '小费', surcharge: '加收服务费', manual: '手动上报小费' };
-          var name = (nameInp && nameInp.value && nameInp.value.trim()) || (ruleId.indexOf('_') >= 0 ? baseNames[type] + ruleId.split('_')[1] : baseNames[type]);
-          condErr = condErr || name;
+      var allocMode = (document.querySelector('input[name="allocationMode"]:checked') || {}).value || 'legacy_pool';
+      if (allocMode === 'legacy_pool') {
+        if (document.querySelectorAll('.pool-rule-card').length === 0) {
+          showNotification('请至少添加一项小费池计算规则', 'error');
+          return;
         }
-      });
-      if (condErr) {
-        showNotification('请为「' + condErr + '」设置取值条件（必填）', 'error');
-        return;
+        var receivers = document.querySelectorAll('#receiverTableBody tr.receiver-primary-row');
+        var hasReceiver = false;
+        receivers.forEach(function(tr) {
+          var ms = tr.querySelector('.receiver-role-select');
+          var pctInp = tr.querySelector('input[type="number"]');
+          var pct = pctInp ? (parseFloat(pctInp.value) || 0) : 0;
+          if (ms && ms.querySelectorAll('input[type="checkbox"]:checked').length > 0 && pct > 0) hasReceiver = true;
+        });
+        if (!hasReceiver) {
+          showNotification('请至少添加一条接收方规则（角色、占比均需填写）', 'error');
+          return;
+        }
+        var condErr = null;
+        document.querySelectorAll('.pool-rule-card[data-rule-id]').forEach(function(card) {
+          var ruleId = card.dataset.ruleId;
+          var type = card.dataset.ruleType || (ruleId || '').split('_')[0];
+          if ((type === 'sales' || type === 'tips' || type === 'surcharge' || type === 'manual') && !hasValidConditions(ruleId)) {
+            var nameInp = card.querySelector('.pool-rule-name');
+            var baseNames = { sales: '销售额', tips: '小费', surcharge: '加收服务费', manual: '手动上报小费' };
+            var name = (nameInp && nameInp.value && nameInp.value.trim()) || (ruleId.indexOf('_') >= 0 ? baseNames[type] + ruleId.split('_')[1] : baseNames[type]);
+            condErr = condErr || name;
+          }
+        });
+        if (condErr) {
+          showNotification('请为「' + condErr + '」设置取值条件（必填）', 'error');
+          return;
+        }
+      } else {
+        var tclaims = collectTipClaims();
+        if (!tclaims.length) {
+          showNotification('请至少添加一条计提小费接受方规则', 'error');
+          return;
+        }
+        var claimBad = false;
+        tclaims.forEach(function(c) {
+          if (c.pct <= 0 || !c.receiverRoles || !c.receiverRoles.length) claimBad = true;
+        });
+        if (claimBad) {
+          showNotification('每条计提小费接受方规则须填写大于 0 的计提比例，并在接收角色中至少选择一名角色', 'error');
+          return;
+        }
+        var hasResResidual = false;
+        document.querySelectorAll('#orderResidualReceiverTableBody tr.order-residual-primary-row').forEach(function(tr) {
+          var ms = tr.querySelector('.receiver-role-select');
+          var pctInp = tr.querySelector('input[type="number"]');
+          var pct = pctInp ? (parseFloat(pctInp.value) || 0) : 0;
+          if (ms && ms.querySelectorAll('input[type="checkbox"]:checked').length > 0 && pct > 0) hasResResidual = true;
+        });
+        if (!hasResResidual) {
+          showNotification('请至少添加一条剩余小费接收方规则（角色、占比均需填写）', 'error');
+          return;
+        }
+        if (document.querySelectorAll('.pool-rule-card').length === 0) {
+          showNotification('请至少添加一项小费池计算规则', 'error');
+          return;
+        }
+        var condErrOt = null;
+        document.querySelectorAll('.pool-rule-card[data-rule-id]').forEach(function(card) {
+          var ruleId = card.dataset.ruleId;
+          var type = card.dataset.ruleType || (ruleId || '').split('_')[0];
+          if ((type === 'sales' || type === 'tips' || type === 'surcharge' || type === 'manual') && !hasValidConditions(ruleId)) {
+            var nameInp = card.querySelector('.pool-rule-name');
+            var baseNames = { sales: '销售额', tips: '小费', surcharge: '加收服务费', manual: '手动上报小费' };
+            var name = (nameInp && nameInp.value && nameInp.value.trim()) || (ruleId.indexOf('_') >= 0 ? baseNames[type] + ruleId.split('_')[1] : baseNames[type]);
+            condErrOt = condErrOt || name;
+          }
+        });
+        if (condErrOt) {
+          showNotification('请为「' + condErrOt + '」设置取值条件（必填）', 'error');
+          return;
+        }
       }
       var data = collectFormData();
       var params = getEditParams();
@@ -2921,14 +4033,30 @@
         if (rule) {
           rule.ruleName = data.ruleName;
           rule.store = data.store;
-          rule.poolRules = data.poolRules;
-          rule.deductRoles = data.deductRoles;
-          rule.receivers = data.receivers;
           rule.distribution = data.distribution;
           rule.clockin = data.clockin;
-          rule.salesConditions = data.salesConditions || {};
-          rule.tipsConditions = data.tipsConditions || {};
-          rule.surchargeConditions = data.surchargeConditions || {};
+          rule.allocationMode = data.allocationMode || 'legacy_pool';
+          if (rule.allocationMode === 'order_tip_then_residual') {
+            rule.poolRules = data.poolRules;
+            rule.tipClaims = data.tipClaims;
+            rule.residual = data.residual;
+            rule.deductRoles = [];
+            rule.receivers = [];
+            delete rule.orderTipSource;
+            delete rule.salesConditions;
+            delete rule.tipsConditions;
+            delete rule.surchargeConditions;
+          } else {
+            rule.poolRules = data.poolRules;
+            rule.deductRoles = data.deductRoles;
+            rule.receivers = data.receivers;
+            rule.salesConditions = data.salesConditions || {};
+            rule.tipsConditions = data.tipsConditions || {};
+            rule.surchargeConditions = data.surchargeConditions || {};
+            delete rule.orderTipSource;
+            delete rule.tipClaims;
+            delete rule.residual;
+          }
           ruleData.saveRules(rules);
         }
       } else {
@@ -2936,15 +4064,24 @@
           id: ruleData.getNextRuleId(),
           ruleName: data.ruleName,
           store: data.store,
-          poolRules: data.poolRules,
-          deductRoles: data.deductRoles,
-          receivers: data.receivers,
           distribution: data.distribution,
           clockin: data.clockin,
-          salesConditions: data.salesConditions || {},
-          tipsConditions: data.tipsConditions || {},
-          surchargeConditions: data.surchargeConditions || {}
+          allocationMode: data.allocationMode || 'legacy_pool'
         };
+        if (rule.allocationMode === 'order_tip_then_residual') {
+          rule.poolRules = data.poolRules;
+          rule.tipClaims = data.tipClaims;
+          rule.residual = data.residual;
+          rule.deductRoles = [];
+          rule.receivers = [];
+        } else {
+          rule.poolRules = data.poolRules;
+          rule.deductRoles = data.deductRoles;
+          rule.receivers = data.receivers;
+          rule.salesConditions = data.salesConditions || {};
+          rule.tipsConditions = data.tipsConditions || {};
+          rule.surchargeConditions = data.surchargeConditions || {};
+        }
         rules.push(rule);
         ruleData.saveRules(rules);
       }
@@ -2953,6 +4090,7 @@
     }
 
     (function init() {
+      onAllocationModeChange(false);
       updateDistributionOptions();
       var params = getEditParams();
       if (params.mode === 'edit' && params.id) {
@@ -2994,7 +4132,9 @@
       if (!container) return;
       const tagsEl = container.querySelector('.multi-select-tags');
       if (!tagsEl) return;
-      const checked = container.querySelectorAll('input[type="checkbox"]:checked');
+      const checked = Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).filter(function(cb) {
+        return !cb.classList.contains('role-employee-select-all-cb');
+      });
       const placeholder = (container.dataset && container.dataset.placeholder) || '请选择角色';
       tagsEl.innerHTML = '';
       if (checked.length === 0) {
@@ -3052,13 +4192,22 @@
           var employeeMs = card ? card.querySelector('.role-employee-select') : null;
           if (employeeMs) updateRoleConditionEmployeeOptions(ms, employeeMs);
         }
-        if (ms && ms.classList.contains('menu-product-line-select')) {
-          var card = ms.closest('.condition-card');
-          if (card) onMenuProductLineChange(card);
+        if (ms && ms.classList.contains('employee-condition-role-select')) {
+          var cardEc = ms.closest('.condition-card');
+          var staffMs = cardEc ? cardEc.querySelector('.employee-condition-staff-select') : null;
+          if (staffMs) updateRoleConditionEmployeeOptions(ms, staffMs);
         }
-        if (ms && ms.classList.contains('tips-contains-product-category-select')) {
-          var card = ms.closest('.condition-card');
-          if (card) onTipsContainsProductCategoryChange(card);
+        if (ms && ms.classList.contains('menu-cascade-pl')) {
+          var cardMc = ms.closest('.condition-card');
+          if (cardMc) onMenuCascadeChange(cardMc, 'pl');
+        }
+        if (ms && ms.classList.contains('menu-cascade-group')) {
+          var cardMg = ms.closest('.condition-card');
+          if (cardMg) onMenuCascadeChange(cardMg, 'group');
+        }
+        if (ms && ms.classList.contains('menu-cascade-category')) {
+          var cardMc2 = ms.closest('.condition-card');
+          if (cardMc2) onMenuCascadeChange(cardMc2, 'category');
         }
         var receiverRow = ms && ms.closest('#receiverTableBody tr');
         if (receiverRow) {
@@ -3078,6 +4227,30 @@
             var stb = ms.closest('.receiver-sub-tbody');
             if (stb) updateSubReceiversRoleOptions(stb);
           }
+        }
+        var orderResRow = ms && ms.closest('#orderResidualReceiverTableBody tr');
+        if (orderResRow) {
+          updateReceiverRowWeightBtn(orderResRow);
+          if (ms.classList.contains('receiver-role-select')) {
+            updateOrderResidualReceiverRoleOptions();
+            var prOr = ms.closest('tr.order-residual-primary-row');
+            if (prOr) {
+              var secBlockOr = getReceiverSecondaryBlock(prOr);
+              if (secBlockOr) {
+                var stbOr = secBlockOr.querySelector('.receiver-sub-tbody');
+                if (stbOr) updateSubReceiversRoleOptions(stbOr);
+              }
+            }
+          }
+          if (ms.classList.contains('receiver-sub-role-select')) {
+            var stbSub = ms.closest('.receiver-sub-tbody');
+            if (stbSub) updateSubReceiversRoleOptions(stbSub);
+          }
+        }
+        var tipClaimRowEl = ms && ms.closest('#tipClaimsTableBody tr.tip-claim-row');
+        if (tipClaimRowEl && ms.classList.contains('tip-claim-role-select')) {
+          updateReceiverRowWeightBtn(tipClaimRowEl);
+          updateAllTipClaimRoleOptions();
         }
       }
     });

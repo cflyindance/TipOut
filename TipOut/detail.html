@@ -150,6 +150,7 @@
 
   <script src="common.js"></script>
   <script src="ruleData.js"></script>
+  <script src="tipAllocation.js"></script>
   <script>
     var ALLOC_KEY = 'tipout_allocated';
     function getAllocatedDatesForStore(store) {
@@ -174,6 +175,7 @@
     const roleEmployees = {
       'Server':    ['Maria Garcia', 'Jason Chen', 'Emily Watson', 'Diego Ramirez'],
       'Bartender': ['Mike Johnson', 'Sarah Kim'],
+      'Kitchen':   ['Tom Wilson', 'Amy Liu'],
       'Busser':    ['Carlos Lopez', 'Tyler Brown'],
       'Cashier':   ['Linda Nguyen', 'Amy Zhang'],
       'Host':      ['Rachel Scott', 'Kevin Park'],
@@ -263,11 +265,130 @@
       }
 
       currentRule = rules[0];
+      if ((currentRule.allocationMode || 'legacy_pool') === 'order_tip_then_residual' && window.TipAllocation) {
+        var otCtx = genSyntheticOrderTipContext(dateKey);
+        var otResult = TipAllocation.allocateOrderTipResidual(currentRule, otCtx);
+        renderOrderTipFormulaSection(otResult, currentRule, otCtx.lines, otCtx.tipByType);
+        renderOrderTipDetailTable(otResult, dateKey, currentRule);
+        populateFormulaModal(currentRule);
+        return;
+      }
       var poolRules = currentRule.poolRules || [];
       var data = genDayData(dateKey, poolRules);
       renderFormula(data, currentRule);
       renderDetailTable(data, dateKey, currentRule);
       populateFormulaModal(currentRule);
+    }
+
+    function genSyntheticOrderTipContext(dateKey) {
+      var parts = dateKey.split('-');
+      var seed = parts.reduce(function(a, b) { return a * 31 + parseInt(b, 10); }, 0) + 29;
+      var rng = seedRandom(seed);
+      var dow = new Date(dateKey + 'T00:00:00').getDay();
+      var wb = (dow === 5 || dow === 6) ? 1.35 : 1.0;
+      var bev = +((95 + rng() * 30) * wb).toFixed(2);
+      var food = +((185 + rng() * 50) * wb).toFixed(2);
+      var cc = +((55 + rng() * 90) * wb).toFixed(2);
+      var cash = +((15 + rng() * 35) * wb).toFixed(2);
+      var lines = [
+        { productLine: 'POS', category: '酒水', amount: bev },
+        { productLine: 'POS', category: '主菜', amount: food }
+      ];
+      var tipByType = {
+        'Credit Card Tips (信用卡小费)': cc,
+        'Cash Tips (现金小费)': cash
+      };
+      var surcharge = +((22 + rng() * 18) * wb).toFixed(2);
+      var manual = +((8 + rng() * 12) * wb).toFixed(2);
+      return { lines: lines, tipByType: tipByType, surcharge: surcharge, manual: manual };
+    }
+
+    function renderOrderTipFormulaSection(otResult, rule, lines, tipByType) {
+      var esc = function(s) {
+        return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      };
+      var claimRows = (otResult.claimResults || []).map(function(c) {
+        return '<div class="rule-detail-item"><div class="label">' + esc(c.name || c.id) + '</div><div class="value">销售额基数 ' + c.base.toFixed(2) + ' × ' + c.pct + '% → 计提 ' + c.claimed.toFixed(2) + '，从订单小费实付 ' + c.paid.toFixed(2) + '</div></div>';
+      }).join('');
+      var lineStr = (lines || []).map(function(l) {
+        return esc(l.productLine) + '/' + esc(l.category) + ' $' + Number(l.amount).toFixed(2);
+      }).join('；');
+      var tipStr = '';
+      if (tipByType && typeof tipByType === 'object') {
+        tipStr = Object.keys(tipByType).map(function(k) {
+          return esc(k) + ' $' + Number(tipByType[k]).toFixed(2);
+        }).join('；');
+      }
+      var poolNote = (rule.poolRules && rule.poolRules.length)
+        ? '<p style="font-size:12px;color:var(--text-tertiary);margin:4px 0 0;line-height:1.5">订单小费钱包 = 按「小费池计算规则」对单笔订单基数（销售额/小费/加收/手动/自定义等）加权合计，口径与「小费池汇总分配」一致。</p>'
+        : '';
+      document.getElementById('formulaSection').innerHTML =
+        '<div class="formula-display" style="flex-wrap:wrap;align-items:flex-start">' +
+        '<div class="formula-block"><span class="lbl">订单小费钱包（模拟）</span><span class="val formula-pool-val">' + money(otResult.tipWallet) + '</span></div></div>' +
+        poolNote +
+        '<p style="font-size:12px;color:var(--text-tertiary);margin:8px 0 0;line-height:1.5">菜单销售额行：' + lineStr + '</p>' +
+        (tipStr ? '<p style="font-size:12px;color:var(--text-tertiary);margin:4px 0 0;line-height:1.5">小费构成：' + tipStr + '</p>' : '') +
+        '<h4 style="margin:16px 0 8px;font-size:14px">计提结果</h4>' + claimRows +
+        '<div class="rule-detail-item" style="margin-top:12px"><div class="label">剩余</div><div class="value">' + (otResult.residualRoles || []).map(esc).join('、') + '：' + money(otResult.residual) + '</div></div>' +
+        '<div class="formula-link" style="margin-top:12px"><a href="javascript:void(0)" class="btn-link" onclick="openModal(\'formulaModal\')" style="font-size:14px">公式详情</a></div>';
+    }
+
+    function renderOrderTipDetailTable(otResult, dateKey, rule) {
+      var roleAmounts = otResult.roleAmounts || {};
+      var roleNames = Object.keys(roleAmounts).sort();
+      if (!roleNames.length) {
+        document.getElementById('detailCardArea').innerHTML =
+          '<div class="card detail-card"><div class="card-body" style="padding:24px;color:var(--text-secondary)">无角色分配结果</div></div>';
+        return;
+      }
+      var seed = dateKey.split('-').reduce(function(a, b) { return a * 31 + parseInt(b, 10); }, 7);
+      var rng = seedRandom(seed);
+      var html = '<div class="card detail-card" data-order-tip-mode="1"><div class="card-header"><span>计提小费占比分配明细（模拟单笔订单）</span></div>' +
+        '<p style="padding:8px 16px 0;font-size:12px;color:var(--text-tertiary);margin:0">以下为按当前规则与模拟订单推算的金额；员工行按「' +
+        ((ruleData && ruleData.distNames && ruleData.distNames[rule.distribution]) || rule.distribution || '平均') + '」示意拆分。</p>' +
+        '<div class="card-body" style="padding:0"><table class="detail-table" id="detailTable1"><thead><tr>' +
+        '<th>角色</th><th>占比</th><th>角色分配金额</th><th>分配员工</th><th>员工分配比例</th><th>员工分配金额</th><th>操作</th>' +
+        '</tr></thead><tbody>';
+
+      roleNames.forEach(function(roleName) {
+        var roleAmount = +(roleAmounts[roleName] || 0).toFixed(2);
+        var emps = roleEmployees[roleName] || [];
+        if (!emps.length) emps = ['（未配置员工）'];
+        var empCount = emps.length;
+        var empPcts = [];
+        var remaining = 100;
+        for (var i = 0; i < empCount; i++) {
+          if (i < empCount - 1) {
+            var p = Math.round((100 / empCount) + (rng() - 0.5) * 8);
+            p = Math.max(8, Math.min(remaining - (empCount - i - 1) * 8, p));
+            empPcts.push(p);
+            remaining -= p;
+          } else {
+            empPcts.push(remaining);
+          }
+        }
+        emps.forEach(function(emp, ei) {
+          var isHead = ei === 0;
+          var empAmount = +(roleAmount * empPcts[ei] / 100).toFixed(2);
+          var opts = emps.map(function(e) {
+            return '<option' + (e === emp ? ' selected' : '') + '>' + e + '</option>';
+          }).join('');
+          html += '<tr data-role="' + roleName + '"' + (isHead ? ' data-role-head="true"' : '') + '>';
+          html += '<td>' + (isHead ? '<span class="role-label">' + roleName + '</span>' : '') + '</td>';
+          html += '<td>' + (isHead ? '—' : '') + '</td>';
+          html += '<td' + (isHead ? ' class="role-amount"' : '') + '>' + (isHead ? money(roleAmount) : '') + '</td>';
+          html += '<td><select class="form-control" style="width:140px;height:28px;font-size:13px">' + opts + '</select></td>';
+          html += '<td class="input-cell"><input type="number" value="' + empPcts[ei] + '" readonly style="background:rgba(0,0,0,0.04)"> %</td>';
+          html += '<td>' + money(empAmount) + '</td>';
+          html += '<td class="action-cell">—</td>';
+          html += '</tr>';
+        });
+      });
+
+      html += '</tbody></table></div></div>';
+      document.getElementById('detailCardArea').innerHTML = html;
+      var card = document.querySelector('#detailCardArea .detail-card');
+      if (card) card.setAttribute('data-pool', otResult.tipWallet);
     }
 
     var DETAIL_SHIFT_LIST_KEY = 'ruleAddShiftList';
@@ -309,8 +430,8 @@
       var minM = item.minClockMinutes != null ? item.minClockMinutes : 0;
       var maxM = item.maxClockMinutes != null ? item.maxClockMinutes : 0;
       var segs = [];
-      if (minM > 0) segs.push('至少打卡' + minM + '分钟');
-      if (maxM > 0) segs.push('打卡工时最多计' + maxM + '分钟');
+      if (minM > 0) segs.push('该班次至少上班打卡' + minM + '分钟');
+      if (maxM > 0) segs.push('该班次上班打卡工时最多计' + maxM + '分钟');
       return segs.join('\n');
     }
     function detailShiftTimeLineOnly(item) {
@@ -355,22 +476,60 @@
       return arr.map(function(v) { return DETAIL_WEEKDAY_LABELS[String(v)] || v; }).join('、');
     }
 
+    var DETAIL_MENU_KEY_SEP = '|||';
+    function detailMenuGroupKeyLabel(k) {
+      var p = String(k).split(DETAIL_MENU_KEY_SEP);
+      return p.length >= 2 ? p[1] : k;
+    }
+    function detailMenuCategoryKeyLabel(k) {
+      var p = String(k).split(DETAIL_MENU_KEY_SEP);
+      return p.length >= 3 ? p[2] : k;
+    }
+    function detailMenuItemKeyLabel(k) {
+      var p = String(k).split(DETAIL_MENU_KEY_SEP);
+      return p.length >= 4 ? p[3] : k;
+    }
+    function detailFormatMenuCascade(obj) {
+      if (!obj || typeof obj !== 'object') return '';
+      var bits = [];
+      if (Array.isArray(obj.productLine) && obj.productLine.length) bits.push('产品线 ' + obj.productLine.join('、'));
+      if (Array.isArray(obj.menuGroup) && obj.menuGroup.length) {
+        bits.push('组 ' + obj.menuGroup.map(detailMenuGroupKeyLabel).join('、'));
+      }
+      if (Array.isArray(obj.category) && obj.category.length) {
+        bits.push('类 ' + obj.category.map(function(k) {
+          return String(k).indexOf(DETAIL_MENU_KEY_SEP) >= 0 ? detailMenuCategoryKeyLabel(k) : k;
+        }).join('、'));
+      }
+      if (Array.isArray(obj.item) && obj.item.length) {
+        bits.push('菜 ' + obj.item.map(function(k) {
+          return String(k).indexOf(DETAIL_MENU_KEY_SEP) >= 0 ? detailMenuItemKeyLabel(k) : k;
+        }).join('、'));
+      }
+      return bits.length ? bits.join(' → ') : '';
+    }
+    function detailMenuCascadeHasAny(obj) {
+      if (!obj || typeof obj !== 'object') return false;
+      return (Array.isArray(obj.productLine) && obj.productLine.length) ||
+        (Array.isArray(obj.menuGroup) && obj.menuGroup.length) ||
+        (Array.isArray(obj.category) && obj.category.length) ||
+        (Array.isArray(obj.item) && obj.item.length);
+    }
+
     function formatSurchargeConditions(cond) {
       if (!cond || typeof cond !== 'object') return '';
       if (cond.types && Array.isArray(cond.types) && cond.types.length) return '加收类型: ' + cond.types.join(', ');
       var parts = [];
       if (Array.isArray(cond.role) && cond.role.length) parts.push('角色: ' + cond.role.join(', '));
       else if (cond.role) parts.push('角色: ' + cond.role);
-      if (Array.isArray(cond.employees) && cond.employees.length) parts.push('员工: ' + cond.employees.join(', '));
+      if (Array.isArray(cond.employeeRoles) && cond.employeeRoles.length) parts.push('员工筛选角色: ' + cond.employeeRoles.join(', '));
+      if (Array.isArray(cond.employee) && cond.employee.length) parts.push('员工: ' + cond.employee.join(', '));
       if (cond.area) parts.push('订单区域: ' + (Array.isArray(cond.area) ? cond.area.join(', ') : cond.area));
       if (cond.orderType) parts.push('订单类型: ' + (Array.isArray(cond.orderType) ? cond.orderType.join(', ') : cond.orderType));
       if (cond.tipType) parts.push('小费类型: ' + cond.tipType);
-      if (cond.containsProduct && (Array.isArray(cond.containsProduct.category) && cond.containsProduct.category.length || Array.isArray(cond.containsProduct.item) && cond.containsProduct.item.length)) {
-        var cp = cond.containsProduct;
-        var cpParts = [];
-        if (cp.category && cp.category.length) cpParts.push('类: ' + cp.category.join(', '));
-        if (cp.item && cp.item.length) cpParts.push('菜: ' + cp.item.join(', '));
-        if (cpParts.length) parts.push('订单需包含商品: ' + cpParts.join('；'));
+      if (cond.containsProduct && detailMenuCascadeHasAny(cond.containsProduct)) {
+        var cpTxt = detailFormatMenuCascade(cond.containsProduct);
+        if (cpTxt) parts.push('订单需包含商品: ' + cpTxt);
       }
       if (cond.hours && (cond.hours.start || cond.hours.end)) parts.push('营业时间段: ' + (cond.hours.start || '') + '-' + (cond.hours.end || ''));
       if (Array.isArray(cond.shift) && cond.shift.length) parts.push('班次: ' + detailFormatShiftNames(cond.shift));
@@ -378,20 +537,26 @@
       return parts.join(' | ');
     }
 
-    function formatConditions(cond) {
+    function formatConditions(cond, omitRoleSubEmployees) {
       if (!cond || typeof cond !== 'object') return '';
       var parts = [];
       if (Array.isArray(cond.role) && cond.role.length) parts.push('角色: ' + cond.role.join(', '));
       else if (cond.role) parts.push('角色: ' + cond.role);
-      if (Array.isArray(cond.employees) && cond.employees.length) parts.push('员工: ' + cond.employees.join(', '));
+      if (!omitRoleSubEmployees && Array.isArray(cond.employees) && cond.employees.length) parts.push('员工: ' + cond.employees.join(', '));
+      if (Array.isArray(cond.employeeRoles) && cond.employeeRoles.length) parts.push('员工筛选角色: ' + cond.employeeRoles.join(', '));
+      if (Array.isArray(cond.employee) && cond.employee.length) parts.push('员工: ' + cond.employee.join(', '));
       if (cond.area) parts.push('订单区域: ' + (Array.isArray(cond.area) ? cond.area.join(', ') : cond.area));
       if (cond.orderType) parts.push('订单类型: ' + (Array.isArray(cond.orderType) ? cond.orderType.join(', ') : cond.orderType));
       if (cond.menu) {
         var m = cond.menu;
-        if (typeof m === 'object' && (m.productLine || m.category)) {
-          var pl = Array.isArray(m.productLine) ? m.productLine.join(', ') : (m.productLine || '');
-          var cat = Array.isArray(m.category) ? m.category.join(', ') : (m.category || '');
-          if (pl || cat) parts.push('菜单: ' + (pl ? pl + ' / ' : '') + (cat || ''));
+        if (typeof m === 'object') {
+          var menuTxt = detailFormatMenuCascade(m);
+          if (menuTxt) parts.push('菜单: ' + menuTxt);
+          else if (m.productLine || m.category) {
+            var pl = Array.isArray(m.productLine) ? m.productLine.join(', ') : (m.productLine || '');
+            var cat = Array.isArray(m.category) ? m.category.join(', ') : (m.category || '');
+            if (pl || cat) parts.push('菜单: ' + (pl ? pl + ' / ' : '') + (cat || ''));
+          }
         } else {
           parts.push('菜单: ' + m);
         }
@@ -408,6 +573,77 @@
       if (!body) return;
       if (!rule) {
         body.innerHTML = '<div style="padding:24px;color:var(--text-secondary);text-align:center">暂无规则数据</div>';
+        return;
+      }
+      if ((rule.allocationMode || 'legacy_pool') === 'order_tip_then_residual') {
+        var distNames2 = (window.ruleData && ruleData.distNames) || { average: '按员工数量平均分配', hours: '按工作时长占比分配', orders: '按订单占比分配' };
+        var poolTypeNames2 = (window.ruleData && ruleData.poolTypeNames) || { sales: '销售额', tips: '小费', surcharge: '加收服务费', manual: '手动上报小费', custom: '自定义小费' };
+        var store = document.getElementById('storeSelect');
+        var storeVal = store ? store.value : rule.store || '';
+        var htmlOt = '<div class="rule-detail-item"><div class="label">规则名称</div><div class="value">' + (rule.ruleName || '') + '</div></div>' +
+          '<div class="rule-detail-item"><div class="label">门店</div><div class="value">' + (storeVal || rule.store || '') + '</div></div>' +
+          '<div class="rule-detail-item"><div class="label">分配模式</div><div class="value">计提小费占比分配</div></div>' +
+          '<div class="divider"></div><h4 style="margin-bottom:12px;font-size:14px">小费池计算规则（订单小费钱包口径与汇总分配一致）</h4>';
+        (rule.poolRules || []).forEach(function(pr) {
+          var name = pr.name || poolTypeNames2[pr.type] || pr.type;
+          var valStr = '';
+          if (pr.type === 'custom') {
+            valStr = '金额 $' + (pr.amount != null ? pr.amount : 0) + ' | 占比 ' + (pr.pct != null ? pr.pct : 100) + '%';
+          } else {
+            valStr = '占比 ' + (pr.pct || 0) + '%';
+            var cond = pr.conditions || (pr.type === 'sales' && rule.salesConditions) || (pr.type === 'tips' && rule.tipsConditions) || (pr.type === 'surcharge' && rule.surchargeConditions);
+            if (cond && (pr.type === 'surcharge' || pr.type === 'tips')) valStr += ' | ' + formatSurchargeConditions(cond);
+            else if (cond && typeof cond === 'object' && Object.keys(cond).length) valStr += ' | ' + formatConditions(cond, true);
+          }
+          htmlOt += '<div class="rule-detail-item"><div class="label">' + name + '</div><div class="value">' + valStr + '</div></div>';
+        });
+        htmlOt += '<div class="divider"></div><h4 style="margin-bottom:12px;font-size:14px">计提小费接受方规则</h4>';
+        (rule.tipClaims || []).forEach(function(c, ci) {
+          var mf = (c.base && c.base.menuFilter) || {};
+          var hasMenuScope = (mf.productLines || []).length || (mf.categories || []).length;
+          var scopeExtra = '';
+          if (hasMenuScope) {
+            scopeExtra = ' | 历史菜单基数: ' + ((mf.productLines || []).join(', ') || '—') + ' / ' + ((mf.categories || []).join(', ') || '—');
+          }
+          var metaExtra = '';
+          if (c.name) metaExtra += (metaExtra ? ' | ' : '') + '名称: ' + c.name;
+          if (c.order != null) metaExtra += (metaExtra ? ' | ' : '') + '顺序: ' + c.order;
+          var condExtra = '';
+          if (c.conditions && typeof c.conditions === 'object' && Object.keys(c.conditions).length) {
+            condExtra = ' | 取值条件: ' + formatConditions(c.conditions);
+          }
+          var lbl = c.name || c.id || ('计提小费接受方 ' + (ci + 1));
+          var wExtra = '';
+          if (c.employeeWeights && typeof c.employeeWeights === 'object') {
+            var wParts = [];
+            Object.keys(c.employeeWeights).forEach(function(role) {
+              var em = c.employeeWeights[role];
+              if (!em || typeof em !== 'object') return;
+              var eps = [];
+              Object.keys(em).forEach(function(emp) { eps.push(emp + ' ' + Number(em[emp])); });
+              if (eps.length) wParts.push(role + ': ' + eps.join(', '));
+            });
+            if (wParts.length) wExtra = ' | 员工小费权重: ' + wParts.join('；');
+          }
+          htmlOt += '<div class="rule-detail-item"><div class="label">' + lbl + '</div><div class="value">计提 ' + (c.pct || 0) + '% | 接收: ' + ((c.receiverRoles || []).join('、') || '—') + scopeExtra + metaExtra + condExtra + wExtra + '</div></div>';
+        });
+        var resDisplay = '—';
+        if (rule.residual) {
+          if (Array.isArray(rule.residual.receivers) && rule.residual.receivers.length) {
+            resDisplay = rule.residual.receivers.map(function(r) {
+              var main = ((r.roles || []).join(' / ') || '—') + ' ' + (r.pct || 0) + '%';
+              var subParts = (r.subReceivers || []).map(function(sr) {
+                return '[' + ((sr.roles || []).join(' / ')) + ' ' + (sr.pct || 0) + '%]';
+              });
+              return main + (subParts.length ? ' 二级' + subParts.join(' ') : '');
+            }).join('；');
+          } else if (rule.residual.receiverRoles && rule.residual.receiverRoles.length) {
+            resDisplay = rule.residual.receiverRoles.join('、') + '（均分，旧数据）';
+          }
+        }
+        htmlOt += '<div class="divider"></div><div class="rule-detail-item"><div class="label">剩余小费接收方规则</div><div class="value">' + resDisplay + '</div></div>' +
+          '<div class="rule-detail-item"><div class="label">分配方式</div><div class="value">' + (distNames2[rule.distribution] || rule.distribution || '—') + '</div></div>';
+        body.innerHTML = htmlOt;
         return;
       }
       var poolTypeNames = (window.ruleData && ruleData.poolTypeNames) || { sales: '销售额', tips: '小费', surcharge: '加收服务费', manual: '手动上报小费', custom: '自定义小费' };
@@ -430,7 +666,7 @@
           valStr = '占比 ' + (pr.pct || 0) + '%';
           var cond = pr.conditions || (pr.type === 'sales' && rule.salesConditions) || (pr.type === 'tips' && rule.tipsConditions) || (pr.type === 'surcharge' && rule.surchargeConditions);
           if (cond && (pr.type === 'surcharge' || pr.type === 'tips')) valStr += ' | ' + formatSurchargeConditions(cond);
-          else if (cond && typeof cond === 'object' && Object.keys(cond).length) valStr += ' | ' + formatConditions(cond);
+          else if (cond && typeof cond === 'object' && Object.keys(cond).length) valStr += ' | ' + formatConditions(cond, true);
         }
         html += '<div class="rule-detail-item"><div class="label">' + name + '</div><div class="value">' + valStr + '</div></div>';
       });

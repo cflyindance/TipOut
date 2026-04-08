@@ -136,6 +136,31 @@
 
   function buildRuleDescription(rule) {
     var parts = [];
+    if (rule.allocationMode === 'order_tip_then_residual') {
+      if (rule.poolRules && rule.poolRules.length > 0) {
+        var poolStrOt = rule.poolRules.map(function(p) {
+          var name = poolTypeNames[p.type] || p.type;
+          if (p.type === 'custom') return name + ' $' + (p.amount != null ? p.amount : 0) + ' × ' + (p.pct != null ? p.pct : 100) + '%';
+          return p.pct != null ? name + ' × ' + p.pct + '%' : name;
+        }).join(' + ');
+        parts.push('池 ' + poolStrOt);
+      }
+      var n = (rule.tipClaims && rule.tipClaims.length) || 0;
+      var res = '—';
+      if (rule.residual) {
+        if (Array.isArray(rule.residual.receivers) && rule.residual.receivers.length) {
+          res = rule.residual.receivers.map(function(r) {
+            var rs = (r.roles && r.roles.length) ? r.roles.join('/') : '';
+            return rs + (r.pct != null ? r.pct + '%' : '');
+          }).join('+');
+        } else if (rule.residual.receiverRoles && rule.residual.receiverRoles.length) {
+          res = rule.residual.receiverRoles.join('/');
+        }
+      }
+      parts.push('计提小费接受方×' + n + '；剩余接收方→' + res);
+      if (rule.distribution) parts.push(distNames[rule.distribution] || rule.distribution);
+      return parts.join('，');
+    }
     if (rule.poolRules && rule.poolRules.length > 0) {
       var poolStr = rule.poolRules.map(function(p) {
         var name = poolTypeNames[p.type] || p.type;
