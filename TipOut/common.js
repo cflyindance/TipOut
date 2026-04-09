@@ -17,6 +17,16 @@ function closeSidebar() {
   overlay.classList.remove('show');
 }
 
+/** 移动端折叠筛选条：切换 .filter-surface.is-expanded（桌面端 CSS 始终展开，此状态无影响） */
+function toggleFilterSurface(btn) {
+  if (!btn || !btn.closest) return;
+  var surface = btn.closest('.filter-surface');
+  if (!surface) return;
+  surface.classList.toggle('is-expanded');
+  var open = surface.classList.contains('is-expanded');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
 // Modal controls
 function openModal(id) {
   const modal = document.getElementById(id);

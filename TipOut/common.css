@@ -718,9 +718,143 @@ select.form-control {
 /* Filter Bar */
 .filter-bar {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+/* 筛选字段：桌面端限制最大宽度，移动端由媒体查询拉满 */
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 460px;
+}
+
+.filter-bar .filter-field .form-control {
+  width: 100%;
+}
+
+.filter-field-label {
+  display: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.filter-input-date {
+  max-width: 200px;
+}
+
+/* 规则列表顶栏：筛选 + 操作按钮 */
+.page-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.page-toolbar .filter-bar {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-bar--page {
+  margin-bottom: 24px;
+}
+
+/* 移动端可折叠筛选（小费分配 / 明细）：桌面始终展开且无切换条 */
+.filter-surface {
+  margin-bottom: 24px;
+}
+
+.filter-surface .filter-bar--page {
+  margin-bottom: 0;
+}
+
+.filter-surface-toggle {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  gap: 10px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.filter-surface-toggle:hover {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+}
+
+.filter-surface-toggle:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.15);
+}
+
+.filter-surface-toggle-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-surface-toggle-chevron {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+  color: var(--text-tertiary);
+}
+
+.filter-surface.is-expanded .filter-surface-toggle-chevron {
+  transform: rotate(180deg);
+}
+
+@media (min-width: 769px) {
+  .filter-surface {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+  }
+
+  .filter-surface-collapsible {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .filter-surface-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+}
+
+/* 小费分配页：日期范围占一行时限制单框宽度；内部 multi-select 随字段拉满 */
+.filter-field--daterange .date-range-group {
+  width: 100%;
+}
+
+.filter-field .multi-select {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Section Title */
@@ -829,6 +963,8 @@ select.form-control {
 
   .main-content {
     margin-left: 0;
+    overflow-x: hidden;
+    max-width: 100%;
   }
 
   .content-area {
@@ -842,6 +978,96 @@ select.form-control {
 
   .filter-bar .form-control {
     width: 100%;
+  }
+
+  .filter-field {
+    max-width: none;
+    width: 100%;
+  }
+
+  .filter-field-label {
+    display: block;
+  }
+
+  .filter-input-date {
+    max-width: none;
+  }
+
+  /* iOS 聚焦输入框时避免自动放大：筛选控件字号 ≥16px */
+  .filter-bar .form-control-lg,
+  .filter-bar select.form-control {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .page-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-toolbar .filter-bar {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .page-toolbar .page-toolbar-action {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .filter-bar--index .date-range-group {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .filter-bar--index .date-range-sep {
+    text-align: center;
+    line-height: 1.2;
+    padding: 2px 0;
+  }
+
+  .filter-bar--index .multi-select {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .filter-bar--index > .btn {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;
+  }
+
+  .filter-surface {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .filter-surface-toggle {
+    display: flex;
+  }
+
+  .filter-surface:not(.is-expanded) .filter-surface-collapsible {
+    display: none;
+  }
+
+  .filter-surface-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .filter-surface-actions .btn {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;
   }
 
   .data-table {

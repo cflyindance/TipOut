@@ -6,15 +6,87 @@
   <title>小费分配 - TipOut</title>
   <link rel="stylesheet" href="common.css">
   <style>
-    .date-range-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .day-tab-list {
-      display: flex; gap: 0; overflow-x: auto; border-bottom: 1px solid var(--border-light);
-      margin-bottom: 16px; padding-bottom: 4px; scrollbar-color: #c8c8c8 transparent;
+    .date-range-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%; }
+    @media (min-width: 769px) {
+      /* 日期起止 + ~ 同一行，不换行 */
+      .filter-bar--index .date-range-group {
+        flex-wrap: nowrap;
+      }
+      .filter-bar--index .date-range-sep {
+        flex-shrink: 0;
+      }
+      .filter-bar--index .filter-field--daterange {
+        flex: 0 0 auto;
+        min-width: 340px;
+        max-width: 460px;
+      }
+      .filter-bar--index .date-range-group .form-control {
+        flex: 0 0 auto;
+        width: 158px;
+        min-width: 140px;
+        max-width: 200px;
+      }
+      .filter-bar--index .multi-select {
+        min-width: 150px;
+      }
     }
-    .day-tab-list::-webkit-scrollbar { height: 6px; }
-    .day-tab-list::-webkit-scrollbar-track { background: #f0f0f0; border-radius: 3px; }
-    .day-tab-list::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 3px; min-width: 40px; }
-    .day-tab-list::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
+    .day-tab-row {
+      display: flex;
+      align-items: stretch;
+      position: relative;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border-light);
+      min-height: 52px;
+    }
+    .day-tab-scroll {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-color: #c8c8c8 transparent;
+    }
+    .day-tab-scroll::-webkit-scrollbar { height: 6px; }
+    .day-tab-scroll::-webkit-scrollbar-track { background: #f0f0f0; border-radius: 3px; }
+    .day-tab-scroll::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 3px; min-width: 40px; }
+    .day-tab-scroll::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
+    .day-tab-list {
+      display: flex;
+      gap: 0;
+    }
+    .day-tab-status-btn {
+      flex: 0 0 48px;
+      width: 48px;
+      align-self: stretch;
+      min-height: 48px;
+      margin: 0;
+      padding: 0;
+      border: none;
+      cursor: pointer;
+      color: var(--primary);
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, #fff 40%, #fff 100%);
+      box-shadow: -10px 0 18px -6px rgba(0, 0, 0, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      transition: color 0.15s, background 0.15s;
+      -webkit-tap-highlight-color: rgba(22, 119, 255, 0.12);
+    }
+    .day-tab-status-btn:hover { color: var(--primary-hover); }
+    .day-tab-status-btn:active { background: linear-gradient(90deg, rgba(245, 245, 245, 0) 0%, #f5f5f5 40%, #f5f5f5 100%); }
+    #dayAllocationStatusModal .data-table { font-size: 13px; }
+    #dayAllocationStatusModal .data-table th,
+    #dayAllocationStatusModal .data-table td { padding: 8px 10px; }
+    #dayAllocationStatusModal .status-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    #dayAllocationStatusModal .status-pill.allocated { background: #f6ffed; color: var(--success); border: 1px solid #b7eb8f; }
+    #dayAllocationStatusModal .status-pill.pending { background: #fffbe6; color: var(--warning); border: 1px solid #ffe58f; }
     .day-tab {
       padding: 10px 16px; font-size: 13px; color: var(--text-secondary);
       border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap;
@@ -66,7 +138,7 @@
     .export-menu-item:hover { background: rgba(0,0,0,0.04); }
 
     /* Multi-Select (index filter bar) */
-    .filter-bar .multi-select { position: relative; min-width: 150px; }
+    .filter-bar .multi-select { position: relative; }
     .filter-bar .multi-select-input {
       display: flex; align-items: center; min-height: 40px;
       padding: 4px 32px 4px 12px; border: 1px solid var(--border-color);
@@ -156,52 +228,84 @@
       </div>
 
       <div class="content-area">
-        <!-- Filters -->
-        <div class="filter-bar" style="margin-bottom: 20px;">
-          <div class="date-range-group">
-            <input type="date" id="dateStart" class="form-control form-control-lg" value="2026-01-01" style="width:170px" onchange="renderDayTabs()">
-            <span style="color:var(--text-tertiary)">~</span>
-            <input type="date" id="dateEnd" class="form-control form-control-lg" value="2026-02-28" style="width:170px" onchange="renderDayTabs()">
-          </div>
-          <select id="storeSelect" class="form-control form-control-lg" style="width:460px" onchange="renderDayTabs()">
-            <option value="">请选择门店</option>
-          </select>
-          <div class="multi-select" id="roleFilter" data-placeholder="All Role" style="min-width:150px">
-            <div class="multi-select-input" onclick="toggleIndexMultiSelect('roleFilter')">
-              <div class="multi-select-tags">
-                <span class="multi-select-placeholder">All Role</span>
+        <!-- Filters：移动端默认折叠筛选，操作按钮始终可见 -->
+        <div class="filter-surface">
+          <button type="button" class="filter-surface-toggle" onclick="toggleFilterSurface(this)" aria-expanded="false" aria-controls="indexFilterCollapsible">
+            <span class="filter-surface-toggle-text">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+              筛选条件
+            </span>
+            <svg class="filter-surface-toggle-chevron" width="14" height="14" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+          </button>
+          <div id="indexFilterCollapsible" class="filter-surface-collapsible">
+            <div class="filter-bar filter-bar--page filter-bar--index">
+              <div class="filter-field filter-field--daterange">
+                <span class="filter-field-label">日期范围</span>
+                <div class="date-range-group">
+                  <input type="date" id="dateStart" class="form-control form-control-lg" value="2026-01-01" onchange="renderDayTabs()">
+                  <span class="date-range-sep" style="color:var(--text-tertiary)">~</span>
+                  <input type="date" id="dateEnd" class="form-control form-control-lg" value="2026-02-28" onchange="renderDayTabs()">
+                </div>
               </div>
-              <svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
-            </div>
-            <div class="multi-select-dropdown">
-              <label class="multi-select-option multi-select-all" style="border-bottom:1px solid var(--border-light);margin-bottom:4px;padding-bottom:6px"><input type="checkbox" value="__all__" data-select-all> 全选</label>
-              <label class="multi-select-option"><input type="checkbox" value="Assistant Manager"> Assistant Manager</label>
-              <label class="multi-select-option"><input type="checkbox" value="Bartender"> Bartender</label>
-              <label class="multi-select-option"><input type="checkbox" value="Busser"> Busser</label>
-              <label class="multi-select-option"><input type="checkbox" value="Cashier"> Cashier</label>
-              <label class="multi-select-option"><input type="checkbox" value="Driver"> Driver</label>
-              <label class="multi-select-option"><input type="checkbox" value="Host"> Host</label>
-              <label class="multi-select-option"><input type="checkbox" value="Manager"> Manager</label>
-              <label class="multi-select-option"><input type="checkbox" value="Runner"> Runner</label>
-              <label class="multi-select-option"><input type="checkbox" value="Server"> Server</label>
-              <label class="multi-select-option"><input type="checkbox" value="Shift Lead"> Shift Lead</label>
-            </div>
-          </div>
-          <div class="multi-select" id="employeeFilter" data-placeholder="All Staff" style="min-width:150px">
-            <div class="multi-select-input" onclick="toggleIndexMultiSelect('employeeFilter')">
-              <div class="multi-select-tags">
-                <span class="multi-select-placeholder">All Staff</span>
+              <div class="filter-field">
+                <label class="filter-field-label" for="storeSelect">门店</label>
+                <select id="storeSelect" class="form-control form-control-lg" onchange="renderDayTabs()">
+                  <option value="">请选择门店</option>
+                </select>
               </div>
-              <svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+              <div class="filter-field">
+                <span class="filter-field-label">角色</span>
+                <div class="multi-select" id="roleFilter" data-placeholder="All Role">
+                <div class="multi-select-input" onclick="toggleIndexMultiSelect('roleFilter')">
+                  <div class="multi-select-tags">
+                    <span class="multi-select-placeholder">All Role</span>
+                  </div>
+                  <svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+                </div>
+                <div class="multi-select-dropdown">
+                  <label class="multi-select-option multi-select-all" style="border-bottom:1px solid var(--border-light);margin-bottom:4px;padding-bottom:6px"><input type="checkbox" value="__all__" data-select-all> 全选</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Assistant Manager"> Assistant Manager</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Bartender"> Bartender</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Busser"> Busser</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Cashier"> Cashier</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Driver"> Driver</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Host"> Host</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Manager"> Manager</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Runner"> Runner</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Server"> Server</label>
+                  <label class="multi-select-option"><input type="checkbox" value="Shift Lead"> Shift Lead</label>
+                </div>
+              </div>
+              </div>
+              <div class="filter-field">
+                <span class="filter-field-label">员工</span>
+                <div class="multi-select" id="employeeFilter" data-placeholder="All Staff">
+                <div class="multi-select-input" onclick="toggleIndexMultiSelect('employeeFilter')">
+                  <div class="multi-select-tags">
+                    <span class="multi-select-placeholder">All Staff</span>
+                  </div>
+                  <svg class="multi-select-arrow" width="12" height="12" viewBox="0 0 12 12" fill="#999"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+                </div>
+                <div class="multi-select-dropdown" id="employeeFilterDropdown"></div>
+              </div>
+              </div>
             </div>
-            <div class="multi-select-dropdown" id="employeeFilterDropdown"></div>
           </div>
-          <button id="allocateBtn" class="btn btn-primary btn-lg" onclick="doAllocateTips()">分配小费</button>
-          <button class="btn btn-lg" onclick="doCancelAllocate()" style="color:var(--text-tertiary);font-size:13px" title="用于测试">取消分配</button>
+          <div class="filter-surface-actions">
+            <button id="allocateBtn" class="btn btn-primary btn-lg" onclick="doAllocateTips()">分配小费</button>
+            <button type="button" class="btn btn-lg" onclick="doCancelAllocate()" style="color:var(--text-tertiary);font-size:13px" title="用于测试">取消分配</button>
+          </div>
         </div>
 
-        <!-- Day Tabs — 根据筛选日期动态生成 -->
-        <div class="day-tab-list" id="dayTabs"></div>
+        <!-- Day Tabs：左侧横向滚动 + 右侧渐变遮挡区内的「每日状态」按钮 -->
+        <div class="day-tab-row">
+          <div class="day-tab-scroll">
+            <div class="day-tab-list" id="dayTabs"></div>
+          </div>
+          <button type="button" class="day-tab-status-btn" onclick="openDayAllocationStatusModal(event)" title="查看每日分配状态" aria-label="查看每日分配状态">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>
+          </button>
+        </div>
 
         <!-- 员工分配结果 — 根据筛选日期动态生成 -->
         <div id="employeeResults"></div>
@@ -258,6 +362,19 @@
           <div class="modal-footer">
             <button class="btn" onclick="closeModal('emailModal')">取消</button>
             <button class="btn btn-primary" onclick="sendEmail()">发送</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="dayAllocationStatusModal">
+        <div class="modal" style="width:min(480px,92vw);max-height:85vh;display:flex;flex-direction:column">
+          <div class="modal-header">
+            <h3>每日分配状态</h3>
+            <button type="button" class="modal-close" onclick="closeModal('dayAllocationStatusModal')">×</button>
+          </div>
+          <div class="modal-body" id="dayAllocationStatusModalBody" style="overflow-y:auto;flex:1;min-height:0"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" onclick="closeModal('dayAllocationStatusModal')">关闭</button>
           </div>
         </div>
       </div>
@@ -442,10 +559,57 @@
       return dates;
     }
 
+    function openDayAllocationStatusModal(ev) {
+      if (ev && ev.stopPropagation) ev.stopPropagation();
+      var dates = getDateRange();
+      var allocatedDates = getAllocatedDates();
+      var bodyEl = document.getElementById('dayAllocationStatusModalBody');
+      var storeSel = document.getElementById('storeSelect');
+      var storeText = '';
+      if (storeSel && storeSel.options && storeSel.selectedIndex >= 0) {
+        storeText = (storeSel.options[storeSel.selectedIndex].text || storeSel.value || '').trim();
+      }
+      if (!bodyEl) return;
+      if (dates.length === 0) {
+        bodyEl.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:12px 8px">当前日期范围内暂无日期，请先在上方调整日期范围。</p>';
+        openModal('dayAllocationStatusModal');
+        return;
+      }
+      var summaryAlloc = 0;
+      var summaryPending = 0;
+      var rows = [];
+      for (var i = 0; i < dates.length; i++) {
+        var key = dates[i];
+        var d = new Date(key + 'T00:00:00');
+        var shortLabel = formatTabLabel(d);
+        var alloc = allocatedDates.has(key);
+        if (alloc) summaryAlloc++; else summaryPending++;
+        var pillClass = alloc ? 'allocated' : 'pending';
+        var statusText = alloc ? '已分配' : '待分配';
+        rows.push(
+          '<tr><td>' + key + '</td><td>' + shortLabel + '</td><td><span class="status-pill ' + pillClass + '">' + statusText + '</span></td></tr>'
+        );
+      }
+      var meta = '';
+      if (storeText) {
+        meta = '<p style="font-size:13px;color:var(--text-secondary);margin:0 0 12px">门店：<strong style="color:var(--text-primary)">' +
+          String(storeText).replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</strong></p>';
+      }
+      meta += '<p style="font-size:12px;color:var(--text-tertiary);margin:0 0 12px">已分配 <strong style="color:var(--success)">' + summaryAlloc + '</strong> 天 · 待分配 <strong style="color:var(--warning)">' + summaryPending + '</strong> 天</p>';
+      bodyEl.innerHTML =
+        meta +
+        '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">' +
+        '<table class="data-table"><thead><tr><th>日期</th><th>月/日</th><th>状态</th></tr></thead><tbody>' +
+        rows.join('') +
+        '</tbody></table></div>';
+      openModal('dayAllocationStatusModal');
+    }
+
     function renderDayTabs() {
       var dates = getDateRange();
       var allocatedDates = getAllocatedDates();
       var container = document.getElementById('dayTabs');
+      if (!container) return;
       container.innerHTML = '';
       dates.forEach(function(key, i) {
         var d = new Date(key + 'T00:00:00');
@@ -556,13 +720,13 @@
             '</button>' +
           '</div>' +
           '<div class="summary-row" style="margin-bottom:12px">' +
-            '<span>分配前总小费：<strong>' + money(totalBefore) + '</strong></span>' +
-            '<span>被分配总小费：<strong>' + moneySign(totalAlloc) + '</strong></span>' +
-            '<span>分配后总小费：<strong>' + money(totalAfter) + '</strong></span>' +
+            '<span>分配前总计：<strong>' + money(totalBefore) + '</strong></span>' +
+            '<span>被分配总计：<strong>' + moneySign(totalAlloc) + '</strong></span>' +
+            '<span>分配后总计：<strong>' + money(totalAfter) + '</strong></span>' +
           '</div>' +
           '<div class="employee-detail">' +
             '<table class="data-table">' +
-              '<thead><tr><th>日期</th><th>分配前小费</th><th>被分配小费</th><th>分配后小费</th></tr></thead>' +
+              '<thead><tr><th>日期</th><th>分配前</th><th>被分配</th><th>分配后</th></tr></thead>' +
               '<tbody>' + rows + '</tbody>' +
             '</table>' +
           '</div>';

@@ -454,7 +454,7 @@
                   <thead>
                     <tr>
                       <th style="width:236px">接收角色</th>
-                      <th style="width:88px">计提%</th>
+                      <th style="min-width:110px">小费计提占比(%)</th>
                       <th style="min-width:148px">员工小费权重</th>
                       <th style="min-width:200px">取值条件</th>
                       <th style="width:56px">操作</th>
@@ -488,7 +488,7 @@
           <div class="form-section">
             <div class="form-section-title"><span class="field-desc-wrap" data-field-id="clockin">员工打卡方式（单选） <span class="field-desc-icon" data-field-id="clockin" data-label="员工打卡方式" onclick="event.preventDefault();openFieldDescEditor('clockin','员工打卡方式')" title="点击编辑字段说明">ⓘ</span></span></div>
             <div class="radio-group">
-              <label class="radio-item">
+              <label class="radio-item" id="clockinClockOption">
                 <input type="radio" name="clockin" value="clock" checked onchange="updateDistributionOptions()"> 打卡上班
               </label>
               <label class="radio-item">
@@ -1149,7 +1149,7 @@
       if (dist) dist.checked = true;
       var clock = document.querySelector('input[name="clockin"][value="' + (rule.clockin || 'clock') + '"]');
       if (clock) clock.checked = true;
-      updateDistributionOptions();
+      syncClockinForOnlyCustomPool();
       var deductContainer = document.getElementById('deductRoleSelect');
       if (allocMode === 'order_tip_then_residual') {
         deductContainer.querySelectorAll('input[type="checkbox"]').forEach(function(cb) { cb.checked = false; });
@@ -2781,6 +2781,7 @@
             existingRules[ruleId] = false;
           }
           updateDeductRulesVisibility();
+          syncClockinForOnlyCustomPool();
         }, 300);
         showNotification('已删除');
       });
@@ -2804,6 +2805,28 @@
     function updateDeductRulesVisibility() {
       var el = document.getElementById('deductRulesSection');
       if (el) el.style.display = existingRules.sales ? 'block' : 'none';
+    }
+
+    /** 小费池仅有一项且为自定义小费时：不展示「打卡上班」，只展示并默认选中「不打卡」 */
+    function syncClockinForOnlyCustomPool() {
+      var cards = document.querySelectorAll('.pool-rule-card[data-rule-id]');
+      var onlySingleCustom = cards.length === 1 && cards[0].dataset.ruleType === 'custom';
+      var clockIn = document.querySelector('input[name="clockin"][value="clock"]');
+      var noClockIn = document.querySelector('input[name="clockin"][value="noclock"]');
+      var clockOpt = document.getElementById('clockinClockOption');
+      if (!clockIn || !noClockIn) {
+        updateDistributionOptions();
+        return;
+      }
+      if (onlySingleCustom) {
+        noClockIn.checked = true;
+        clockIn.checked = false;
+        clockIn.disabled = false;
+        if (clockOpt) clockOpt.style.display = 'none';
+      } else {
+        if (clockOpt) clockOpt.style.display = '';
+      }
+      updateDistributionOptions();
     }
 
     function updateDistributionOptions() {
@@ -2868,6 +2891,7 @@
       document.getElementById('addOptionMenu').classList.remove('show');
       updateAddMenu();
       updateDeductRulesVisibility();
+      syncClockinForOnlyCustomPool();
       showNotification('已添加 ' + (opt.name || baseNames[type]));
     }
 
