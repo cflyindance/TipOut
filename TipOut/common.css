@@ -1059,13 +1059,17 @@ select.form-control {
 
   .filter-surface-actions {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 10px;
     width: 100%;
   }
 
   .filter-surface-actions .btn {
-    width: 100%;
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
     box-sizing: border-box;
     min-height: 44px;
   }
