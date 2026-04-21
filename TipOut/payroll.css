@@ -186,7 +186,13 @@
 .payroll-page .payroll-sum-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  column-gap: 22px;
+  row-gap: 16px;
+}
+
+.payroll-page .payroll-sum-grid > .payroll-sum-block:nth-child(2) {
+  border-left: 1px solid var(--border-light);
+  padding-left: 14px;
 }
 
 @media (max-width: 640px) {
@@ -231,6 +237,17 @@
   background: var(--card-bg);
   border: 1px solid var(--border-light);
   border-radius: 10px;
+}
+
+.payroll-page.payroll-entered #view-employees .card,
+.payroll-page.payroll-entered #view-workspace .card {
+  width: 100%;
+}
+
+.payroll-page.payroll-entered .payroll-detail-print {
+  max-width: none;
+  width: 100%;
+  margin: 0;
 }
 
 .payroll-page .payroll-detail-grid {
@@ -358,6 +375,55 @@
 
 .payroll-page .payroll-detail-period-summary + .payroll-detail-daily {
   margin-top: 24px;
+}
+
+.payroll-page .payroll-confirm-fixed {
+  position: fixed;
+  left: 264px;
+  right: 0;
+  bottom: 0;
+  z-index: 950;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 12px 24px;
+  background: #fff;
+  border-top: 1px solid var(--border-light);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.payroll-page #tab-panel-manage {
+  padding-bottom: 76px;
+}
+
+.payroll-page .payroll-adp-export-fixed {
+  position: fixed;
+  left: 264px;
+  right: 0;
+  bottom: 0;
+  z-index: 950;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 12px 24px;
+  background: #fff;
+  border-top: 1px solid var(--border-light);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.payroll-page #tab-panel-adp {
+  padding-bottom: 76px;
+}
+
+@media (max-width: 768px) {
+  .payroll-page .payroll-confirm-fixed {
+    left: 0;
+    padding: 10px 16px;
+  }
+  .payroll-page .payroll-adp-export-fixed {
+    left: 0;
+    padding: 10px 16px;
+  }
 }
 
 .payroll-page .text-danger {

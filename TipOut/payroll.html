@@ -83,6 +83,15 @@
                 <option value="">全部期数</option>
               </select>
             </div>
+            <div class="filter-field">
+              <label class="filter-field-label" for="period-status-filter">状态</label>
+              <select id="period-status-filter" class="form-control form-control-lg">
+                <option value="">全部状态</option>
+                <option value="draft">未确认</option>
+                <option value="partial">部分未确认</option>
+                <option value="confirmed">已确认</option>
+              </select>
+            </div>
           </div>
           <div class="card">
             <div class="card-body" style="padding:0">
@@ -255,12 +264,14 @@
               </div>
             </div>
 
-            <button type="button" class="btn btn-primary no-print" data-action="confirm-employee" style="margin-bottom:24px">确认本期该员工数据</button>
+            <div class="payroll-confirm-fixed no-print">
+              <button type="button" class="btn btn-primary" data-action="confirm-employee">确定并保存</button>
+            </div>
           </div>
 
           <div id="tab-panel-detail" role="tabpanel" hidden class="print-area">
             <div class="no-print" style="display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-bottom:16px">
-              <span id="detail-draft-badge" class="tag tag-orange">草稿预览 · 非最终</span>
+              <span id="detail-draft-badge" class="tag tag-orange">未确认预览 · 非最终</span>
               <button type="button" id="btn-print-detail" class="btn btn-sm">打印 / PDF</button>
             </div>
             <article class="payroll-detail-print">
@@ -292,9 +303,6 @@
           </div>
 
           <div id="tab-panel-adp" role="tabpanel" hidden>
-            <div class="no-print" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px">
-              <button type="button" id="btn-export-csv" data-action="export-csv" class="btn btn-primary btn-sm">导出 CSV</button>
-            </div>
             <div class="card">
               <div class="card-body" style="padding:0;overflow-x:auto">
                 <table class="data-table" style="min-width:900px">
@@ -319,12 +327,31 @@
               </div>
             </div>
             <p class="no-print" style="margin-top:12px;font-size:12px;color:var(--text-tertiary)">若未填写 ADP File#，导出按钮将禁用（模拟校验）。</p>
+            <div class="payroll-adp-export-fixed no-print">
+              <button type="button" id="btn-export-csv" data-action="export-csv" class="btn btn-primary">导出 CSV</button>
+            </div>
           </div>
         </section>
 
         <footer class="payroll-footer-note no-print">
           静态演示 · 数据保存在浏览器 localStorage（键名 tipout-payroll-state-v4）
         </footer>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="workspaceUnsavedConfirmModal">
+    <div class="modal" style="width:min(460px,92vw)">
+      <div class="modal-header">
+        <h3>确认返回</h3>
+        <button type="button" class="modal-close" id="btn-unsaved-close">×</button>
+      </div>
+      <div class="modal-body" style="font-size:14px;color:var(--text-secondary);line-height:1.6">
+        检测到该员工数据已修改，但尚未点击“确定并保存”。是否仍返回员工列表？
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" id="btn-unsaved-leave">确认返回</button>
+        <button type="button" class="btn btn-primary" id="btn-unsaved-stay">继续编辑</button>
       </div>
     </div>
   </div>

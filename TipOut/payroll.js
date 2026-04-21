@@ -5,10 +5,23 @@
   "use strict";
 
   const STORAGE_KEY = "tipout-payroll-state-v4";
+  const ROSTER_STORAGE_KEY = "tipout-employees-roster-v1";
   const DEFAULT_STORE_NAME = "Golden Dragon Chinese Kitchen - Dallas, TX 75231";
   const EXTRA_PAYROLL_STORES = [
     "Lone Star BBQ House - Austin, TX 78701",
     "Pacific Bowl & Grill - San Diego, CA 92101",
+  ];
+  const UNIFIED_ROSTER_SEED = [
+    { id: "roster-seed-1", name: "小飞鸽", role: "Floor", store: "Golden Dragon Chinese Kitchen - Dallas, TX 75231", adpFile: "924", department: "Floor", rate: 48.07, otRate: 72.11, ot2Rate: 96.14 },
+    { id: "roster-seed-2", name: "Maria Garcia", role: "Server", store: "Golden Dragon Chinese Kitchen - Dallas, TX 75231", adpFile: "101", department: "Floor", rate: 15.5, otRate: 23.25, ot2Rate: 31 },
+    { id: "roster-seed-3", name: "Jason Chen", role: "Server", store: "Sakura Sushi & Ramen House - Dallas, TX 75247", adpFile: "102", department: "Floor", rate: 16.2, otRate: 24.3, ot2Rate: 32.4 },
+    { id: "roster-seed-4", name: "Emily Watson", role: "Server", store: "Sakura Sushi & Ramen House - Dallas, TX 75247", adpFile: "103", department: "Floor", rate: 15.8, otRate: 23.7, ot2Rate: 31.6 },
+    { id: "roster-seed-5", name: "Mike Johnson", role: "Bartender", store: "Golden Dragon Chinese Kitchen - Dallas, TX 75231", adpFile: "104", department: "Bar", rate: 18.5, otRate: 27.75, ot2Rate: 37 },
+    { id: "roster-seed-6", name: "Tom Wilson", role: "Kitchen", store: "Sakura Sushi & Ramen House - Dallas, TX 75247", adpFile: "105", department: "Kitchen", rate: 22.5, otRate: 33.75, ot2Rate: 45 },
+    { id: "roster-seed-7", name: "Carlos Lopez", role: "Busser", store: "Lone Star BBQ House - Austin, TX 78701", adpFile: "106", department: "Floor", rate: 14.2, otRate: 21.3, ot2Rate: 28.4 },
+    { id: "roster-seed-8", name: "Linda Nguyen", role: "Cashier", store: "Lone Star BBQ House - Austin, TX 78701", adpFile: "107", department: "Front", rate: 17.1, otRate: 25.65, ot2Rate: 34.2 },
+    { id: "roster-seed-9", name: "Daniel Ortiz", role: "Runner", store: "Pacific Bowl & Grill - San Diego, CA 92101", adpFile: "108", department: "Floor", rate: 15.1, otRate: 22.65, ot2Rate: 30.2 },
+    { id: "roster-seed-10", name: "Rachel Scott", role: "Host", store: "Pacific Bowl & Grill - San Diego, CA 92101", adpFile: "109", department: "Front", rate: 16.4, otRate: 24.6, ot2Rate: 32.8 },
   ];
 
   function addDays(base, days) {
@@ -49,120 +62,95 @@
     return periods;
   }
 
+  function buildSeedSegments(idx) {
+    const day1In = `${String(8 + (idx % 3)).padStart(2, "0")}:00`;
+    const day1Out = `${String(16 + (idx % 3)).padStart(2, "0")}:00`;
+    return [
+      {
+        date: "04/01/2026",
+        slots: [
+          { in: day1In, out: day1Out },
+          { in: "", out: "" },
+          { in: "", out: "" },
+        ],
+        meal: "0:30",
+        reg: 7.5,
+        ot: 0,
+        ot2: 0,
+      },
+      {
+        date: "04/03/2026",
+        slots: [
+          { in: "10:00", out: "18:30" },
+          { in: "", out: "" },
+          { in: "", out: "" },
+        ],
+        meal: "0:30",
+        reg: 8,
+        ot: idx % 2 === 0 ? 0.5 : 0,
+        ot2: 0,
+      },
+      {
+        date: "04/09/2026",
+        slots: [
+          { in: "11:00", out: "15:00" },
+          { in: "16:00", out: "21:00" },
+          { in: "", out: "" },
+        ],
+        meal: "0:45",
+        reg: 8.25,
+        ot: idx % 3 === 0 ? 1 : 0.25,
+        ot2: 0,
+      },
+    ];
+  }
+
+  function buildSeedEmployees() {
+    const baseAdj = {
+      exempt: "",
+      incentive: 0,
+      breakfast: 0,
+      lunch: 0,
+      dinner: 0,
+      sickHours: 0,
+      svcw: 0,
+      tips: 0,
+      childSup: 0,
+      medDed: 0,
+      eee40: 0,
+      eer60: 0,
+    };
+    return UNIFIED_ROSTER_SEED.map((r, idx) => ({
+      id: `emp-${String(r.id || idx + 1).replace(/^roster-seed-/, "seed-")}`,
+      name: r.name,
+      store: r.store || DEFAULT_STORE_NAME,
+      adpFile: r.adpFile || "",
+      department: r.department || r.role || "Floor",
+      confirmed: false,
+      rate: Number(r.rate) || 0,
+      otRate: Number(r.otRate) || 0,
+      ot2Rate: Number(r.ot2Rate) || 0,
+      segments: buildSeedSegments(idx),
+      adjustments: { ...baseAdj, tips: idx === 0 ? 85 : 0, svcw: idx === 0 ? 120.5 : 0 },
+    }));
+  }
+
   const DEFAULT_DATA = {
     coCode: "X0L",
     periods: buildPresetPeriods(),
     employees: {
-      "p2026-08": [
-        {
-          id: "emp-a29",
-          name: "小飞鸽",
-          store: "Golden Dragon Chinese Kitchen - Dallas, TX 75231",
-          adpFile: "924",
-          department: "Floor",
-          confirmed: false,
-          rate: 48.07,
-          otRate: 72.11,
-          ot2Rate: 96.14,
-          segments: [
-            {
-              date: "04/01/2026",
-              slots: [
-                { in: "09:00", out: "14:00" },
-                { in: "15:00", out: "21:00" },
-                { in: "", out: "" },
-              ],
-              meal: "1:00",
-              reg: 8,
-              ot: 2,
-              ot2: 0,
-            },
-            {
-              date: "04/03/2026",
-              slots: [
-                { in: "10:00", out: "18:30" },
-                { in: "", out: "" },
-                { in: "", out: "" },
-              ],
-              meal: "0:30",
-              reg: 8,
-              ot: 0,
-              ot2: 0,
-            },
-            {
-              date: "04/09/2026",
-              slots: [
-                { in: "11:00", out: "15:00" },
-                { in: "16:00", out: "21:00" },
-                { in: "", out: "" },
-              ],
-              meal: "0:45",
-              reg: 8.25,
-              ot: 1,
-              ot2: 0,
-            },
-          ],
-          adjustments: {
-            exempt: "",
-            incentive: 0,
-            breakfast: 0,
-            lunch: 1,
-            dinner: 0,
-            sickHours: 0,
-            svcw: 120.5,
-            tips: 85.0,
-            childSup: 0,
-            medDed: 0,
-            eee40: 0,
-            eer60: 0,
-          },
-        },
-        {
-          id: "emp-b12",
-          name: "B12",
-          store: "Sakura Sushi & Ramen House - Dallas, TX 75247",
-          adpFile: "",
-          department: "Kitchen",
-          confirmed: false,
-          rate: 22.5,
-          otRate: 33.75,
-          ot2Rate: 45,
-          segments: [
-            {
-              date: "04/02/2026",
-              slots: [
-                { in: "08:00", out: "16:00" },
-                { in: "", out: "" },
-                { in: "", out: "" },
-              ],
-              meal: "0:30",
-              reg: 7.5,
-              ot: 0,
-              ot2: 0,
-            },
-          ],
-          adjustments: {
-            exempt: "",
-            incentive: 0,
-            breakfast: 0,
-            lunch: 0,
-            dinner: 1,
-            sickHours: 0,
-            svcw: 0,
-            tips: 42.0,
-            childSup: 0,
-            medDed: 0,
-            eee40: 0,
-            eer60: 0,
-          },
-        },
-      ],
+      "p2026-08": buildSeedEmployees(),
     },
   };
 
   function cloneEmployeesTemplate(list) {
     if (typeof structuredClone === "function") return structuredClone(list);
     return JSON.parse(JSON.stringify(list));
+  }
+
+  function cloneData(obj) {
+    if (typeof structuredClone === "function") return structuredClone(obj);
+    return JSON.parse(JSON.stringify(obj));
   }
 
   /** 按用户要求：将第2-5期按第8期模板补全 */
@@ -177,25 +165,181 @@
     });
   }
 
+  /** 补全“已确认”周期的数据：仅在该期数据为空时按模板填充 */
+  function fillConfirmedPeriodsData(employeesMap, periods) {
+    if (!employeesMap || typeof employeesMap !== "object") return;
+    const list = Array.isArray(periods) ? periods : [];
+    const baseTemplate =
+      (Array.isArray(employeesMap["p2026-08"]) && employeesMap["p2026-08"].length > 0 && employeesMap["p2026-08"]) ||
+      Object.values(employeesMap).find((arr) => Array.isArray(arr) && arr.length > 0) ||
+      [];
+    list.forEach((p) => {
+      if (!p || p.status !== "confirmed") return;
+      const pid = p.id;
+      if (!pid) return;
+      if (!Array.isArray(employeesMap[pid]) || employeesMap[pid].length === 0) {
+        employeesMap[pid] = cloneEmployeesTemplate(baseTemplate);
+      }
+      employeesMap[pid].forEach((emp) => {
+        if (emp) emp.confirmed = true;
+      });
+    });
+  }
+
+  /** 补“部分未确认”演示场景：确保某一期出现部分已确认、部分未确认 */
+  function fillPartialConfirmedScenario(employeesMap) {
+    if (!employeesMap || typeof employeesMap !== "object") return;
+    const targetPid = "p2026-10";
+    const template = Array.isArray(employeesMap["p2026-08"]) ? employeesMap["p2026-08"] : [];
+    if (!Array.isArray(employeesMap[targetPid]) || employeesMap[targetPid].length === 0) {
+      employeesMap[targetPid] = cloneEmployeesTemplate(template);
+    }
+    const list = employeesMap[targetPid];
+    if (!Array.isArray(list) || list.length === 0) return;
+    list.forEach((emp, idx) => {
+      if (!emp) return;
+      emp.confirmed = idx < 4;
+    });
+  }
+
+  /** 补“未确认”演示场景：确保某一期全部未确认 */
+  function fillDraftScenario(employeesMap) {
+    if (!employeesMap || typeof employeesMap !== "object") return;
+    const targetPid = "p2026-08";
+    const list = employeesMap[targetPid];
+    if (!Array.isArray(list)) return;
+    list.forEach((emp) => {
+      if (emp) emp.confirmed = false;
+    });
+  }
+
+  function getUnifiedRoster() {
+    try {
+      const raw = localStorage.getItem(ROSTER_STORAGE_KEY);
+      if (!raw) return cloneEmployeesTemplate(UNIFIED_ROSTER_SEED);
+      const parsed = JSON.parse(raw);
+      const list = Array.isArray(parsed) ? parsed.filter((e) => e && String((e.name || "")).trim()) : [];
+      const byId = new Set(list.map((e) => String((e && e.id) || "")));
+      UNIFIED_ROSTER_SEED.forEach((s) => {
+        if (!byId.has(s.id)) list.push(cloneEmployeesTemplate(s));
+      });
+      return list;
+    } catch (_) {
+      return cloneEmployeesTemplate(UNIFIED_ROSTER_SEED);
+    }
+  }
+
+  /** 报税报表中的员工姓名/角色(部门)来源统一到员工列表 */
+  function syncEmployeesFromUnifiedRoster(employeesMap) {
+    if (!employeesMap || typeof employeesMap !== "object") return;
+    const roster = getUnifiedRoster();
+    if (!Array.isArray(roster) || roster.length === 0) return;
+    Object.keys(employeesMap).forEach((pid) => {
+      const current = Array.isArray(employeesMap[pid]) ? employeesMap[pid] : [];
+      const byAdp = new Map();
+      const byName = new Map();
+      current.forEach((e) => {
+        if (!e) return;
+        const adp = String((e.adpFile || "")).trim();
+        const name = String((e.name || "")).trim().toLowerCase();
+        if (adp && !byAdp.has(adp)) byAdp.set(adp, e);
+        if (name && !byName.has(name)) byName.set(name, e);
+      });
+      const next = roster.map((r, idx) => {
+        const rosterAdp = String((r.adpFile || "")).trim();
+        const rosterName = String((r.name || "")).trim();
+        const existing =
+          (rosterAdp && byAdp.get(rosterAdp)) || byName.get(rosterName.toLowerCase()) || current[idx] || null;
+        return {
+          id: (existing && existing.id) || `emp-roster-${idx + 1}`,
+          name: rosterName || ((existing && existing.name) || `员工${idx + 1}`),
+          store: String((r.store || (existing && existing.store) || DEFAULT_STORE_NAME)).trim() || DEFAULT_STORE_NAME,
+          adpFile: rosterAdp || String((existing && existing.adpFile) || "").trim(),
+          department: String((r.department || r.role || (existing && existing.department) || "")).trim(),
+          confirmed: !!(existing && existing.confirmed),
+          rate: Number.isFinite(Number(r.rate)) ? Number(r.rate) : Number((existing && existing.rate) || 0),
+          otRate: Number.isFinite(Number(r.otRate)) ? Number(r.otRate) : Number((existing && existing.otRate) || 0),
+          ot2Rate: Number.isFinite(Number(r.ot2Rate)) ? Number(r.ot2Rate) : Number((existing && existing.ot2Rate) || 0),
+          segments: Array.isArray(existing && existing.segments)
+            ? existing.segments.map((s) => migrateLegacySegmentToDay(s))
+            : [],
+          adjustments: {
+            exempt: "",
+            incentive: 0,
+            breakfast: 0,
+            lunch: 0,
+            dinner: 0,
+            sickHours: 0,
+            svcw: 0,
+            tips: 0,
+            childSup: 0,
+            medDed: 0,
+            eee40: 0,
+            eer60: 0,
+            ...((existing && existing.adjustments) || {}),
+          },
+        };
+      });
+      employeesMap[pid] = next;
+    });
+  }
+
+  function calcPeriodStatus(periodId, employeesMap) {
+    const list = (employeesMap && employeesMap[periodId]) || [];
+    if (!Array.isArray(list) || list.length === 0) return "draft";
+    let confirmedCount = 0;
+    list.forEach((e) => {
+      if (e && e.confirmed) confirmedCount += 1;
+    });
+    if (confirmedCount === 0) return "draft";
+    if (confirmedCount === list.length) return "confirmed";
+    return "partial";
+  }
+
+  function syncPeriodStatuses(periods, employeesMap) {
+    if (!Array.isArray(periods)) return;
+    periods.forEach((p) => {
+      if (!p || !p.id) return;
+      p.status = calcPeriodStatus(p.id, employeesMap);
+    });
+  }
+
   fillPeriods2To5FromPeriod8(DEFAULT_DATA.employees);
+  syncEmployeesFromUnifiedRoster(DEFAULT_DATA.employees);
+  fillDraftScenario(DEFAULT_DATA.employees);
+  fillConfirmedPeriodsData(DEFAULT_DATA.employees, DEFAULT_DATA.periods);
+  fillPartialConfirmedScenario(DEFAULT_DATA.employees);
+  syncPeriodStatuses(DEFAULT_DATA.periods, DEFAULT_DATA.employees);
 
   let state = {
-    data: structuredClone(DEFAULT_DATA),
+    data: cloneData(DEFAULT_DATA),
     view: "periods",
     periodId: null,
     employeeId: null,
     periodYearFilter: String(new Date().getFullYear()),
     periodNumberFilter: "",
+    periodStatusFilter: "",
     employeeStoreFilter: "",
+    workspaceEntrySnapshot: "",
+    workspaceConfirmedInSession: false,
     activeTab: "manage",
   };
 
-  function emptySlots() {
-    return [{ in: "", out: "" }, { in: "", out: "" }, { in: "", out: "" }];
+  function emptySlots(count) {
+    const n = Math.max(1, Number(count) || 1);
+    return Array.from({ length: n }, () => ({ in: "", out: "" }));
+  }
+
+  function hasSlotClock(slot) {
+    if (!slot) return false;
+    const cin = String(slot.in != null ? slot.in : "").trim();
+    const cout = String(slot.out != null ? slot.out : "").trim();
+    return !!(cin || cout);
   }
 
   /** 每日一条：3 行 In/Out + 当日 Meal / Reg / OT / OT2 */
   function normalizeDay(d) {
+    const slotRows = Number(d && d.slotRows);
     const o = {
       date: d && d.date != null ? d.date : "",
       meal: d && d.meal != null ? d.meal : "",
@@ -203,17 +347,16 @@
       ot: Number(d && d.ot) || 0,
       ot2: Number(d && d.ot2) || 0,
       slots: emptySlots(),
+      slotRows: Number.isFinite(slotRows) && slotRows > 0 ? Math.floor(slotRows) : 0,
     };
     if (d && Array.isArray(d.slots)) {
-      for (let i = 0; i < 3; i++) {
-        const sl = d.slots[i];
-        if (sl && typeof sl === "object") {
-          o.slots[i] = {
-            in: sl.in != null ? sl.in : "",
-            out: sl.out != null ? sl.out : "",
-          };
-        }
-      }
+      o.slots = d.slots
+        .map((sl) => ({
+          in: sl && sl.in != null ? sl.in : "",
+          out: sl && sl.out != null ? sl.out : "",
+        }))
+        .filter((sl) => sl && typeof sl === "object");
+      if (o.slots.length === 0) o.slots = emptySlots();
     }
     return o;
   }
@@ -224,7 +367,7 @@
     if (Array.isArray(s.slots) && s.slots.length >= 1) {
       return normalizeDay(s);
     }
-    const slots = emptySlots();
+    const slots = emptySlots(3);
     slots[0] = { in: s.in1 || "", out: s.out1 || "" };
     slots[1] = { in: s.in2 || "", out: s.out2 || "" };
     slots[2] = {
@@ -298,7 +441,7 @@
 
   function writeSegmentRegInputs(emp) {
     if (!emp || !Array.isArray(emp.segments)) return;
-    $all('#segment-rows tr[data-slot="0"]').forEach((row) => {
+    $all('#segment-rows tr[data-primary="1"]').forEach((row) => {
       const d = parseInt(row.getAttribute("data-day-index"), 10);
       const inp = row.querySelector('.field-seg[data-field="reg"]');
       if (inp && emp.segments[d] != null) {
@@ -345,13 +488,23 @@
   }
 
   function migratePayrollData(data) {
-    if (!data || !data.employees) return;
+    if (!data || typeof data !== "object") return;
+    if (!data.employees || typeof data.employees !== "object") data.employees = {};
+    if (!Array.isArray(data.periods)) data.periods = [];
     fillPeriods2To5FromPeriod8(data.employees);
     migratePeriods(data);
+    syncEmployeesFromUnifiedRoster(data.employees);
+    fillDraftScenario(data.employees);
+    fillConfirmedPeriodsData(data.employees, data.periods);
+    fillPartialConfirmedScenario(data.employees);
+    syncPeriodStatuses(data.periods, data.employees);
     const tipOutStores = getTipOutStores();
     const defaultStore = tipOutStores[0] || DEFAULT_STORE_NAME;
     Object.keys(data.employees).forEach((pid) => {
-      data.employees[pid].forEach((emp) => {
+      const list = Array.isArray(data.employees[pid]) ? data.employees[pid] : [];
+      if (!Array.isArray(data.employees[pid])) data.employees[pid] = list;
+      list.forEach((emp) => {
+        if (!emp || typeof emp !== "object") return;
         if (Array.isArray(emp.segments)) {
           emp.segments = emp.segments.map((seg) => migrateLegacySegmentToDay(seg));
         }
@@ -386,6 +539,11 @@
         }
       }
     }
+
+    // 最终兜底：任何情况下都保证 periods 可渲染
+    if (!Array.isArray(data.periods) || data.periods.length === 0) {
+      data.periods = buildPresetPeriods();
+    }
   }
 
   function loadState() {
@@ -395,18 +553,33 @@
         const parsed = JSON.parse(raw);
         if (parsed && parsed.data) {
           state.data = parsed.data;
-          migratePayrollData(state.data);
+          try {
+            migratePayrollData(state.data);
+          } catch (_) {
+            state.data = cloneData(DEFAULT_DATA);
+          }
         }
         if (parsed && parsed.view) state.view = parsed.view;
         if (parsed && parsed.periodId) state.periodId = parsed.periodId;
         if (parsed && parsed.employeeId) state.employeeId = parsed.employeeId;
         if (parsed && typeof parsed.periodYearFilter === "string") state.periodYearFilter = parsed.periodYearFilter;
         if (parsed && typeof parsed.periodNumberFilter === "string") state.periodNumberFilter = parsed.periodNumberFilter;
+        if (parsed && typeof parsed.periodStatusFilter === "string") state.periodStatusFilter = parsed.periodStatusFilter;
         if (parsed && typeof parsed.employeeStoreFilter === "string") state.employeeStoreFilter = parsed.employeeStoreFilter;
         if (parsed && parsed.activeTab) state.activeTab = parsed.activeTab;
       }
     } catch (_) {
       /* ignore */
+    }
+    // 读取失败或旧结构异常时，始终保证核心结构存在
+    if (!state.data || typeof state.data !== "object") {
+      state.data = cloneData(DEFAULT_DATA);
+    }
+    if (!Array.isArray(state.data.periods) || state.data.periods.length === 0) {
+      state.data.periods = buildPresetPeriods();
+    }
+    if (!state.data.employees || typeof state.data.employees !== "object") {
+      state.data.employees = {};
     }
   }
 
@@ -421,6 +594,7 @@
           employeeId: state.employeeId,
           periodYearFilter: state.periodYearFilter,
           periodNumberFilter: state.periodNumberFilter,
+          periodStatusFilter: state.periodStatusFilter,
           employeeStoreFilter: state.employeeStoreFilter,
           activeTab: state.activeTab,
         })
@@ -445,6 +619,94 @@
   function getEmployee(periodId, empId) {
     const list = state.data.employees[periodId] || [];
     return list.find((e) => e.id === empId);
+  }
+
+  function buildEmployeeSnapshot(emp) {
+    if (!emp) return "";
+    const safe = {
+      adpFile: emp.adpFile || "",
+      confirmed: !!emp.confirmed,
+      rate: Number(emp.rate) || 0,
+      otRate: Number(emp.otRate) || 0,
+      ot2Rate: Number(emp.ot2Rate) || 0,
+      segments: Array.isArray(emp.segments)
+        ? emp.segments.map((d) => {
+            const day = normalizeDay(d);
+            return {
+              date: day.date || "",
+              meal: day.meal || "",
+              reg: Number(day.reg) || 0,
+              ot: Number(day.ot) || 0,
+              ot2: Number(day.ot2) || 0,
+              slots: day.slots.map((s) => ({ in: s.in || "", out: s.out || "" })),
+            };
+          })
+        : [],
+      adjustments: mergeAdjustments(emp.adjustments),
+    };
+    return JSON.stringify(safe);
+  }
+
+  function markWorkspaceEntrySnapshot() {
+    const emp = getEmployee(state.periodId, state.employeeId);
+    if (!emp) {
+      state.workspaceEntrySnapshot = "";
+      state.workspaceConfirmedInSession = false;
+      return;
+    }
+    state.workspaceEntrySnapshot = buildEmployeeSnapshot(emp);
+    state.workspaceConfirmedInSession = false;
+  }
+
+  function hasUnconfirmedWorkspaceChanges() {
+    const emp = getEmployee(state.periodId, state.employeeId);
+    if (!emp) return false;
+    readFormIntoState();
+    const changed = buildEmployeeSnapshot(emp) !== state.workspaceEntrySnapshot;
+    return changed && !state.workspaceConfirmedInSession;
+  }
+
+  /** 仅在 Manage Payroll 页面离开时拦截（切 tab / 跳导航） */
+  function shouldWarnBeforeLeavingManage() {
+    return state.view === "workspace" && state.activeTab === "manage" && hasUnconfirmedWorkspaceChanges();
+  }
+
+  function showUnsavedConfirmDialog() {
+    const modalId = "workspaceUnsavedConfirmModal";
+    const modal = $("#" + modalId);
+    const btnStay = $("#btn-unsaved-stay");
+    const btnLeave = $("#btn-unsaved-leave");
+    const btnClose = $("#btn-unsaved-close");
+    if (!modal || !btnStay || !btnLeave || !btnClose) return Promise.resolve(false);
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (ok) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        if (typeof closeModal === "function") closeModal(modalId);
+        else modal.classList.remove("show");
+        resolve(ok);
+      };
+      const onStay = () => finish(false);
+      const onLeave = () => finish(true);
+      const onClose = () => finish(false);
+      const onOverlay = (e) => {
+        if (e.target === modal) finish(false);
+      };
+      const cleanup = () => {
+        btnStay.removeEventListener("click", onStay);
+        btnLeave.removeEventListener("click", onLeave);
+        btnClose.removeEventListener("click", onClose);
+        modal.removeEventListener("click", onOverlay);
+      };
+      btnStay.addEventListener("click", onStay);
+      btnLeave.addEventListener("click", onLeave);
+      btnClose.addEventListener("click", onClose);
+      modal.addEventListener("click", onOverlay);
+      if (typeof openModal === "function") openModal(modalId);
+      else modal.classList.add("show");
+    });
   }
 
   function getTipOutStores() {
@@ -503,8 +765,16 @@
     const tbody = $("#period-rows");
     const yearSelect = $("#period-year-filter");
     const numberSelect = $("#period-number-filter");
+    const statusSelect = $("#period-status-filter");
     if (!tbody) return;
-    const periods = Array.isArray(state.data.periods) ? state.data.periods : [];
+    if (!state.data || typeof state.data !== "object") state.data = cloneData(DEFAULT_DATA);
+    if (!state.data.employees || typeof state.data.employees !== "object") state.data.employees = {};
+    let periods = Array.isArray(state.data.periods) ? state.data.periods : [];
+    if (periods.length === 0) {
+      state.data.periods = buildPresetPeriods();
+      periods = state.data.periods;
+    }
+    syncPeriodStatuses(periods, state.data.employees);
     const years = getRecentYears();
     if (yearSelect) {
       const opts = years.map((y) => `<option value="${escapeHtml(y)}">${escapeHtml(y)}年</option>`).join("");
@@ -516,8 +786,16 @@
         yearSelect.value = years[0];
       }
     }
-    const activeYear = state.periodYearFilter;
-    const yearFiltered = periods.filter((p) => getPeriodYear(p) === activeYear);
+    let activeYear = state.periodYearFilter;
+    let yearFiltered = periods.filter((p) => getPeriodYear(p) === activeYear);
+    if (yearFiltered.length === 0 && periods.length > 0) {
+      const allYears = [...new Set(periods.map((p) => getPeriodYear(p)).filter(Boolean))].sort((a, b) => Number(b) - Number(a));
+      const fallbackYear = years.find((y) => allYears.includes(y)) || allYears[0] || years[0];
+      activeYear = fallbackYear;
+      state.periodYearFilter = fallbackYear;
+      yearFiltered = periods.filter((p) => getPeriodYear(p) === fallbackYear);
+      if (yearSelect) yearSelect.value = fallbackYear;
+    }
     const periodNumbers = [...new Set(yearFiltered.map((p) => String(p.periodNumber || "")).filter(Boolean))].sort(
       (a, b) => Number(a) - Number(b)
     );
@@ -534,9 +812,18 @@
       }
     }
     const activePeriodNo = state.periodNumberFilter;
-    const filtered = activePeriodNo
+    const validStatuses = ["draft", "partial", "confirmed"];
+    if (state.periodStatusFilter && !validStatuses.includes(state.periodStatusFilter)) {
+      state.periodStatusFilter = "";
+    }
+    const activeStatus = state.periodStatusFilter;
+    let filtered = activePeriodNo
       ? yearFiltered.filter((p) => String(p.periodNumber || "") === activePeriodNo)
       : yearFiltered;
+    if (statusSelect) {
+      statusSelect.value = activeStatus || "";
+    }
+    if (activeStatus) filtered = filtered.filter((p) => (p && p.status) === activeStatus);
     if (filtered.length === 0) {
       tbody.innerHTML = `<tr><td colspan="5" style="padding:48px;text-align:center;color:var(--text-tertiary)">当前筛选条件下暂无 Payroll 期数据。</td></tr>`;
       saveState();
@@ -547,7 +834,9 @@
         const st =
           p.status === "confirmed"
             ? '<span class="tag tag-blue">已确认</span>'
-            : '<span class="tag tag-orange">草稿</span>';
+            : p.status === "partial"
+            ? '<span class="tag tag-green">部分未确认</span>'
+            : '<span class="tag tag-orange">未确认</span>';
         return `
         <tr>
           <td style="font-family:ui-monospace,Menlo,monospace">${escapeHtml(String(p.periodNumber || "—"))}</td>
@@ -846,25 +1135,47 @@
     const rowHtml = [];
     emp.segments.forEach((rawDay, dayIdx) => {
       const day = normalizeDay(rawDay);
-      for (let slot = 0; slot < 3; slot++) {
-        const sl = day.slots[slot];
-        if (slot === 0) {
-          rowHtml.push(`<tr data-day-index="${dayIdx}" data-slot="${slot}">
-        <td rowspan="3" style="vertical-align:top"><input type="text" class="field-seg form-control" data-field="date" value="${escapeHtml(day.date)}" aria-label="Date" style="font-family:ui-monospace,Menlo,monospace" /></td>
+      const filledSlotIndexes = day.slots
+        .map((sl, idx) => ({ sl, idx }))
+        .filter((x) => hasSlotClock(x.sl))
+        .map((x) => x.idx);
+      const targetRows = Math.max(day.slotRows || 0, filledSlotIndexes.length || 1);
+      const visibleSlotIndexes = filledSlotIndexes.slice(0);
+      for (let i = 0; visibleSlotIndexes.length < targetRows; i++) {
+        if (!visibleSlotIndexes.includes(i)) visibleSlotIndexes.push(i);
+      }
+      const rowsForDay = visibleSlotIndexes.length;
+      visibleSlotIndexes.forEach((slotIdx, renderIdx) => {
+        if (!day.slots[slotIdx]) day.slots[slotIdx] = { in: "", out: "" };
+        const sl = day.slots[slotIdx];
+        const isLastRow = renderIdx === rowsForDay - 1;
+        const actionsHtml = `<div style="display:flex;gap:8px;align-items:center">
+            ${
+              isLastRow
+                ? `<button type="button" class="btn btn-sm" data-action="add-slot-row" data-day-index="${dayIdx}">+ 新增 In/Out</button>`
+                : ""
+            }
+            <button type="button" class="btn btn-sm" data-action="remove-slot-row" data-day-index="${dayIdx}" data-row-order="${renderIdx}">删除</button>
+          </div>`;
+        if (renderIdx === 0) {
+          rowHtml.push(`<tr data-day-index="${dayIdx}" data-slot-index="${slotIdx}" data-row-order="${renderIdx}" data-primary="1">
+        <td rowspan="${rowsForDay}" style="vertical-align:top">
+          <input type="text" class="field-seg form-control" data-field="date" value="${escapeHtml(day.date)}" aria-label="Date" style="font-family:ui-monospace,Menlo,monospace" />
+        </td>
         <td><input type="text" class="field-seg form-control" data-field="in" value="${escapeHtml(sl.in)}" placeholder="In" style="font-family:ui-monospace,Menlo,monospace" /></td>
-        <td><input type="text" class="field-seg form-control" data-field="out" value="${escapeHtml(sl.out)}" placeholder="Out" style="font-family:ui-monospace,Menlo,monospace" /></td>
-        <td rowspan="3" style="vertical-align:top"><input type="text" class="field-seg form-control" data-field="meal" value="${escapeHtml(day.meal)}" aria-label="Meal" /></td>
-        <td rowspan="3" style="vertical-align:top"><input type="number" step="0.01" class="field-seg form-control" data-field="reg" value="${day.reg}" aria-label="Regular" /></td>
-        <td rowspan="3" style="vertical-align:top"><input type="number" step="0.01" class="field-seg form-control" data-field="ot" value="${day.ot}" aria-label="OT" /></td>
-        <td rowspan="3" style="vertical-align:top"><input type="number" step="0.01" class="field-seg form-control" data-field="ot2" value="${day.ot2}" aria-label="OT2" /></td>
+        <td><div style="display:flex;gap:8px;align-items:center"><input type="text" class="field-seg form-control" data-field="out" value="${escapeHtml(sl.out)}" placeholder="Out" style="font-family:ui-monospace,Menlo,monospace" />${actionsHtml}</div></td>
+        <td rowspan="${rowsForDay}" style="vertical-align:top"><input type="text" class="field-seg form-control" data-field="meal" value="${escapeHtml(day.meal)}" aria-label="Meal" /></td>
+        <td rowspan="${rowsForDay}" style="vertical-align:top"><input type="number" step="0.01" class="field-seg form-control" data-field="reg" value="${day.reg}" aria-label="Regular" /></td>
+        <td rowspan="${rowsForDay}" style="vertical-align:top"><input type="number" step="0.01" class="field-seg form-control" data-field="ot" value="${day.ot}" aria-label="OT" /></td>
+        <td rowspan="${rowsForDay}" style="vertical-align:top"><input type="number" step="0.01" class="field-seg form-control" data-field="ot2" value="${day.ot2}" aria-label="OT2" /></td>
       </tr>`);
         } else {
-          rowHtml.push(`<tr data-day-index="${dayIdx}" data-slot="${slot}">
+          rowHtml.push(`<tr data-day-index="${dayIdx}" data-slot-index="${slotIdx}" data-row-order="${renderIdx}" data-primary="0">
         <td><input type="text" class="field-seg form-control" data-field="in" value="${escapeHtml(sl.in)}" placeholder="In" style="font-family:ui-monospace,Menlo,monospace" /></td>
-        <td><input type="text" class="field-seg form-control" data-field="out" value="${escapeHtml(sl.out)}" placeholder="Out" style="font-family:ui-monospace,Menlo,monospace" /></td>
+        <td><div style="display:flex;gap:8px;align-items:center"><input type="text" class="field-seg form-control" data-field="out" value="${escapeHtml(sl.out)}" placeholder="Out" style="font-family:ui-monospace,Menlo,monospace" />${actionsHtml}</div></td>
       </tr>`);
         }
-      }
+      });
     });
     segBody.innerHTML = rowHtml.join("");
 
@@ -909,19 +1220,25 @@
       .sort((a, b) => a - b);
     const nextSegments = [];
     dayIdxList.forEach((dIdx) => {
-      const dayRows = $all(`#segment-rows tr[data-day-index="${dIdx}"]`).sort(
-        (a, b) => parseInt(a.getAttribute("data-slot"), 10) - parseInt(b.getAttribute("data-slot"), 10)
-      );
+      const dayRows = $all(`#segment-rows tr[data-day-index="${dIdx}"]`).sort((a, b) => {
+        const ra = parseInt(a.getAttribute("data-row-order"), 10);
+        const rb = parseInt(b.getAttribute("data-row-order"), 10);
+        if (!Number.isNaN(ra) && !Number.isNaN(rb)) return ra - rb;
+        return parseInt(a.getAttribute("data-slot-index"), 10) - parseInt(b.getAttribute("data-slot-index"), 10);
+      });
       const day = normalizeDay({});
-      day.slots = emptySlots();
+      day.slots = [];
       dayRows.forEach((row) => {
-        const slot = parseInt(row.getAttribute("data-slot"), 10);
-        if (Number.isNaN(slot) || slot < 0 || slot > 2) return;
+        const slot = parseInt(row.getAttribute("data-slot-index"), 10);
+        if (Number.isNaN(slot) || slot < 0) return;
         const inEl = row.querySelector('.field-seg[data-field="in"]');
         const outEl = row.querySelector('.field-seg[data-field="out"]');
-        if (inEl) day.slots[slot].in = inEl.value;
-        if (outEl) day.slots[slot].out = outEl.value;
-        if (slot === 0) {
+        const slotValue = {
+          in: (inEl && inEl.value) || "",
+          out: (outEl && outEl.value) || "",
+        };
+        day.slots.push(slotValue);
+        if (row.getAttribute("data-primary") === "1") {
           const dateEl = row.querySelector('.field-seg[data-field="date"]');
           const mealEl = row.querySelector('.field-seg[data-field="meal"]');
           const regEl = row.querySelector('.field-seg[data-field="reg"]');
@@ -934,6 +1251,8 @@
           if (ot2El) day.ot2 = parseFloat(ot2El.value) || 0;
         }
       });
+      day.slotRows = Math.max(1, dayRows.length);
+      if (day.slots.length === 0) day.slots = emptySlots();
       nextSegments.push(day);
     });
     if (nextSegments.length > 0) emp.segments = nextSegments;
@@ -1038,6 +1357,8 @@
 
   function showView(name) {
     state.view = name;
+    const pageRoot = document.querySelector(".payroll-page");
+    if (pageRoot) pageRoot.classList.toggle("payroll-entered", name === "employees" || name === "workspace");
     $("#view-periods").hidden = name !== "periods";
     $("#view-employees").hidden = name !== "employees";
     $("#view-workspace").hidden = name !== "workspace";
@@ -1082,6 +1403,8 @@
     if (!emp) return;
     readFormIntoState();
     emp.confirmed = true;
+    state.workspaceConfirmedInSession = true;
+    state.workspaceEntrySnapshot = buildEmployeeSnapshot(emp);
     saveState();
     syncDerived();
     if (typeof showNotification === "function") {
@@ -1153,11 +1476,20 @@
       if (act === "open-employee") {
         state.employeeId = btn.getAttribute("data-employee-id");
         renderManageForm();
-        setTab(state.activeTab || "manage");
+        markWorkspaceEntrySnapshot();
+        setTab("manage");
         showView("workspace");
         syncDerived();
       }
       if (act === "back-employees") {
+        if (hasUnconfirmedWorkspaceChanges()) {
+          showUnsavedConfirmDialog().then((ok) => {
+            if (!ok) return;
+            renderEmployees();
+            showView("employees");
+          });
+          return;
+        }
         renderEmployees();
         showView("employees");
       }
@@ -1166,6 +1498,44 @@
       }
       if (act === "export-csv") {
         exportAdpCsv();
+      }
+      if (act === "add-slot-row") {
+        const dayIdx = parseInt(btn.getAttribute("data-day-index"), 10);
+        if (Number.isNaN(dayIdx) || dayIdx < 0) return;
+        readFormIntoState();
+        const emp = getEmployee(state.periodId, state.employeeId);
+        if (!emp || !Array.isArray(emp.segments) || !emp.segments[dayIdx]) return;
+        const day = normalizeDay(emp.segments[dayIdx]);
+        day.slots.push({ in: "", out: "" });
+        day.slotRows = Math.max(day.slotRows || 0, day.slots.length);
+        emp.segments[dayIdx] = day;
+        renderManageForm();
+        syncDerived();
+      }
+      if (act === "remove-slot-row") {
+        const dayIdx = parseInt(btn.getAttribute("data-day-index"), 10);
+        const rowOrder = parseInt(btn.getAttribute("data-row-order"), 10);
+        if (Number.isNaN(dayIdx) || dayIdx < 0) return;
+        readFormIntoState();
+        const emp = getEmployee(state.periodId, state.employeeId);
+        if (!emp || !Array.isArray(emp.segments) || !emp.segments[dayIdx]) return;
+        const day = normalizeDay(emp.segments[dayIdx]);
+        const removeIndex = !Number.isNaN(rowOrder) && rowOrder >= 0 ? rowOrder : day.slots.length - 1;
+        if (day.slots.length <= 1) {
+          day.slots = [{ in: "", out: "" }];
+          day.slotRows = 1;
+        } else {
+          if (removeIndex >= 0 && removeIndex < day.slots.length) {
+            day.slots.splice(removeIndex, 1);
+          } else {
+            day.slots.pop();
+          }
+          if (day.slots.length === 0) day.slots = [{ in: "", out: "" }];
+          day.slotRows = Math.min(Math.max(1, (day.slotRows || day.slots.length) - 1), day.slots.length);
+        }
+        emp.segments[dayIdx] = day;
+        renderManageForm();
+        syncDerived();
       }
     });
 
@@ -1198,7 +1568,32 @@
     });
 
     $all("[data-tab]").forEach((btn) => {
-      btn.addEventListener("click", () => setTab(btn.getAttribute("data-tab")));
+      btn.addEventListener("click", () => {
+        const targetTab = btn.getAttribute("data-tab");
+        if (!targetTab || targetTab === state.activeTab) return;
+        if (!shouldWarnBeforeLeavingManage()) {
+          setTab(targetTab);
+          return;
+        }
+        showUnsavedConfirmDialog().then((ok) => {
+          if (!ok) return;
+          setTab(targetTab);
+        });
+      });
+    });
+
+    document.body.addEventListener("click", (e) => {
+      const link = e.target.closest("a[href]");
+      if (!link) return;
+      const href = link.getAttribute("href") || "";
+      if (!href || href.startsWith("#") || href.toLowerCase().startsWith("javascript:")) return;
+      if (!shouldWarnBeforeLeavingManage()) return;
+      e.preventDefault();
+      const targetUrl = href;
+      showUnsavedConfirmDialog().then((ok) => {
+        if (!ok) return;
+        window.location.href = targetUrl;
+      });
     });
 
     $("#employee-store-filter")?.addEventListener("change", (e) => {
@@ -1217,6 +1612,11 @@
       renderPeriods();
     });
 
+    $("#period-status-filter")?.addEventListener("change", (e) => {
+      state.periodStatusFilter = e.target.value || "";
+      renderPeriods();
+    });
+
     $("#btn-print-detail")?.addEventListener("click", () => window.print());
   }
 
@@ -1225,14 +1625,9 @@
   renderEmployees();
   bind();
 
-  if (state.view === "employees" && state.periodId) {
-    showView("employees");
-  } else if (state.view === "workspace" && state.periodId && state.employeeId) {
-    renderManageForm();
-    setTab(state.activeTab || "manage");
-    showView("workspace");
-    syncDerived();
-  } else {
-    showView("periods");
-  }
+  // 进入报税报表页时，始终默认回到 Payroll期 页面
+  state.view = "periods";
+  state.periodId = null;
+  state.employeeId = null;
+  showView("periods");
 })();

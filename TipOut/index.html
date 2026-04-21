@@ -416,7 +416,9 @@
       localStorage.setItem(ALLOC_KEY, JSON.stringify(obj));
     }
 
-    const employees = [
+    const EMPLOYEE_ROSTER_KEY = 'tipout-employees-roster-v1';
+
+    const DEFAULT_EMPLOYEES = [
       { name: 'Maria Garcia',  role: 'Server',    tagClass: 'tag-blue',  tipType: 'deduct', baseTip: 185, tipRate: 0.15 },
       { name: 'Jason Chen',    role: 'Server',    tagClass: 'tag-blue',  tipType: 'deduct', baseTip: 168, tipRate: 0.15 },
       { name: 'Emily Watson',  role: 'Server',    tagClass: 'tag-blue',  tipType: 'deduct', baseTip: 155, tipRate: 0.15 },
@@ -431,6 +433,41 @@
       { name: 'Daniel Ortiz',  role: 'Runner',    tagClass: 'tag-green', tipType: 'receive', baseTip: 0, tipRate: 0 },
       { name: 'Rachel Scott',  role: 'Host',      tagClass: 'tag-green', tipType: 'receive', baseTip: 0, tipRate: 0 }
     ];
+
+    function resolveTagClass(emp) {
+      if ((emp.tipType || '') === 'deduct' && (emp.role || '') === 'Cashier') return 'tag-orange';
+      return (emp.tipType || '') === 'deduct' ? 'tag-blue' : 'tag-green';
+    }
+
+    function buildEmployeesFromRoster() {
+      try {
+        var raw = localStorage.getItem(EMPLOYEE_ROSTER_KEY);
+        if (!raw) return DEFAULT_EMPLOYEES.slice();
+        var list = JSON.parse(raw);
+        if (!Array.isArray(list) || list.length === 0) return DEFAULT_EMPLOYEES.slice();
+        return list
+          .filter(function(e) { return e && String(e.name || '').trim(); })
+          .map(function(e) {
+            var role = String(e.role || '').trim();
+            var tipType = String(e.tipType || 'deduct').trim();
+            var baseTip = Number(e.baseTip) || 0;
+            var tipRate = Number(e.tipRate);
+            tipRate = Number.isFinite(tipRate) ? (tipRate > 1 ? tipRate / 100 : tipRate) : 0;
+            return {
+              name: String(e.name || '').trim(),
+              role: role || 'Server',
+              tipType: tipType === 'receive' ? 'receive' : 'deduct',
+              baseTip: baseTip,
+              tipRate: tipRate,
+              tagClass: resolveTagClass({ role: role, tipType: tipType })
+            };
+          });
+      } catch (e) {
+        return DEFAULT_EMPLOYEES.slice();
+      }
+    }
+
+    const employees = buildEmployeesFromRoster();
 
     function getSelectedRoles() {
       var el = document.getElementById('roleFilter');
