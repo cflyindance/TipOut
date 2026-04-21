@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>员工列表 - TipOut</title>
+  <link rel="stylesheet" href="common.css">
+  <link rel="stylesheet" href="employees.css">
+</head>
+<body>
+  <div class="layout employees-page">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">M</div>
+        <span class="logo-text">MenuSifu</span>
+      </div>
+      <nav class="sidebar-menu">
+        <div class="sidebar-submenu-title open" onclick="this.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.classList.contains('open')?'200px':'0'">
+          <span>Tip Out</span>
+          <svg class="arrow" width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+        </div>
+        <div class="sidebar-submenu-items" style="max-height:200px">
+          <a href="index.html" class="sidebar-menu-item">小费分配</a>
+        </div>
+        <div class="sidebar-submenu-title open" onclick="this.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.classList.contains('open')?'200px':'0'">
+          <span>员工管理</span>
+          <svg class="arrow" width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+        </div>
+        <div class="sidebar-submenu-items" style="max-height:200px">
+          <a href="employees.html" class="sidebar-menu-item active">员工列表</a>
+        </div>
+        <div class="sidebar-submenu-title open" onclick="this.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.classList.contains('open')?'200px':'0'">
+          <span>Payroll</span>
+          <svg class="arrow" width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+        </div>
+        <div class="sidebar-submenu-items" style="max-height:200px">
+          <a href="payroll.html" class="sidebar-menu-item">报税报表</a>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="mobile-overlay" onclick="closeSidebar()"></div>
+
+    <div class="main-content">
+      <header class="header">
+        <div class="header-left">
+          <button type="button" class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+        </div>
+        <div class="header-right">
+          <div class="header-user">
+            <div class="avatar">R</div>
+            <span>Robert_W</span>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+          </div>
+        </div>
+      </header>
+
+      <div class="content-area">
+        <div class="employees-toolbar">
+          <div>
+            <h1 class="employees-page-title">员工列表</h1>
+          </div>
+          <button type="button" class="btn btn-primary" id="btn-add-employee">新增员工</button>
+        </div>
+
+        <div class="filter-bar filter-bar--page employees-filter-bar">
+          <div class="filter-field">
+            <label class="filter-field-label" for="employee-store-filter">门店</label>
+            <select id="employee-store-filter" class="form-control form-control-lg">
+              <option value="">全部门店</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body" style="padding:0">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>姓名</th>
+                  <th>门店</th>
+                  <th>岗位</th>
+                  <th>小费类型</th>
+                  <th style="text-align:right">基数</th>
+                  <th style="text-align:right">费率</th>
+                  <th>部门</th>
+                  <th>ADP File#</th>
+                  <th style="text-align:right">基本时薪</th>
+                  <th style="text-align:right">OT 时薪</th>
+                  <th style="text-align:right">OT2 时薪</th>
+                  <th style="text-align:right">操作</th>
+                </tr>
+              </thead>
+              <tbody id="employeesTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="addEmployeeModal">
+    <div class="modal" style="width:min(560px,96vw);max-height:90vh;display:flex;flex-direction:column">
+      <div class="modal-header">
+        <h3>新增员工</h3>
+        <button type="button" class="modal-close" onclick="closeModal('addEmployeeModal')">×</button>
+      </div>
+      <div class="modal-body" style="overflow-y:auto;flex:1;min-height:0">
+        <form id="form-add-employee" onsubmit="return false">
+          <div class="form-grid-add">
+            <div class="form-group form-group-full">
+              <label class="form-label" for="field-name">姓名 <span class="text-danger">*</span></label>
+              <input type="text" id="field-name" class="form-control" required autocomplete="name" placeholder="与 Payroll / 小费分配展示一致" />
+            </div>
+            <div class="form-group form-group-full">
+              <label class="form-label" for="field-store">门店</label>
+              <select id="field-store" class="form-control"></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="field-role">岗位（Tip Out）</label>
+              <select id="field-role" class="form-control">
+                <option value="Server">Server</option>
+                <option value="Bartender">Bartender</option>
+                <option value="Kitchen">Kitchen</option>
+                <option value="Busser">Busser</option>
+                <option value="Cashier">Cashier</option>
+                <option value="Runner">Runner</option>
+                <option value="Host">Host</option>
+                <option value="Floor">Floor</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="field-tip-type">小费类型</label>
+              <select id="field-tip-type" class="form-control">
+                <option value="deduct">扣款（参与分配）</option>
+                <option value="receive">接收</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="field-base-tip">基数（Tip Out）</label>
+              <input type="number" id="field-base-tip" class="form-control" min="0" step="0.01" placeholder="0" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="field-tip-rate">费率（Tip Out）</label>
+              <input type="number" id="field-tip-rate" class="form-control" min="0" max="1" step="0.01" placeholder="0.15 或填 15 在下方说明" />
+              <span style="font-size:12px;color:var(--text-tertiary)">填小数如 0.15；若填大于 1 则视为百分比（15 表示 15%）</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="field-dept">部门（Payroll）</label>
+              <input type="text" id="field-dept" class="form-control" placeholder="如 Floor / Kitchen" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="field-adp">ADP File#（Payroll）</label>
+              <input type="text" id="field-adp" class="form-control" style="font-family:ui-monospace,Menlo,monospace" placeholder="可选" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="field-rate">基本时薪（Payroll）</label>
+              <input type="number" id="field-rate" class="form-control" min="0" step="0.01" placeholder="0" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="field-ot-rate">加班时薪 OT（Payroll）</label>
+              <input type="number" id="field-ot-rate" class="form-control" min="0" step="0.01" placeholder="0" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="field-ot2-rate">加班时薪 OT2（Payroll）</label>
+              <input type="number" id="field-ot2-rate" class="form-control" min="0" step="0.01" placeholder="0" />
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" onclick="closeModal('addEmployeeModal')">取消</button>
+        <button type="button" class="btn btn-primary" id="btn-submit-employee">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script src="ruleData.js"></script>
+  <script src="employees.js"></script>
+</body>
+</html>

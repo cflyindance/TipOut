@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>报税报表 - TipOut</title>
+  <link rel="stylesheet" href="common.css">
+  <link rel="stylesheet" href="payroll.css">
+</head>
+<body>
+  <div class="layout payroll-page">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-icon">M</div>
+        <span class="logo-text">MenuSifu</span>
+      </div>
+      <nav class="sidebar-menu">
+        <div class="sidebar-submenu-title open" onclick="this.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.classList.contains('open')?'200px':'0'">
+          <span>Tip Out</span>
+          <svg class="arrow" width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+        </div>
+        <div class="sidebar-submenu-items" style="max-height:200px">
+          <a href="index.html" class="sidebar-menu-item">小费分配</a>
+        </div>
+        <div class="sidebar-submenu-title open" onclick="this.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.classList.contains('open')?'200px':'0'">
+          <span>员工管理</span>
+          <svg class="arrow" width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+        </div>
+        <div class="sidebar-submenu-items" style="max-height:200px">
+          <a href="employees.html" class="sidebar-menu-item">员工列表</a>
+        </div>
+        <div class="sidebar-submenu-title open" onclick="this.classList.toggle('open');this.nextElementSibling.style.maxHeight=this.classList.contains('open')?'200px':'0'">
+          <span>Payroll</span>
+          <svg class="arrow" width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+        </div>
+        <div class="sidebar-submenu-items" style="max-height:200px">
+          <a href="payroll.html" class="sidebar-menu-item active">报税报表</a>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="mobile-overlay" onclick="closeSidebar()"></div>
+
+    <div class="main-content">
+      <header class="header">
+        <div class="header-left">
+          <button type="button" class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+        </div>
+        <div class="header-right">
+          <div class="header-user">
+            <div class="avatar">R</div>
+            <span>Robert_W</span>
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 8.825a.5.5 0 0 1-.354-.146l-4-4a.5.5 0 0 1 .708-.708L6 7.617l3.646-3.646a.5.5 0 0 1 .708.708l-4 4A.5.5 0 0 1 6 8.825z"/></svg>
+          </div>
+        </div>
+      </header>
+
+      <div class="content-area">
+        <div class="payroll-heading-row">
+          <div id="payroll-heading-back" class="payroll-heading-back no-print" hidden>
+            <button type="button" class="btn btn-sm" data-action="back-periods" id="btn-back-periods" hidden>← 返回期列表</button>
+            <button type="button" class="btn btn-sm" data-action="back-employees" id="btn-back-employees" hidden>← 返回员工列表</button>
+          </div>
+          <div class="payroll-heading-center">
+            <h1 id="payroll-main-title" class="payroll-main-title">Payroll期</h1>
+            <div id="payroll-workspace-heading" class="payroll-workspace-heading" hidden>
+              <h2 id="ws-employee-title" class="payroll-workspace-employee-title"></h2>
+            </div>
+          </div>
+        </div>
+
+        <!-- View: Period list -->
+        <section id="view-periods" aria-labelledby="payroll-main-title">
+          <div class="filter-bar filter-bar--page payroll-period-filter-bar no-print">
+            <div class="filter-field">
+              <label class="filter-field-label" for="period-year-filter">年度</label>
+              <select id="period-year-filter" class="form-control form-control-lg">
+              </select>
+            </div>
+            <div class="filter-field">
+              <label class="filter-field-label" for="period-number-filter">期数</label>
+              <select id="period-number-filter" class="form-control form-control-lg">
+                <option value="">全部期数</option>
+              </select>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body" style="padding:0">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>期数</th>
+                    <th>薪资区间</th>
+                    <th>Paycheck (Batch)</th>
+                    <th>状态</th>
+                    <th style="text-align:right">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="period-rows"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- View: Employees -->
+        <section id="view-employees" hidden aria-labelledby="payroll-main-title">
+          <p id="employee-period-title" class="payroll-period-context"></p>
+          <div class="filter-bar filter-bar--page payroll-employee-filter-bar no-print">
+            <div class="filter-field">
+              <label class="filter-field-label" for="employee-store-filter">门店</label>
+              <select id="employee-store-filter" class="form-control form-control-lg">
+                <option value="">全部门店</option>
+              </select>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body" style="padding:0">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>姓名</th>
+                    <th>门店</th>
+                    <th>部门</th>
+                    <th>ADP File#</th>
+                    <th>总工时</th>
+                    <th>确认</th>
+                    <th style="text-align:right">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="employee-rows"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- View: Workspace -->
+        <section id="view-workspace" hidden aria-labelledby="ws-employee-title">
+          <p id="ws-breadcrumb-period" class="payroll-period-context"></p>
+          <div class="payroll-workspace-tabs no-print" role="tablist" aria-label="报表类型">
+            <button type="button" role="tab" data-tab="manage" class="payroll-subtab is-active" aria-selected="true">① Manage Payroll</button>
+            <button type="button" role="tab" data-tab="detail" class="payroll-subtab" aria-selected="false">② Employees Detail</button>
+            <button type="button" role="tab" data-tab="adp" class="payroll-subtab" aria-selected="false">③ ADP Report</button>
+          </div>
+
+          <div id="tab-panel-manage" role="tabpanel">
+            <div class="card" style="margin-bottom:16px">
+              <div class="card-header">考勤明细</div>
+              <div class="payroll-seg-wrap">
+                <table class="payroll-seg-table">
+                  <thead>
+                    <tr>
+                      <th rowspan="2" scope="col">Date</th>
+                      <th colspan="2" scope="colgroup" style="text-align:center">In/Out</th>
+                      <th rowspan="2" scope="col">Meal</th>
+                      <th rowspan="2" scope="col" style="text-align:right">Regular</th>
+                      <th rowspan="2" scope="col" style="text-align:right">OT</th>
+                      <th rowspan="2" scope="col" style="text-align:right">OT2</th>
+                    </tr>
+                    <tr>
+                      <th style="text-align:center;font-weight:400">In</th>
+                      <th style="text-align:center;font-weight:400">Out</th>
+                    </tr>
+                  </thead>
+                  <tbody id="segment-rows"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:16px">
+              <div class="card-header">Pay Period 汇总</div>
+              <div class="card-body">
+                <div class="payroll-sum-grid">
+                  <div class="payroll-sum-block">
+                    <p style="font-size:12px;color:var(--text-tertiary);margin:0 0 8px">工时</p>
+                    <dl style="margin:0">
+                      <div class="payroll-sum-row"><dt>Regular</dt><dd id="sum-reg-h">0</dd></div>
+                      <div class="payroll-sum-row"><dt>OT</dt><dd id="sum-ot-h">0</dd></div>
+                      <div class="payroll-sum-row"><dt>OT2</dt><dd id="sum-ot2-h">0</dd></div>
+                      <div class="payroll-sum-row payroll-sum-total"><dt>合计</dt><dd id="sum-total-h">0</dd></div>
+                    </dl>
+                  </div>
+                  <div class="payroll-sum-block">
+                    <p style="font-size:12px;color:var(--text-tertiary);margin:0 0 8px">金额（× 时薪）</p>
+                    <dl style="margin:0">
+                      <div class="payroll-sum-row"><dt>Regular</dt><dd id="sum-reg-amt">0</dd></div>
+                      <div class="payroll-sum-row"><dt>OT</dt><dd id="sum-ot-amt">0</dd></div>
+                      <div class="payroll-sum-row"><dt>OT2</dt><dd id="sum-ot2-amt">0</dd></div>
+                      <div class="payroll-sum-row payroll-sum-total"><dt>合计</dt><dd id="sum-total-amt">0</dd></div>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:16px">
+              <div class="card-body">
+                <h3 style="font-size:14px;font-weight:600;margin:0 0 12px">员工标识与加班时薪</h3>
+                <div class="form-group" style="margin-bottom:12px">
+                  <label class="form-label" for="field-adp-file">ADP File#</label>
+                  <input id="field-adp-file" type="text" class="form-control" autocomplete="off" style="font-family:ui-monospace,Menlo,monospace" />
+                </div>
+                <div class="form-group" style="margin-bottom:12px">
+                  <label class="form-label" for="field-ot-rate">加班时薪 OT</label>
+                  <input id="field-ot-rate" type="number" step="0.01" class="form-control" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="field-ot2-rate">加班时薪 OT2</label>
+                  <input id="field-ot2-rate" type="number" step="0.01" class="form-control" />
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-bottom:16px">
+              <div class="card-header">
+                <span>Manage payroll 宽表</span>
+                <span style="font-size:12px;font-weight:400;color:var(--text-tertiary)">与 Manage Payroll 模板一致的 13 列；均可手工修改</span>
+              </div>
+              <div class="payroll-wide-table-wrap">
+                <table class="payroll-wide-table">
+                  <thead>
+                    <tr>
+                      <th>Exempt</th>
+                      <th>Rate</th>
+                      <th>Incentive</th>
+                      <th>Breakfast</th>
+                      <th>Lunch</th>
+                      <th>Dinner</th>
+                      <th>Sick Hours</th>
+                      <th>SVCW</th>
+                      <th>Tips</th>
+                      <th>Child sup</th>
+                      <th>Med Ded</th>
+                      <th>Eee 40%</th>
+                      <th>Eer 60%</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><input id="adj-exempt" type="text" class="field-adj" placeholder="—" /></td>
+                      <td><input id="field-rate" type="number" step="0.01" class="field-adj" /></td>
+                      <td><input id="adj-incentive" type="number" step="0.01" class="field-adj" /></td>
+                      <td><input id="adj-breakfast" type="number" step="1" min="0" class="field-adj" /></td>
+                      <td><input id="adj-lunch" type="number" step="1" min="0" class="field-adj" /></td>
+                      <td><input id="adj-dinner" type="number" step="1" min="0" class="field-adj" /></td>
+                      <td><input id="adj-sick" type="number" step="0.01" class="field-adj" /></td>
+                      <td><input id="adj-svcw" type="number" step="0.01" class="field-adj" /></td>
+                      <td><input id="adj-tips" type="number" step="0.01" class="field-adj" /></td>
+                      <td><input id="adj-child-sup" type="number" step="0.01" class="field-adj" /></td>
+                      <td><input id="adj-med-ded" type="number" step="0.01" class="field-adj" /></td>
+                      <td><input id="adj-eee40" type="number" step="0.01" class="field-adj" /></td>
+                      <td><input id="adj-eer60" type="number" step="0.01" class="field-adj" /></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-primary no-print" data-action="confirm-employee" style="margin-bottom:24px">确认本期该员工数据</button>
+          </div>
+
+          <div id="tab-panel-detail" role="tabpanel" hidden class="print-area">
+            <div class="no-print" style="display:flex;justify-content:flex-end;align-items:center;gap:12px;margin-bottom:16px">
+              <span id="detail-draft-badge" class="tag tag-orange">草稿预览 · 非最终</span>
+              <button type="button" id="btn-print-detail" class="btn btn-sm">打印 / PDF</button>
+            </div>
+            <article class="payroll-detail-print">
+              <header style="border-bottom:1px solid var(--border-light);padding-bottom:16px;margin-bottom:16px">
+                <h3 style="font-size:16px;font-weight:600;margin:0">Employees Payroll Detail</h3>
+                <p style="margin:8px 0 0;font-size:13px;color:var(--text-secondary)"><span id="detail-range"></span></p>
+                <p style="margin:8px 0 0;font-size:15px;font-weight:500">员工：<span id="detail-name"></span></p>
+              </header>
+              <div id="detail-hours-grid"></div>
+              <div style="margin-top:24px;padding:16px;border:1px dashed var(--border-color);border-radius:var(--radius-md);background:rgba(0,0,0,0.02);font-size:13px;line-height:1.6">
+                <p style="font-weight:600;margin:0 0 8px">声明</p>
+                <p style="margin:0;color:var(--text-secondary)">
+                  I hereby certify that the above time and gratuity <strong class="payroll-cert-amount">$<span id="detail-svc">0.00</span></strong> and tips <strong class="payroll-cert-amount">$<span id="detail-tips">0.00</span></strong> are correct. I further certify, under penalty of perjury, that I have been rest breaks as required by California law and that any meal period or rest break missed, meal period taken for less than 30 mins, or rest break taken for less than 10 mins, was purely voluntary.
+                </p>
+              </div>
+              <footer style="margin-top:48px;display:grid;grid-template-columns:1fr 1fr;gap:32px;border-top:1px solid var(--border-light);padding-top:24px">
+                <div>
+                  <p style="font-size:13px;color:var(--text-secondary)">员工签字</p>
+                  <div style="margin-top:32px;border-bottom:1px solid rgba(0,0,0,0.35)"></div>
+                  <p style="margin:8px 0 0;font-size:12px;color:var(--text-tertiary)">日期 _______________</p>
+                </div>
+                <div>
+                  <p style="font-size:13px;color:var(--text-secondary)">主管签字</p>
+                  <div style="margin-top:32px;border-bottom:1px solid rgba(0,0,0,0.35)"></div>
+                  <p style="margin:8px 0 0;font-size:12px;color:var(--text-tertiary)">日期 _______________</p>
+                </div>
+              </footer>
+            </article>
+          </div>
+
+          <div id="tab-panel-adp" role="tabpanel" hidden>
+            <div class="no-print" style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px">
+              <button type="button" id="btn-export-csv" data-action="export-csv" class="btn btn-primary btn-sm">导出 CSV</button>
+            </div>
+            <div class="card">
+              <div class="card-body" style="padding:0;overflow-x:auto">
+                <table class="data-table" style="min-width:900px">
+                  <thead>
+                    <tr>
+                      <th>CO CODE</th>
+                      <th>BATCH ID</th>
+                      <th>FILE #</th>
+                      <th>Name</th>
+                      <th style="text-align:right">Rate</th>
+                      <th style="text-align:right">Reg Hrs</th>
+                      <th>H3 code</th>
+                      <th style="text-align:right">H3 amt</th>
+                      <th>E3 code</th>
+                      <th style="text-align:right">E3 amt</th>
+                      <th>E3 code</th>
+                      <th style="text-align:right">E3 amt</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adp-preview-row"></tbody>
+                </table>
+              </div>
+            </div>
+            <p class="no-print" style="margin-top:12px;font-size:12px;color:var(--text-tertiary)">若未填写 ADP File#，导出按钮将禁用（模拟校验）。</p>
+          </div>
+        </section>
+
+        <footer class="payroll-footer-note no-print">
+          静态演示 · 数据保存在浏览器 localStorage（键名 tipout-payroll-state-v4）
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <script src="common.js"></script>
+  <script src="ruleData.js"></script>
+  <script src="payroll.js"></script>
+</body>
+</html>

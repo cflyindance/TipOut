@@ -1,0 +1,1000 @@
+# 7Shifts
+
+- 顶部
+  - 搜索
+  - Announcements
+  - Messages
+  - Notifications
+  - 个人中心
+    - 分组一
+      - My Account
+      - Plans & Pricing
+      - Company Settings
+      - Add-ons
+      - Locations / Departments/Roles
+    - 分组二
+      - Contacts
+      - Activity Log
+    - 分组三
+      - Theme: Light
+        - Auto
+          - Follows this browser's system preference.
+        - Light
+          - Always light theme on this browser.
+        - Dark
+          - Always dark theme on this browser.
+      - Support&What'sNew
+      - Logout
+    - 分组四
+      - Earn a $100 Amazon gift card Refer a friend and get rewarded!
+- 一级导航分组一
+  - Dashboard
+    - Sales vs. Labor
+      - 功能一
+        - 279 employees to invite。Employees need to be invited to view a published schedule or manage their time-off and availability.
+          - Invite employees
+        - Add more of your locations to 7shifts。Centralize all your restaurant locations in 7shifts to ensure streamlined operations
+          - Add locations to 7shifts
+        - Connect your POS
+          - Connect
+        - Set up your payroll
+          - Explore 7shifts Payroll
+      - 报表
+        - Week
+          - Actual Sales
+          - Actual Labor
+          - Projected Sales
+          - Projected Labor
+        - Month
+          - Actual Sales
+          - Actual Labor
+          - Projected Sales
+          - Projected Labor
+    - Who's working?
+  - Schedule
+    - Schedules
+      - 顶部
+        - 时间筛选条件
+          - 年月日时间段
+          - Today
+        - 状态
+          - Unpublished
+          - Overtime
+          - Fix warnings
+        - 工具
+          - Print
+          - Download
+          - Import Sales
+          - Calendar Sync
+          - Optimal Labor
+          - Month View
+          - Revert
+          - Clear
+        - 复制
+          - Fill from Template
+          - Save as Template
+          - Manage Templates
+          - Copy to...
+          - Copy from...
+        - 操作
+          - Publish schedule
+      - 门店排班筛选条件
+        - 门店
+          - Day
+          - Week
+          - Create department
+      - 排版表展示方式Layout
+        - 分组一
+          - List
+          - List by role
+          - Time frames
+        - 分组二
+          - Show birthdays
+          - Show work anniversaries
+          - Show labor budget tool
+      - 排班表
+        - Add employees
+          - Create new employees
+            - Employee name (required)
+            - Email
+            - Phone
+            - Employee type
+              - Employee
+              - Assistant Manager
+              - Manager
+            - Roles
+              - Manager
+              - Add new role
+          - Assign existing employees
+            - Employee Assignment list
+        - Events
+          - 日历列表
+            - Create event
+              - Event Title
+              - Description (Optional)
+              - Multi-day event
+                - 开启
+                  - Time
+                    - from
+                    - To
+                - 关闭
+                  - Date
+                  - Time
+                    - from
+                    - To
+                  - Repeat
+                    - Does Not Repeat
+                    - Daily
+                    - Weekly on Monday
+                    - Monthly on the second Monday
+                    - Annually on April 13
+              - Location
+                - devzby
+                - Idella Lock
+                - Nader Road
+                - test
+        - 排版员工列表
+          - 姓名
+          - 工作时长
+          - 薪资
+          - 员工备注
+        - 每周所有员工
+          - 上班总时长
+          - 上班总薪资
+        - 每天所有员工
+          - 上班总时长
+          - 上班总薪资
+    - Time Off
+      - 介绍
+        - Manage your team's vacation and time off requests in one place to optimize scheduling
+      - Requests
+        - 操作
+          - Add time off
+            - Employee
+            - Status
+              - Pending
+              - Approved
+            - Duration
+              - Full day(s)
+              - Partial day
+            - Comment
+        - 筛选条件
+          - All locations
+            - All locations
+            - DEVTEST001
+            - devzby
+            - Idella Lock
+            - Nader Road
+            - test
+            - TEST001
+          - All employees
+            - All employees
+            - Menusifu Admin
+            - 1202Test后加
+            - 7Test001
+          - All statuses
+            - All statuses
+            - Pending
+            - Approved
+            - Declined
+        - 列表
+          - Employee
+          - Date submitted
+          - Approved (YTD)
+          - Time off requested
+          - Status
+      - Calendar
+        - 操作
+          - Add time off
+            - Employee
+            - Status
+              - Pending
+              - Approved
+            - Duration
+              - Full day(s)
+              - Partial day
+            - Date
+              - From
+              - To
+            - Comment
+        - 日历
+          - 周一到周日
+      - Blocked Days
+        - Employees will not be able to request these days off.
+        - 操作
+          - Add blocked day
+            - Type
+              - Date
+                - Date
+                - Title (optional)
+                - Locations
+              - Range
+                - Date
+                  - From
+                  - To
+                - Title (optional)
+                - Locations
+        - 列表
+          - Date
+          - Title
+    - Availability
+      - 介绍
+        - Keep track of your team's availability to make scheduling easier
+        - Team members’ preferred shifts and availability requests will show up here. Once approved, they will appear on the schedule and help you create shifts that best suit your team.
+        - Start by adding your own availability.
+      - 操作
+        - Add your availability
+          - Add availability
+            - Employee
+            - Type
+              - Temporary
+              - Recurring
+          - Availability
+      - Requests
+        - 筛选条件
+          - All locations
+          - All Employees
+            - All Employees
+            - My Availability
+            - Menusifu Admin
+            - Mariano Dooley
+            - Maxine Labadie
+            - Delaney Anderson
+            - Rosie Koss
+            - Santiago Kuvalis
+            - Murl Johns
+          - All Types
+            - All Types
+            - Temporary
+            - Recurring
+          - All Statuses
+            - All Statuses
+            - Pending
+            - Approved
+            - Declined
+        - 列表
+          - Employee
+          - Effective dates
+          - Date submitted
+          - Status
+      - Glance View
+        - 操作
+          - Print / Download
+        - 筛选条件
+          - 时间
+          - All locations
+          - All Types
+            - All Types
+            - Temporary
+            - Recurring
+        - 员工排版表
+          - Employee
+          - 状态
+            - Available
+      - Reasons
+        - 操作
+          - Add reason
+            - Reason for not being available
+            - A comment is required
+              - The employee can not submit an availability request with this specific reason unless they've added a comment explaining further.
+        - 原因列表
+          - School
+          - Other job
+    - Shift Pool
+      - 介绍
+        - Monitor shift changes and stay in control of your schedule
+        - Team members can offer up shifts, trade shifts, and bid on open shifts. These shift changes will show up in the Shift Pool for your approval so you are always in the loop.
+      - Shift pool requests
+        - 列表
+          - Request
+          - Time
+          - Location
+          - Department
+          - Role
+      - Up for grabs
+        - 列表
+          - Shift being offered
+          - Offering to
+          - Time
+          - Location
+          - Department
+          - Role
+      - Trade requests
+        - 筛选条件
+          - All locations
+          - All employees
+          - All statuses
+            - All statuses
+            - Pending
+            - Approved
+            - Declined
+        - 列表
+          - Employee
+          - Shift being offered
+          - Status
+      - My trades
+        - 筛选条件
+          - All locations
+          - All employees
+          - All statuses
+            - All statuses
+            - Pending
+            - Approved
+            - Declined
+        - 列表
+          - Employee
+          - Shift being offered
+          - Status
+  - Team
+    - Employees
+      - View Employees
+        - 操作
+          - Add employee
+        - 筛选条件
+          - Bulk actions
+            - Bulk add/import
+            - Bulk assign a role
+            - Bulk edit wages
+            - eir t
+            - Bulk invite
+            - Bulk deactivate
+            - Export employees (CSV)
+            - Email employees their punch IDs
+        - 状态分类
+          - Active Employees
+            - 筛选条件
+              - All locations
+              - All departments
+              - All roles
+              - All employee types
+              - All statuses
+                - All statuses
+                - Needs contact info
+                - Invite required
+                - Invite pending
+            - 员工列表
+          - Pending Employees
+            - 列表
+              - Employee
+              - Email
+              - Time left to review
+          - Inactive Employees
+            - 筛选条件
+              - All inactive reasons
+                - All inactive reasons
+                - ADP User Assignment
+                - Business Conditions
+                - COVID-19
+                - COVID-19 Layoffs
+                - Company Seasonality
+                - Deactivated on POS
+                - Found another job
+                - Going back to school
+                - Maternity Leave
+                - Medical Leave/Personal
+                - Leave
+                - Medical/Personal Reasons
+                - New Job Offer
+                - No-show/Late
+                - Other
+                - Poor Performance
+                - Quit
+                - Rude to Customers
+                - Substance Abuse
+                - Terminated / Let Go
+                - Theft
+                - Unacceptable Behaviour
+                - Voluntary Resignation
+                - Went Back to School
+              - All rehire statuses
+                - All rehire statuses
+                - Yes
+                - No
+            - 列表
+              - Employee
+              - Deactivation Date
+              - Deactivated By
+              - Reason
+              - Rehire?
+      - Import
+        - Manually Import Your Team
+          - Download template
+          - Upload your file
+      - Onboarding
+        - 介绍
+          - Simplify your onboarding process
+            - Prepare for an employee’s first day by securely collecting and storing their onboarding documents.
+            - Send required government forms (I-9, tax forms)
+            - Track policy acknowledgement receipts
+            - Collect payroll information
+            - Monitor employees’ onboarding progress
+        - 功能
+          - In-progress
+            - Employee
+            - Status
+          - Completed
+            - Employee
+            - Closed at
+          - Onboarding package
+            - Document name
+              - Employee’s Withholding Certificate W-4
+                - W-4 determines the employee’s income tax withholding.
+              - Employment Eligibility Verification I-9
+                - I-9 is used to verify the identity and employment authorization of individuals hired for employment in the United States.
+              - State and Local Tax Withholding (if applicable)
+                - If your business is located in a state or a city that requires a separate tax form to determine the employee’s income tax withholding.
+              - Payment method
+            - Include in package
+    - Engage
+      - 筛选条件
+      - Satisfaction
+        - Avg. Shift Score
+        - Responses
+      - Location Performance Stats
+        - Lates
+          - Same last week
+        - No Shows
+          - Same last week
+        - Shift Bids
+          - Same last week
+        - Dropped Shifts
+          - Same last week
+        - Avg. Tenure
+      - Team Performance Breakdown
+        - Lates
+        - Attendance
+        - Dropped Shifts and Shift Bids
+      - 排名分析
+        - Most Reliable
+          - The employee with the best weekly shift c employee has the least "no shows" and is  punctual for the given time period.
+        - Most Eager
+          - The employee who has bid on the most shif Pool for the given time period.
+        - Most Sick Days
+          - The employee with the most Sick flags on  schedule for the given time period.
+        - Most Often Late
+          - The employee who has punched in after the start time the most in the given time per
+        - Most Dropped Shifts
+          - The employee who has dropped the most shi given time period.
+        - Most Engaged
+  - Hiring
+    - Job Postings
+      - 介绍
+        - Find the perfect candidate
+        - Use Hiring to create job postings and find the right candidates for your restaurant.
+        - Get started by telling us what you're looking for.
+      - 说明
+        - Create the posting
+        - Fill in the details and we’ll make a job posting and application form to find the right person for the role.
+        - Spread the word
+        - We’ll give you a unique link to the job posting to share with your network and beyond. Think: social media, your website, text messages, or with your team. Plus, your posting will automatically appear on Google search results if someone looks for related jobs in your area.
+        - Manage the process
+        - As the applicants roll in you’ll be able to manage, vet, and hire them all in one place!
+      - Add a job posting
+        - Job Details
+          - Role
+            - Barback
+            - Barista
+            - Bartender
+            - Cashier
+            - Catering
+            - Chef
+            - Cook
+            - Crew member
+            - Dishwasher
+            - Driver
+            - Ехро
+            - Food runner
+            - Host
+            - Line cook
+            - Manager
+            - Prep cook
+            - Server
+            - Supervisor
+          - Location
+          - Job title (optional)
+            - You can modify the Role name to commonly used titles at your restaurant (ex: Team Member, Pizza Artist), but avoid using spammy terms, job codes, and calls to action.
+          - Restaurant name
+            - The name of the restaurant where the applicant will be working.
+          - Address
+          - Job type
+            - Full-time/Part-time
+            - Full-time
+            - Part-time
+          - Hourly wage (optional)
+            - Job postings that mention wages tend to get more applications. Set an exact wage or a range.
+            - Exact Wage
+            - Range
+          - Job description
+            - Responsibilities
+            - Skills
+            - Benefits
+        - Application Questions (optional)
+          - Add custom questions to the applications, which candidates will be required to answer.
+        - Notifications
+          - We’ll send a notification email to menusifu_admin@7shiftstest.com when a candidate applies for this job.
+- 一级导航分组二
+  - Tasks
+    - Overview
+      - 介绍
+        - We're building your recipe for success!
+        - The recipe for an organized restaurant awaits. Soon, you'll be able to track list status, history, and more in one place.
+      - 筛选条件
+        - 时间段
+        - 门店
+      - 列表
+        - Task list name
+        - Recurrence
+        - Due
+        - Assigned to
+    - Task List Templates
+      - 介绍
+        - Keep your team on track
+        - Stay organized in your restaurant by creating and activating custom task lists for your locations or roles.
+        - 筛选条件
+          - All locations
+          - All departments
+          - All roles
+        - 操作
+          - Create list
+      - 介绍
+        - Keep your team on track with 7tasks
+        - Stay organized and improve team accountability by creating, assigning, and tracking custom task lists for different locations or roles within your restaurant.
+        - 操作
+          - Create list
+            - Auto-assign punch IDs to continue
+            - Your staff need Punch IDs to access 7tasks. If they don't have them, we'll auto-assign the IDs and you can email them to your team from the Employees page when you're ready.
+    - Download 7tasks
+      - Download the 7tasks App
+      - Your team will stay on top of daily duties by viewing and completing tasks through 7tasks—making your restaurant more productive than ever.
+      - A manager must authenticate the app on a shared device before employees can access and complete tasks.
+    - Settings
+      - Mobile Task Management￼
+        - If enabled, employees will have the ability to view and complete tasks using 7tasks from their own mobile devices.
+      - ￼Send task reminders to employees
+        - If enabled, employees will be notified at the start of their shift that they have assigned tasks.
+      - Send incomplete task list alerts to managers
+        - If enabled, scheduled managers will be notified when a task list is not completed on time.
+  - Log Book
+    - View Logs
+      - 操作
+        - Send email summary
+          - Summary Email
+            - An email can be sent to managers manually automatically at a specific time.
+            - Manually Send Email
+            - Auto-send Daily set time
+      - 筛选条件
+        - 时间段
+        - 门店
+      - 列表
+        - Total Sales
+        - Total Labor
+        - Labor %
+        - Weather
+        - Avg. Shift Score
+    - Categories
+      - 介绍
+        - Drag and organize your logbook categories into columns for easy viewing.
+      - 操作
+        - Create category
+          - Name
+          - Type
+            - CREATE YOUR OWN
+              - Техt Вох
+              - Number Box
+              - Dollar Box
+              - Percentage Box
+            - MADE BY 7SHIFTS
+              - Employee Performance Logs
+              - Task Summary
+              - Weekly Overtime Risk
+    - Search
+      - 筛选条件
+        - Location
+        - Category
+          - All categories
+        - Posted by
+          - All users
+        - Date range
+        - Message
+      - 结果
+- 一级导航分组三
+  - Time Clocking
+    - Pay Periods
+      - 介绍
+        - Below is a list of auto-generated payroll periods. Next upcoming pay period: April 22, 2026 - April 28, 2026
+      - add POS
+        - Finish connecting your POS!Connect your new or existing POS with 7punches to manage Time Clocking.
+      - History
+        - Review
+          - Timesheets
+            - Pay Period Status
+              - Ready for review
+            - Employee Punches
+              - 2/4 approved
+          - Employee Punches
+            - 筛选条件
+              - All departments
+              - All roles
+              - 时间段
+              - All employees
+              - Punch filters
+                - Auto Clock Out
+                - Late
+                - Missed Break
+            - 列表
+              - Date
+              - Name / Role
+              - Location / Department
+              - Source
+              - Punch in - Punch out
+              - Actual Hrs
+              - Sched. Punch In - Out
+              - Actions
+                - Approve
+                  - Punch Overview
+                    - Shift Details
+                      - Punch in
+                      - Punch out
+                    - Modify Punch
+                      - Employee
+                      - Location
+                      - Date
+                      - Clocked in
+                      - Clocked out
+                      - Notes
+                    - Breaks
+                      - 操作
+                        - Add break
+                          - In
+                          - Out
+                          - Break type
+                            - Paid
+                            - Unpaid
+                - Approved
+                  - Punch Overview
+                    - Shift Details
+                      - Punch in
+                      - Punch out
+                    - Modify Punch
+                      - Employee
+                      - Location
+                      - Date
+                      - Clocked in
+                      - Clocked out
+                      - Notes
+                    - Breaks
+                      - 操作
+                        - Add break
+                          - In
+                          - Out
+                          - Break type
+                            - Paid
+                            - Unpaid
+          - Warnings
+          - Labor Summary
+            - 筛选条件
+              - All departments
+              - All roles
+              - 时间段
+              - All employees
+            - 列表
+              - Name
+              - Location
+              - Role
+              - Wage
+              - Shifts
+              - Regular Hrs
+              - Holiday Hours
+              - Total Hours
+              - Total Pay
+        - 更多
+          - Edit this Pay Period's dates
+          - EXPORT
+            - Worked Hours & Wages Excel
+            - Worked Hours & Wages CSV
+            - Variance
+    - Payroll Setup
+      - 介绍
+        - Switch to 7shifts Payroll once—forget chasing data on multiple systems.
+        - Switch to 7shifts Payroll and run payroll in just a few clicks—no spreadsheets, no manual math. Your team’s hours, wages, and time off are already synced. Switching is easy with your own dedicated payroll expert to handle setup for you.
+    - Download 7punches
+      - Simplify Time Clocking with 7punches
+      - Use our free, integrated time clock app to easily capture employee punches, prevent time theft, and stay compliant — all right in 7shifts.
+      - Download 7punches
+        - 1. Download the FREE app Scan the QR code on your shared punch device.
+        - 2. Configure settings Define punch-in/out rules in Time Clocking.
+        - 3. Share punch IDs with employees Find them in employee profiles or the 7shifts app.
+    - Settings
+      - General settings
+        - Auto shift flags
+          - If enabled, shifts will be automatically flagged as lates or no shows. Auto shift flags can later be overridden on the schedule.
+          - Late tolerance
+            - 0 minutes
+            - 5 minutes
+            - 10 minutes
+            - 15 minutes
+            - 20 minutes
+            - 25 minutes
+            - 30 minutes
+            - 60 minutes
+            - The minutes after the start of a shift that an employee can clock in without being auto flagged as late. Auto shift flags can later be overridden on the schedule.
+        - Employee timesheet and earnings access
+          - If enabled, employees will have the ability to view their detailed timesheets and view their wage earnings per shift.
+          - Employee tip visibility
+            - If enabled, employees will have the ability to view their tip report breakdown. Customize what they see here.
+          - Employee approval of time punches
+            - If enabled, employees can approve or dispute individual punches within a pay period. Once the time sheet is closed, employees can no longer modify their responses. Approved and disputed punches, along with any comments, will be recorded in the Punch Audit report and Employee Time Sheet report. Learn more about employee approval of time punches.
+          - Send punch edit alerts to employees
+            - If enabled, employees will be notified when a time punch has been edited by a manager. Note: punch-in alerts from 7punches are in real-time, but some POS systems may cause a delay of up to 6 minutes.
+          - Send punch-in alerts to managers
+            - If enabled, managers will be notified after an employee hasn't punched in for scheduled start time. Note: punch-in alerts from 7punches are in real-time but alerts from some POS systems may have a delay up to 6 minutes
+          - Send punch-out alerts to managers
+            - If enabled, managers will be notified after an employee hasn't punched out for scheduled end time. Note: punch-in alerts from 7punches are in real-time but alerts from some POS systems may have a delay up to 6 minutes.
+          - ￼Send punch-in reminders to employees
+            - If enabled, employees will be notified if they haven't punched in after their scheduled start time.
+      - POS settings
+        - Edit POS time punches in 7shifts
+          - If enabled, 7shifts will ignore any modifications to a time punch on your POS after an employee has clocked out. Modifications to time punches will need to be done in 7shifts going forward. These edits will be shown in your Punch Audit Report. Edits to punches in 7shifts will not be reflected on your POS.
+      - 7punches settings
+        - Employee health check
+          - If enabled, employees must complete a health check upon punch-in to ensure they aren't presenting symptoms of COVID-19. Employees who fail the health check will be locked-out from punch-in and all managers will be notified via email and SMS. Learn more about COVID-19 health requirements.
+        - Mobile punch
+          - If enabled, employees will be able to punch in and out of their shifts from their own mobile device. However, as employee location data will not be retrieved or shared, the employee could potentially punch-in without being in the restaurant.
+        - Geofencing (Requires mobile punch)
+          - If enabled, employees will be able to punch in/out on their device when they are within the set range of the restaurant—and will be prevented from punching if they are outside that set range.
+        - Buddy punch prevention
+          - If enabled, a photo will be taken after an employee has punched in or out for managers to later verify their identity
+        - Grace period
+          - 条件
+            - Off
+            - 1 minute
+            - 2 minutes
+            - 5 minutes
+            - 10 minutes
+            - 15 minutes
+            - 20 minutes
+            - 30 minutes
+          - If enabled, the grace period will allow you to turn on features that provide flexibility to how employee punches are approved and rounded within time clocking.
+            - Auto-approve punches
+              - If enabled, employee punches will be automatically approved before/after the start of a shift based on the set grace period.
+            - Rounding for early punch-in
+              - If enabled, employees’ clock-in times will be rounded to their scheduled start time when they punch in early AND are within the set grace period.
+            - Rounding for late punch-in
+              - If enabled, employees’ clock-in times will be rounded to the nearest grace period interval when they punch in after their scheduled start time.
+              - Example: If the grace period is set to 10 minutes and the employee’s shift starts at 9:00am, but they punch-in at 9:03am, their clock-in time would be rounded down to 9:00am. However if the employee punches in at 9:08am, their clock-in time would be rounded up to 9:10am.
+            - Rounding for punch-out
+              - If enabled, employees' clock-out times will be rounded to the nearest grace period interval when they punch out.
+              - Example: If the grace period is set to 10 minutes, but they punch-out at 3:03pm, their clock-out time would be rounded down to 3:00pm. However, if the employee punches out at 3:08pm, their clock-out time would be rounded up to 3:10pm.
+            - Prevent early punch-in
+              - If enabled, employees will not be able to punch in before their shift start time, unless they are within the set grace period.
+              - Example: If the grace period is set to 10 minutes and the employee’s shift starts at 3:00pm, but they try to punch in at 2:49pm, they will not be allowed to punch in. However, if the employee tries to punch in at 2:50pm, they will be allowed to punch in.
+          - Auto punch-out
+            - If enabled, any unclosed punches will be automatically punched out at the preset time set below.
+            - Punch-out time
+          - Allow punch without shift
+            - If enabled, employees can punch-in when they do not have a shift that day.
+          - Allow switching role with shift scheduled
+            - If enabled, employees will be able to punch in for a different role than the one originally assigned. Their punch will still map to the scheduled shift, and a warning will appear in the exception's column of Time Clocking page to indicate the change.
+          - Allow breaks
+            - If enabled, employees will be able to punch-in and out for breaks.
+            - Break type
+              - Paid
+              - Unpaid
+              - Custom/Enforceable
+                - Add break
+              - Please choose if your breaks will be paid or unpaid. If you would like some breaks to be paid and others to be unpaid, please select custom/enforceable and create your break types.
+          - Declare tips
+            - If enabled, employees will have the ability to declare their tips on punch-out.
+  - Tip Management
+    - Overview
+      - Tip Management
+        - Welcome to Tip Management!
+        - This dashboard is where you can track your team’s earned, paid and owed tips. By automating all of the tip calculations, you’ll never have to worry about human errors or paying your team incorrectly. Simply connect your POS or 7punches to get started, and build your tip distribution rules to populate your tip data and track tips.
+      - Get set up with Tip Management
+        - After completing these steps, we’ll calculate your employees tips so you can pay them quickly and accurately. Here’s how:
+        - Enable your time punch data
+          - Connect your POS or use 7punches to properly track tips in a pay period.
+        - Build your custom tip pool
+          - Set rules for how you distribute tips between employees.
+        - Automate tips to payroll calculations
+          - Identify owed and paid tips for easy payroll processing
+        - Owed tips
+          - Looks like you haven’t set up your automated tip calculations
+          - This is where your paid and owed tip will be when you automate your tip calculations.
+        - 报表
+          - Employee
+          - Earned Tips
+            - The total amount of tips earned by the employee in this pay period. Earned tips can be configured here.
+          - Paid on shift
+            - The total amount of tips paid to the employee outside of 7shifts. This includes cash tips added using the “Add tips paid in cash” above.
+          - Paid in Tip Payout
+            - The total amount already paid to the employee through Tip Payouts.
+          - Paid on payroll
+            - The total amount of tips paid to the employee via payroll during this time frame.
+          - Owed tips
+            - The outstanding tip total owed to the employee. Owed Tips is calculated by Earned tips - Paid on shift - Paid on Tip Payouts - Paid on payroll.
+    - Tip Pooling
+      - 介绍
+        - Simplify tip pooling for your restaurant
+        - Empower your management team and save time paying out tips with a customizable tool to create, calculate, and track tip pools in your restaurant.
+        - Simplify your tip pooling process by:
+          - Automatically syncing tips from your POS
+          - Specifying who contributes tips, who receives tips and how they are divided
+          - Save time in paying out tips to your employees
+      - Create a tip pool
+        - Build Your Pool
+          - 介绍
+            - Let's start building your tip pool
+            - We just need a few details to build the tip pool for your restaurant
+          - What location is this tip pool for?
+            - 门第选择
+          - What is the name of your tip pool?
+          - How often are tips calculated?
+            - Daily
+            - Weekly
+              - When did your last tip pay period end?
+            - Biweekly
+              - When did your last tip pay period end?
+            - Semi-monthly (calculation period ends on month)
+            - Monthly
+        - Select Pool Type
+        - Add Contributors
+        - Add Tips
+          - 介绍
+            - Here’s how you’ll add tips
+            - Once your pool is setup, daily tip totals are added within the Tip pooling section.
+        - Add Receivers
+          - 介绍
+            - Who is receiving from the pool?
+            - Determine how you'd like tips to be distributed to your team.
+          - How are tips distributed?
+            - Equal Distribution
+              - Tips are equally distributed based on hours worked. Show me an example
+              - Receivers
+                - Select a role/department
+                - Add receiver
+            - Percentage
+              - Tips are allocated to specific roles by percentage, then distributed by hours. Show me an example
+              - Receivers
+                - Select a role/department
+                - Receiver %
+                - Add receiver
+            - Points Weighting
+              - Specified roles are given a number of points. The points act as a multiplier for each hour worked. Show me an example
+              - Receivers
+                - Select a role/department
+                - Point multiplier
+                - Add receiver
+        - Final Review
+          - 介绍
+            - One last review!
+            - Confirm details before publishing "TipOut"
+          - How are tips added?
+            - Manual Contribution
+              - Daily tip totals are added manually on the Tip Pooling page.
+              - How often are tips calculated?
+              - Daily
+          - How are tips distributed?
+            - Points Weighting
+              - Based on the number of hours worked, tips are distributed by weighted points.
+            - Who’s receiving tips?
+      - Tip Pooling
+        - Name
+        - Location
+        - Dayparts
+        - Date
+        - Add tips
+          - Date
+          - Total Daily Tips
+            - 输入小费
+    - Settings
+      - Manage your tip settings
+        - Credit Card Withholding
+          - Reclaim a portion of employees’ credit card tips to cover processing fees.
+          - Reclaim a portion of employees' credit card tips to cover processing fees. Note: this is only available when tips are synced from your POS.
+        - Employee visibility of tips
+          - If enabled, employees will have the ability to view a tip report including their own tips collected, contributed tips, tips received and their earned tips from pools.
+        - Set your tip calculation
+          - Specify which tips should be included in payroll. Your selection will be reflected in the Worked Hours and Wages report and some payroll exports and integrations.
+          - Accurately report employee tip earnings with tip calculation
+          - Set custom rules to automate your tip calculations for reporting. These calculations will apply to payroll integrations and exports, the Tip Payouts dashboard, Worked Hours and Wages report, and can optionally be shown to employees on the 7shifts mobile app.
+  - Payroll
+- 一级导航分组四
+  - Reports
+  - Apps & Integrations
+  - Settings
+- 一级导航分组五
+  - Quick Start（GUIDE）
+  - Help
+- Employees
+  - Info
+    - Personal
+      - First name (required)
+      - Last name (required)
+      - Email
+      - Birthday
+      - Pronouns
+      - Mobile phone
+      - Home phone
+      - Address
+      - Zip / postal code
+      - City
+      - State / province
+      - Emergency Contact
+        - Contact name
+        - Contact number
+      - Login and Security
+        - Invite to 7shifts via Email/SMS
+          - Employees require an invite to gain access to things like published schedules, time-off and availability.
+    - Employment
+      - Punch ID
+        - The number that this employee can punch in with.
+      - Employee ID
+        - Either an internal employee ID or an ID assigned by your payroll provider that is used in your payroll export.
+      - Max weekly hours
+        - This is not used for overtime. Looking for overtime rules?
+      - Employment History
+        - Used for record keeping and 7shifts Payroll calculations. Termination does not deactivate employees.
+        - 列表
+          - Payroll classification
+          - Hire date
+          - Termination date
+        - 操作
+          - Add employment period
+          - Deactivate employee
+    - Assignments
+      - Locations
+      - Departments
+        - Add a department
+      - Roles
+    - Wages and payment
+      - Pay details
+        - Wage type
+          - Employees can only have one wage type.
+          - Hourly
+          - Weekly Salary
+          - Annual Salary
+        - 列表
+        - 筛选条件
+          - All locations
+          - All roles
+      - Payment
+        - Show banking details
+    - Time Off
+      - Unpaid Time Off
+        - 0 hours taken
+        - O hours scheduled
+    - Documents
+      - Upload Certifications
+        - Choose file
+          - Drag and drop certificates, licenses, perhents.
+          - PDF, JPEG, PNG, DOCX, or XSLX (max: 500MB
+      - Upload documents
+        - Choose file
+          - Drag and drop certificates, licenses, perhents.
+          - PDF, JPEG, PNG, DOCX, or XSLX (max: 500MB
+    - Performance
+      - Employee Engagement
+        - 列表
+          - Shifts Worked
+          - Lates
+          - No Shows
+          - Shifts Trades
+          - Dropped Shifts
+          - Tasks Completed
+      - Shift Feedback
+        - Avg. Shift Score
+      - Performance Log
+        - New note
+          - Add feedback specific to this employee.
+          - Only visible to admins and managers with permission.
+    - Permissions
+      - User type
+        - Employee
+        - Admin
+        - Assistant Manager
+        - Manager
+        - This user type cannot be given permissions. Go to company settings to manage user types.
+    - Scheduling Notes
+      - Scheduling Notes
+        - These notes will be available when viewing the schedule. Only you and other management staff can see scheduling notes.
